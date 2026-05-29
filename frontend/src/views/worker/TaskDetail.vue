@@ -1,0 +1,198 @@
+<template>
+  <div class="task-detail" v-if="task">
+    <div class="header">
+      <h2>{{ taskTypes[task.type] }}</h2>
+      <span class="budget">¥{{ task.budget }}</span>
+    </div>
+
+    <div class="section">
+      <h4>服务信息</h4>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="label">服务地址</span>
+          <span class="value">{{ task.address }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">开始时间</span>
+          <span class="value">{{ formatDateTime(task.start_time) }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">结束时间</span>
+          <span class="value">{{ formatDateTime(task.end_time) }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">服务时长</span>
+          <span class="value">{{ task.duration_minutes }}分钟</span>
+        </div>
+        <div class="info-item">
+          <span class="label">体力要求</span>
+          <span class="value">{{ ['', '轻度', '中度', '重度'][task.physical_level] }}</span>
+        </div>
+        <div class="info-item" v-if="task.is_charity">
+          <span class="label">公益任务</span>
+          <span class="value tag">公益</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" v-if="task.special_requirements">
+      <h4>特殊要求</h4>
+      <p>{{ task.special_requirements }}</p>
+    </div>
+
+    <div class="section">
+      <h4>雇主信息</h4>
+      <div class="employer-info">
+        <span>{{ task.employer_nickname || '匿名用户' }}</span>
+        <span class="phone" v-if="task.employer_phone">{{ task.employer_phone }}</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <el-button type="primary" size="large" :loading="loading" @click="handleAccept" :disabled="task.status !== 0">
+        {{ task.status === 0 ? '立即接单' : taskStatusNames[task.status] }}
+      </el-button>
+    </div>
+  </div>
+  <el-loading v-else />
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import request from '@/api/request'
+import { ElMessage } from 'element-plus'
+
+const route = useRoute()
+const router = useRouter()
+
+const task = ref(null)
+const loading = ref(false)
+
+const taskTypes = ['', '陪诊', '陪聊', '小时保洁', '做饭', '接送', '看护', '跑腿', '助教', '其他']
+const taskStatusNames = ['', '已接单', '服务中', '已完成', '已取消', '争议中']
+
+const formatDateTime = (time) => {
+  if (!time) return ''
+  const date = new Date(time)
+  return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+const handleAccept = async () => {
+  loading.value = true
+  try {
+    const res = await request.post(`/worker/tasks/${route.params.id}/accept`)
+    if (res.code === 0) {
+      ElMessage.success('接单成功')
+      router.push('/worker/my-tasks')
+    } else {
+      ElMessage.error(res.message)
+    }
+  } catch (e) {
+    ElMessage.error(e.message || '接单失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(async () => {
+  try {
+    const res = await request.get(`/task/${route.params.id}`)
+    if (res.code === 0) {
+      task.value = res.data
+    }
+  } catch (e) {
+    ElMessage.error('获取任务详情失败')
+  }
+})
+</script>
+
+<style scoped>
+.task-detail {
+  padding: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.header h2 {
+  font-size: 20px;
+}
+
+.budget {
+  font-size: 24px;
+  color: #667eea;
+  font-weight: bold;
+}
+
+.section {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.section h4 {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 12px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-item .label {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.info-item .value {
+  font-size: 14px;
+  color: #333;
+}
+
+.info-item .tag {
+  color: #f56c6c;
+}
+
+.section p {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.employer-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #333;
+}
+
+.employer-info .phone {
+  color: #667eea;
+}
+
+.actions {
+  margin-top: 20px;
+}
+
+.actions .el-button {
+  width: 100%;
+}
+</style>
