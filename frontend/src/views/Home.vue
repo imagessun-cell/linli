@@ -168,7 +168,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
@@ -190,7 +190,7 @@ const viewMode = ref('list')
 const showFilters = ref(false)
 const selectedTypes = ref([])
 const selectedLevels = ref([])
-const radius = ref(5000)
+const radius = ref(5000000)
 const selectedTask = ref(null)
 
 let map = null
@@ -222,7 +222,7 @@ const physicalLevels = [
 const radiusMarks = {
   500: '500m',
   2000: '2km',
-  5000: '5km',
+  5000000: '5000km',
   10000: '10km'
 }
 
@@ -324,7 +324,7 @@ const applyFilters = () => {
 const resetFilters = () => {
   selectedTypes.value = []
   selectedLevels.value = []
-  radius.value = 5000
+  radius.value = 5000000
 }
 
 const handleSearch = () => {
@@ -391,6 +391,12 @@ const initMap = () => {
 onMounted(async () => {
   await getUserLocation()
   await loadTasks(true)
+})
+
+watch(viewMode, (newMode) => {
+  if (newMode === 'map') {
+    nextTick(() => initMap())
+  }
 })
 
 onUnmounted(() => {
