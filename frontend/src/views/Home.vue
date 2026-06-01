@@ -37,13 +37,24 @@
           @click="viewMode = 'list'"
           :aria-pressed="viewMode === 'list'"
           aria-label="列表视图"
-        >▤</button>
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
         <button
           :class="{ active: viewMode === 'map' }"
           @click="viewMode = 'map'"
           :aria-pressed="viewMode === 'map'"
           aria-label="地图视图"
-        >▥</button>
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -69,7 +80,8 @@
         >
           <div class="task-main">
             <div class="task-type" aria-label="任务类型">
-              <span v-if="task.subTypeIcon" class="sub-type-tag">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
+              <span v-if="task.subTypeIcon" :class="['sub-type-tag', getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
+              <span v-else-if="task.typeName === '陪诊'" :class="['sub-type-tag', 'tag-escort']">🪑 门诊陪护</span>
               <span v-else>{{ task.typeIcon }} {{ task.typeName }}</span>
             </div>
             <h3 class="task-title">{{ task.title }}</h3>
@@ -97,6 +109,7 @@
         <div v-if="selectedTask" class="map-info-window" role="dialog" aria-labelledby="map-task-title">
           <div id="map-task-title" class="info-type">
             <span v-if="selectedTask.subTypeIcon" class="sub-type-tag">{{ selectedTask.subTypeIcon }} {{ selectedTask.subTypeName }}</span>
+            <span v-else-if="selectedTask.typeName === '陪诊'" class="sub-type-tag tag-escort">🪑 门诊陪护</span>
             <span v-else>{{ selectedTask.typeIcon }} {{ selectedTask.typeName }}</span>
           </div>
           <div class="info-title">{{ selectedTask.title }}</div>
@@ -298,6 +311,16 @@ const resetFilters = () => {
 
 const handleSearch = () => {
   loadTasks(true)
+}
+
+const getSubTypeClass = (subType) => {
+  const classMap = {
+    1: 'tag-accompany',
+    2: 'tag-pharmacy',
+    3: 'tag-escort',
+    4: 'tag-consult'
+  }
+  return classMap[subType] || ''
 }
 
 const formatDistance = (distance) => {
@@ -580,13 +603,40 @@ onUnmounted(() => {
 
 .sub-type-tag {
   display: inline-block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 2px 8px;
+  padding: 4px 12px;
   border-radius: 12px;
   font-size: var(--font-size-xs);
   font-weight: 600;
-  letter-spacing: 0.05em;
+}
+
+.sub-type-tag.tag-accompany {
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+}
+
+.sub-type-tag.tag-pharmacy {
+  background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+}
+
+.sub-type-tag.tag-escort {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+}
+
+.sub-type-tag.tag-consult {
+  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+}
+
+.main-type-tag {
+  display: inline-block;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.main-type-tag.tag-escort-main {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
 }
 
 .task-title {

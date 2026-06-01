@@ -107,7 +107,6 @@ const goToApplyWorker = () => {
   right: 0;
   display: flex;
   background: var(--bg-primary);
-  border-top: var(--border);
   z-index: 1000;
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -120,7 +119,7 @@ const goToApplyWorker = () => {
   justify-content: center;
   padding: var(--spacing-sm) var(--spacing-xs);
   min-height: var(--touch-target-min);
-  border: none;
+  border: 2px solid #FFFFFF;
   background: transparent;
   cursor: pointer;
   transition: all 0.2s;

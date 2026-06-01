@@ -7,8 +7,9 @@
 
     <div class="hero-section" v-if="task">
       <div class="hero-type">
-        <span class="type-icon">{{ task.typeIcon }}</span>
-        <span class="type-name">{{ task.typeName }}</span>
+        <span v-if="task.subTypeIcon" :class="['sub-type-tag', getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
+        <span v-else-if="task.typeName === '陪诊'" class="sub-type-tag tag-escort">🪑 门诊陪护</span>
+        <span v-else class="hero-type-plain">{{ task.typeIcon }} {{ task.typeName }}</span>
       </div>
       <h1 class="hero-title">{{ task.title }}</h1>
       <div class="hero-meta">
@@ -36,6 +37,9 @@
               <span class="info-label">服务地址</span>
               <span class="info-value">{{ task.address }}</span>
             </div>
+          </div>
+          <div class="map-container-small">
+            <div id="task-detail-map" class="map-small"></div>
           </div>
           <div class="info-row">
             <span class="info-icon">🗓️</span>
@@ -132,11 +136,60 @@ const formatDateTime = (str) => {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+const getSubTypeClass = (subType) => {
+  const classMap = {
+    1: 'tag-accompany',
+    2: 'tag-pharmacy',
+    3: 'tag-escort',
+    4: 'tag-consult'
+  }
+  return classMap[subType] || ''
+}
+
+const initTaskMap = () => {
+  const checkAndInit = () => {
+    console.log('checkAndInit called', { BMapGL: typeof BMapGL })
+    if (typeof BMapGL === 'undefined') {
+      console.log('BMapGL not loaded yet')
+      setTimeout(checkAndInit, 500)
+      return
+    }
+    const mapContainer = document.getElementById('task-detail-map')
+    console.log('mapContainer', !!mapContainer, 'task.value', !!task.value)
+    if (!mapContainer || !task.value) {
+      console.log('Missing container or task')
+      return
+    }
+    console.log('Coordinates:', task.value.latitude, task.value.longitude)
+    if (!task.value.latitude || !task.value.longitude) {
+      console.log('Missing coordinates')
+      return
+    }
+    try {
+      const map = new BMapGL.Map('task-detail-map')
+      console.log('Map created')
+      const point = new BMapGL.Point(task.value.longitude, task.value.latitude)
+      map.centerAndZoom(point, 16)
+      map.enableScrollWheelZoom(false)
+      map.addEventListener('tilesloaded', () => {
+        console.log('Map tiles loaded')
+      })
+      const marker = new BMapGL.Marker(point)
+      map.addOverlay(marker)
+      console.log('Marker added')
+    } catch (e) {
+      console.error('Map error:', e)
+    }
+  }
+  checkAndInit()
+}
+
 const loadTask = async () => {
   try {
     const res = await request.get(`/task/public/${route.params.id}`)
     if (res.code === 0) {
       task.value = res.data
+      nextTick(() => initTaskMap())
     } else {
       error.value = res.message || '加载失败'
     }
@@ -235,11 +288,17 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
-.type-icon {
+.hero-type-plain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-type-plain .type-icon {
   font-size: 24px;
 }
 
-.type-name {
+.hero-type-plain .type-name {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -247,18 +306,44 @@ onMounted(() => {
   color: #666;
 }
 
+.sub-type-tag {
+  display: inline-block;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sub-type-tag.tag-escort {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+}
+
+.tag-accompany {
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+}
+
+.tag-pharmacy {
+  background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+}
+
+.tag-consult {
+  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+}
+
 .hero-title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 900;
   letter-spacing: -0.02em;
   margin-bottom: 16px;
+  color: #1a1a1a;
 }
 
 .hero-meta {
   display: flex;
   gap: 20px;
-  font-size: 13px;
-  color: #666;
+  font-size: 16px;
+  color: #444;
 }
 
 .main-content {
@@ -279,7 +364,7 @@ onMounted(() => {
 }
 
 .budget-label {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -288,14 +373,14 @@ onMounted(() => {
 }
 
 .budget-value {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 900;
   color: #FF3300;
 }
 
 .physical-tag {
-  padding: 8px 16px;
-  font-size: 12px;
+  padding: 10px 18px;
+  font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -308,11 +393,11 @@ onMounted(() => {
 }
 
 .section-title {
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #666;
+  letter-spacing: 0.05em;
+  color: #333;
   margin-bottom: 20px;
 }
 
@@ -329,7 +414,7 @@ onMounted(() => {
 }
 
 .info-icon {
-  font-size: 18px;
+  font-size: 20px;
   margin-top: 2px;
 }
 
@@ -340,17 +425,33 @@ onMounted(() => {
 }
 
 .info-label {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #999;
+  letter-spacing: 0.05em;
+  color: #666;
   margin-bottom: 4px;
 }
 
 .info-value {
-  font-size: 15px;
-  color: #000;
+  font-size: 16px;
+  color: #1a1a1a;
+  line-height: 1.5;
+}
+
+.map-container-small {
+  margin: 12px 0 12px 30px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: calc(100% - 30px);
+  height: 160px;
+}
+
+.map-small {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .special-requirements {

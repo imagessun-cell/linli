@@ -203,7 +203,6 @@ onMounted(async () => {
 
 .profile-header {
   background: var(--bg-primary);
-  border-bottom: var(--border);
 }
 
 .avatar-section {
@@ -244,13 +243,13 @@ onMounted(async () => {
 .role-tabs {
   display: flex;
   background: var(--bg-primary);
-  border-bottom: var(--border);
+  box-sizing: content-box;
 }
 
 .role-tab {
   flex: 1;
   padding: var(--spacing-lg) var(--spacing-md);
-  border: none;
+  border: 2px solid #FFFFFF;
   background: transparent;
   font-size: var(--font-size-lg);
   font-weight: 600;
@@ -296,9 +295,9 @@ onMounted(async () => {
 
 .login-btn {
   padding: var(--spacing-md) var(--spacing-2xl);
-  background: var(--accent) !important;
+  background: #000000 !important;
   color: var(--bg-primary) !important;
-  border: 3px solid var(--accent) !important;
+  border: 3px solid #000000 !important;
   font-size: var(--font-size-lg);
   font-weight: 700;
   min-width: 200px;
