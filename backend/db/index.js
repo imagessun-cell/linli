@@ -46,4 +46,31 @@ function initMockData() {
   });
 }
 
+db.allSync = (sql, ...params) => {
+  return new Promise((resolve, reject) => {
+    db.all(sql, ...params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+};
+
+db.getSync = (sql, ...params) => {
+  return new Promise((resolve, reject) => {
+    db.get(sql, ...params, (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+};
+
+db.runSync = (sql, ...params) => {
+  return new Promise((resolve, reject) => {
+    db.run(sql, ...params, function(err) {
+      if (err) reject(err);
+      else resolve({ lastInsertRowid: this.lastInsertRowid, changes: this.changes });
+    });
+  });
+};
+
 module.exports = db;

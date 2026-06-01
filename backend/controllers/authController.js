@@ -35,8 +35,10 @@ const register = async (req, res) => {
   const token = generateToken(user);
 
   if (role === 1) {
-    db.prepare('INSERT INTO t_worker (user_id, age, community, skills) VALUES (?, 0, ?, ?)').run(user.id, '', '[]');
-    db.prepare('INSERT INTO t_wallet (worker_id) VALUES (?)').run(user.id);
+    const workerStmt = db.prepare('INSERT INTO t_worker (user_id, age, community, skills) VALUES (?, 0, ?, ?)');
+    workerStmt.run(user.id, '', '[]');
+    const worker = db.prepare('SELECT * FROM t_worker WHERE user_id = ?').get(user.id);
+    db.prepare('INSERT INTO t_wallet (worker_id) VALUES (?)').run(worker.id);
   } else if (role === 2) {
     db.prepare('INSERT INTO t_employer (user_id) VALUES (?)').run(user.id);
   }
@@ -67,8 +69,10 @@ const login = async (req, res) => {
     `);
     const result = stmt.run(phone, `用户${phone.slice(-4)}`, now, now);
     user = db.prepare('SELECT * FROM t_user WHERE id = ?').get(result.lastInsertRowid);
-    db.prepare('INSERT INTO t_worker (user_id, age, community, skills) VALUES (?, 0, ?, ?)').run(user.id, '', '[]');
-    db.prepare('INSERT INTO t_wallet (worker_id) VALUES (?)').run(user.id);
+    const workerStmt = db.prepare('INSERT INTO t_worker (user_id, age, community, skills) VALUES (?, 0, ?, ?)');
+    workerStmt.run(user.id, '', '[]');
+    const worker = db.prepare('SELECT * FROM t_worker WHERE user_id = ?').get(user.id);
+    db.prepare('INSERT INTO t_wallet (worker_id) VALUES (?)').run(worker.id);
   }
 
   const token = generateToken(user);

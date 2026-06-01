@@ -1,46 +1,59 @@
 <template>
   <div class="home-container">
-    <div class="search-bar">
-      <el-input
+    <header class="home-header">
+      <h1>LINLI</h1>
+      <h2 class="header-tagline">邻里互助，老有所为</h2>
+    </header>
+
+    <div class="search-bar" role="search">
+      <label for="search-input" class="sr-only">搜索任务</label>
+      <input
+        id="search-input"
         v-model="searchKeyword"
         placeholder="搜索地址或关键词"
         class="search-input"
+        type="search"
         @keyup.enter="handleSearch"
-      >
-        <template #prefix>
-          <span class="search-icon">🔍</span>
-        </template>
-      </el-input>
-      <el-button @click="showFilters = true" class="filter-btn">
-        筛选
-      </el-button>
+      />
+      <button class="filter-btn" @click="showFilters = true" aria-label="打开筛选">筛选</button>
     </div>
 
     <div class="sort-bar">
-      <div class="sort-tabs">
-        <span
+      <div class="sort-tabs" role="tablist" aria-label="排序方式">
+        <button
           v-for="sort in sortOptions"
           :key="sort.value"
+          role="tab"
+          :aria-selected="sortBy === sort.value"
           :class="{ active: sortBy === sort.value }"
           @click="changeSort(sort.value)"
         >
           {{ sort.label }}
-        </span>
+        </button>
       </div>
-      <div class="view-toggle">
-        <span :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">📋</span>
-        <span :class="{ active: viewMode === 'map' }" @click="viewMode = 'map'">🗺️</span>
+      <div class="view-toggle" role="group" aria-label="视图切换">
+        <button
+          :class="{ active: viewMode === 'list' }"
+          @click="viewMode = 'list'"
+          :aria-pressed="viewMode === 'list'"
+          aria-label="列表视图"
+        >▤</button>
+        <button
+          :class="{ active: viewMode === 'map' }"
+          @click="viewMode = 'map'"
+          :aria-pressed="viewMode === 'map'"
+          aria-label="地图视图"
+        >▥</button>
       </div>
     </div>
 
-    <div class="content-area">
+    <main class="content-area" role="main" id="main-content">
       <div v-if="viewMode === 'list'" class="task-list">
-        <div v-if="loading" class="loading">
-          <el-icon class="is-loading"><Loading /></el-icon>
-          <span>加载中...</span>
+        <div v-if="loading" class="loading" aria-live="polite">
+          <span>加载中，请稍候...</span>
         </div>
         <div v-else-if="tasks.length === 0" class="empty">
-          <span class="empty-icon">📭</span>
+          <span class="empty-icon" aria-hidden="true">—</span>
           <p>暂无附近岗位</p>
           <p class="tip">试试扩大搜索范围</p>
         </div>
@@ -49,121 +62,81 @@
           v-for="task in tasks"
           :key="task.id"
           class="task-card"
+          role="article"
           @click="goToDetail(task.id)"
+          @keydown.enter="goToDetail(task.id)"
+          tabindex="0"
         >
-          <div class="task-header">
-            <span class="task-type-icon">{{ task.typeIcon }}</span>
-            <span class="task-type">{{ task.typeName }}</span>
-            <span class="physical-badge" :style="{ background: task.physicalLevelColor }">
-              {{ task.physicalLevelName }}
-            </span>
+          <div class="task-main">
+            <div class="task-type" aria-label="任务类型">{{ task.typeIcon }} {{ task.typeName }}</div>
+            <h3 class="task-title">{{ task.title }}</h3>
+            <div class="task-meta">
+              <span>{{ formatDistance(task.distance) }}</span>
+              <span>{{ task.duration }}分钟</span>
+              <span>⭐ {{ task.employerRating }}</span>
+            </div>
           </div>
-          <div class="task-title">{{ task.title }}</div>
-          <div class="task-info">
-            <span class="info-item">
-              <span class="label">距离</span>
-              <span class="value">{{ formatDistance(task.distance) }}</span>
-            </span>
-            <span class="info-item">
-              <span class="label">时长</span>
-              <span class="value">{{ task.duration }}分钟</span>
-            </span>
-            <span class="info-item">
-              <span class="label">评分</span>
-              <span class="value">⭐ {{ task.employerRating }}</span>
-            </span>
-          </div>
-          <div class="task-footer">
-            <span class="budget">¥{{ task.budget }}</span>
-            <span class="employer">{{ task.employerNickname }}</span>
-          </div>
-          <div class="task-actions">
-            <el-button
-              v-if="userStore.isLoggedIn && userStore.userInfo?.role === 1"
-              type="primary"
-              size="small"
-              @click.stop="grabTask(task.id)"
-            >
-              立即接单
-            </el-button>
-            <el-button
-              v-else-if="!userStore.isLoggedIn"
-              type="primary"
-              size="small"
-              @click.stop="goToLogin"
-            >
-              登录后接单
-            </el-button>
-            <el-button
-              v-else
-              size="small"
-              @click.stop="goToDetail(task.id)"
-            >
-              查看详情
-            </el-button>
+          <div class="task-side">
+            <div class="task-budget" aria-label="报酬">¥{{ task.budget }}</div>
+           
           </div>
         </div>
 
         <div v-if="hasMore" class="load-more">
-          <el-button @click="loadMore" :loading="loadingMore">加载更多</el-button>
+          <button @click="loadMore" :disabled="loadingMore" aria-busy="loadingMore">
+            {{ loadingMore ? '加载中...' : '加载更多' }}
+          </button>
         </div>
       </div>
 
-      <div v-else class="map-container">
-        <div id="baidu-map" class="map"></div>
-        <div v-if="selectedTask" class="map-info-window">
-          <div class="info-header">
-            <span class="info-type-icon">{{ selectedTask.typeIcon }}</span>
-            <span class="info-type">{{ selectedTask.typeName }}</span>
-          </div>
+      <div v-else class="map-container" role="region" aria-label="地图视图">
+        <div id="baidu-map" class="map" aria-label="任务分布地图"></div>
+        <div v-if="selectedTask" class="map-info-window" role="dialog" aria-labelledby="map-task-title">
+          <div id="map-task-title" class="info-type">{{ selectedTask.typeIcon }} {{ selectedTask.typeName }}</div>
           <div class="info-title">{{ selectedTask.title }}</div>
           <div class="info-detail">
-            <span>距离: {{ formatDistance(selectedTask.distance) }}</span>
-            <span>报酬: ¥{{ selectedTask.budget }}</span>
+            <span>{{ formatDistance(selectedTask.distance) }}</span>
+            <span>¥{{ selectedTask.budget }}</span>
           </div>
-          <el-button type="primary" size="small" @click="goToDetail(selectedTask.id)">
-            查看详情
-          </el-button>
+          <button @click="goToDetail(selectedTask.id)">查看详情</button>
         </div>
+      </div>
+    </main>
+
+    <div
+      v-if="showFilters"
+      class="filter-drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="filter-title"
+    >
+      <div class="drawer-header">
+        <h2 id="filter-title">筛选条件</h2>
+        <button class="close-btn" @click="showFilters = false" aria-label="关闭筛选">×</button>
+      </div>
+      <div class="filter-section">
+        <h3>任务类型</h3>
+        <div class="filter-chips">
+          <label v-for="type in taskTypes" :key="type.value" class="chip">
+            <input type="checkbox" v-model="selectedTypes" :value="type.value" />
+            <span>{{ type.icon }} {{ type.label }}</span>
+          </label>
+        </div>
+      </div>
+      <div class="filter-section">
+        <h3>体力等级</h3>
+        <div class="filter-chips">
+          <label v-for="level in physicalLevels" :key="level.value" class="chip">
+            <input type="checkbox" v-model="selectedLevels" :value="level.value" />
+            <span :style="{ color: level.color }">{{ level.label }}</span>
+          </label>
+        </div>
+      </div>
+      <div class="drawer-footer">
+        <button @click="resetFilters">重置</button>
+        <button class="primary" @click="applyFilters">确定</button>
       </div>
     </div>
-
-    <el-drawer v-model="showFilters" title="筛选条件" size="80%">
-      <div class="filter-section">
-        <h4>任务类型</h4>
-        <div class="filter-chips">
-          <el-checkbox
-            v-for="type in taskTypes"
-            :key="type.value"
-            v-model="selectedTypes"
-            :label="type.value"
-          >
-            {{ type.icon }} {{ type.label }}
-          </el-checkbox>
-        </div>
-      </div>
-      <div class="filter-section">
-        <h4>体力等级</h4>
-        <div class="filter-chips">
-          <el-checkbox
-            v-for="level in physicalLevels"
-            :key="level.value"
-            v-model="selectedLevels"
-            :label="level.value"
-          >
-            <span :style="{ color: level.color }">●</span> {{ level.label }}
-          </el-checkbox>
-        </div>
-      </div>
-      <div class="filter-section">
-        <h4>距离范围</h4>
-        <el-slider v-model="radius" :min="500" :max="10000" :step="500" show-stops :marks="radiusMarks" />
-      </div>
-      <template #footer>
-        <el-button @click="resetFilters">重置</el-button>
-        <el-button type="primary" @click="applyFilters">确定</el-button>
-      </template>
-    </el-drawer>
   </div>
 </template>
 
@@ -171,7 +144,6 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import request from '@/api/request'
 
@@ -193,25 +165,21 @@ const selectedLevels = ref([])
 const radius = ref(5000000)
 const selectedTask = ref(null)
 
-let map = null
-let markers = []
-let userLocation = { lat: 31.230416, lng: 121.473701 }
-
 const sortOptions = [
-  { label: '距离最近', value: 'distance' },
-  { label: '报酬最高', value: 'budget' },
-  { label: '体力最轻', value: 'physicalLevel' }
+  { label: '距离', value: 'distance' },
+  { label: '报酬', value: 'budget' },
+  { label: '体力', value: 'physicalLevel' }
 ]
 
 const taskTypes = [
-  { label: '陪诊', icon: '🩺', value: 1 },
-  { label: '陪聊', icon: '💬', value: 2 },
-  { label: '保洁', icon: '🧹', value: 3 },
-  { label: '做饭', icon: '🍳', value: 4 },
-  { label: '接送', icon: '🚗', value: 5 },
-  { label: '看护', icon: '👴', value: 6 },
-  { label: '跑腿', icon: '📦', value: 7 },
-  { label: '助教', icon: '📚', value: 8 }
+  { label: '陪诊', icon: '＋', value: 1 },
+  { label: '陪聊', icon: '＋', value: 2 },
+  { label: '保洁', icon: '＋', value: 3 },
+  { label: '做饭', icon: '＋', value: 4 },
+  { label: '接送', icon: '＋', value: 5 },
+  { label: '看护', icon: '＋', value: 6 },
+  { label: '跑腿', icon: '＋', value: 7 },
+  { label: '助教', icon: '＋', value: 8 }
 ]
 
 const physicalLevels = [
@@ -219,12 +187,9 @@ const physicalLevels = [
   { label: '中度', value: 2, color: '#faad14' }
 ]
 
-const radiusMarks = {
-  500: '500m',
-  2000: '2km',
-  5000000: '5000km',
-  10000: '10km'
-}
+let map = null
+let markers = []
+let userLocation = { lat: 31.230416, lng: 121.473701 }
 
 const getUserLocation = () => {
   return new Promise((resolve) => {
@@ -332,7 +297,7 @@ const handleSearch = () => {
 }
 
 const formatDistance = (distance) => {
-  if (!distance) return '未知'
+  if (!distance) return '—'
   if (distance < 1000) return `${distance}m`
   return `${(distance / 1000).toFixed(1)}km`
 }
@@ -409,177 +374,285 @@ onUnmounted(() => {
 <style scoped>
 .home-container {
   min-height: 100vh;
-  background: #f5f5f5;
-  padding-bottom: 20px;
+  background: var(--bg-primary);
+  padding-bottom: 100px;
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-lg) var(--spacing-md);
+  border-bottom: var(--border);
+  gap: var(--spacing-sm);
+}
+
+.home-header h1 {
+  font-size: var(--font-size-2xl);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.header-tagline {
+  font-size: var(--font-size-base);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text-muted);
+  margin: 0;
 }
 
 .search-bar {
   display: flex;
-  padding: 12px 16px;
-  background: #fff;
-  gap: 10px;
+  padding: var(--spacing-md);
+  gap: var(--spacing-sm);
+  border-bottom: var(--border-light);
 }
 
 .search-input {
   flex: 1;
+  padding: var(--spacing-xs);
+  font-size: var(--font-size-base);
+  border: var(--border-medium);
+  outline: none;
+  min-height: var(--touch-target-min);
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .filter-btn {
-  background: #f0f0f0;
-  border: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  text-transform: uppercase;
+  background: var(--bg-primary) !important;
+  border: var(--border) !important;
+  cursor: pointer;
+  min-width: 80px;
+  min-height: var(--touch-target-min);
+}
+
+.filter-btn:hover {
+  background: var(--text-primary) !important;
+  color: var(--bg-primary) !important;
 }
 
 .sort-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: var(--border-light);
 }
 
 .sort-tabs {
   display: flex;
-  gap: 16px;
+  gap: 0;
 }
 
-.sort-tabs span {
-  color: #666;
-  font-size: 14px;
+.sort-tabs button {
+  padding: var(--spacing-sm) var(--spacing-sm);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: var(--text-muted);
   cursor: pointer;
+  min-height: var(--touch-target-min);
+  position: relative;
 }
 
-.sort-tabs span.active {
-  color: #1890ff;
-  font-weight: bold;
+.sort-tabs button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.sort-tabs button.active {
+  color: var(--text-primary);
+}
+
+.sort-tabs button.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: var(--spacing-md);
+  right: var(--spacing-md);
+  height: 3px;
+  background: var(--accent);
 }
 
 .view-toggle {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-xs);
 }
 
-.view-toggle span {
-  font-size: 18px;
+.view-toggle button {
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  font-size: var(--font-size-lg);
+  background: var(--bg-primary);
+  border: var(--border-medium) !important;
   cursor: pointer;
-  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.view-toggle span.active {
-  opacity: 1;
+.view-toggle button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.view-toggle button.active {
+  background: var(--text-primary);
+  color: var(--bg-primary);
 }
 
 .content-area {
-  padding: 12px 16px;
+  padding: 0;
 }
 
 .loading, .empty {
   text-align: center;
-  padding: 60px 0;
-  color: #999;
+  padding: var(--spacing-2xl) 0;
+  color: var(--text-muted);
+}
+
+.loading {
+  font-size: var(--font-size-lg);
+  padding: var(--spacing-2xl);
 }
 
 .empty-icon {
-  font-size: 48px;
+  font-size: 64px;
   display: block;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.3;
+}
+
+.empty p {
+  font-size: var(--font-size-lg);
+  margin: 0;
 }
 
 .empty .tip {
-  font-size: 12px;
-  color: #ccc;
+  font-size: var(--font-size-base);
+  color: var(--text-muted);
+  margin-top: var(--spacing-sm);
 }
 
 .task-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-md);
+  border-bottom: var(--border-light);
   cursor: pointer;
-  transition: box-shadow 0.2s;
+  min-height: 100px;
 }
 
 .task-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--bg-secondary);
 }
 
-.task-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+.task-card:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
 }
 
-.task-type-icon {
-  font-size: 20px;
+.task-main {
+  flex: 1;
 }
 
 .task-type {
-  font-size: 14px;
-  color: #333;
-}
-
-.physical-badge {
-  font-size: 12px;
-  color: #fff;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-left: auto;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-xs);
 }
 
 .task-title {
-  font-size: 15px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 8px;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin: 0 0 var(--spacing-sm);
+  color: var(--text-primary);
 }
 
-.task-info {
+.task-meta {
   display: flex;
-  gap: 16px;
-  margin-bottom: 8px;
+  gap: var(--spacing-lg);
+  font-size: var(--font-size-base);
+  color: var(--text-muted);
 }
 
-.info-item {
+.task-side {
   display: flex;
-  gap: 4px;
-  font-size: 13px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
 }
 
-.info-item .label {
-  color: #999;
+.task-budget {
+  font-size: var(--font-size-2xl);
+  font-weight: 900;
+  color: var(--danger);
 }
 
-.info-item .value {
-  color: #666;
+.grab-btn, .login-btn, .detail-btn {
+  padding: var(--spacing-xs) var(--spacing-xs);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border: var(--border) !important;
+  cursor: pointer;
+  min-width: 80px;
+  min-height: 44px;
 }
 
-.task-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+.grab-btn:hover, .login-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent) !important;
 }
 
-.budget {
-  font-size: 20px;
-  font-weight: bold;
-  color: #ff6b00;
+.detail-btn {
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
-.employer {
-  font-size: 13px;
-  color: #999;
-}
-
-.task-actions {
-  display: flex;
-  justify-content: flex-end;
+.detail-btn:hover {
+  background: var(--bg-secondary);
 }
 
 .load-more {
+  padding: var(--spacing-lg) var(--spacing-md);
   text-align: center;
-  padding: 20px;
+}
+
+.load-more button {
+  padding: var(--spacing-md) var(--spacing-2xl);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  text-transform: uppercase;
+  background: var(--bg-primary);
+  border: var(--border) !important;
+  cursor: pointer;
+  min-width: 200px;
+  min-height: var(--touch-target-min);
+}
+
+.load-more button:hover:not(:disabled) {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.load-more button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .map-container {
@@ -594,58 +667,176 @@ onUnmounted(() => {
 
 .map-info-window {
   position: absolute;
-  bottom: 20px;
-  left: 16px;
-  right: 16px;
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.info-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.info-type-icon {
-  font-size: 24px;
+  bottom: var(--spacing-lg);
+  left: var(--spacing-md);
+  right: var(--spacing-md);
+  background: var(--bg-primary);
+  border: var(--border);
+  padding: var(--spacing-lg);
 }
 
 .info-type {
-  font-size: 16px;
-  font-weight: bold;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-xs);
 }
 
 .info-title {
-  font-size: 14px;
-  color: #333;
-  margin-bottom: 8px;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
 }
 
 .info-detail {
   display: flex;
-  gap: 16px;
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 12px;
+  gap: var(--spacing-lg);
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+.map-info-window button {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border: var(--border) !important;
+  cursor: pointer;
+  min-height: var(--touch-target-min);
+}
+
+.map-info-window button:hover {
+  background: var(--accent);
+  border-color: var(--accent) !important;
+}
+
+.filter-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 90%;
+  max-width: 400px;
+  background: var(--bg-primary);
+  border-left: var(--border);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg) var(--spacing-md);
+  border-bottom: var(--border);
+}
+
+.drawer-header h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+.close-btn {
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  font-size: var(--font-size-2xl);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+}
+
+.close-btn:hover {
+  background: var(--bg-secondary);
+}
+
+.close-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
 }
 
 .filter-section {
-  margin-bottom: 24px;
+  padding: var(--spacing-lg) var(--spacing-md);
+  border-bottom: var(--border-light);
 }
 
-.filter-section h4 {
-  margin-bottom: 12px;
-  font-size: 14px;
-  color: #333;
+.filter-section h3 {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-md);
 }
 
 .filter-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--spacing-sm);
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-base);
+  border: var(--border-medium);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.chip:has(input:checked) {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.chip input {
+  display: none;
+}
+
+.drawer-footer {
+  margin-top: auto;
+  padding: var(--spacing-md);
+  display: flex;
+  gap: var(--spacing-md);
+  border-top: var(--border);
+}
+
+.drawer-footer button {
+  flex: 1;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--bg-primary);
+  border: var(--border) !important;
+  cursor: pointer;
+  min-height: var(--touch-target-min);
+}
+
+.drawer-footer button.primary {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.drawer-footer button:hover {
+  background: var(--bg-secondary);
+}
+
+.drawer-footer button.primary:hover {
+  background: var(--accent);
+  border-color: var(--accent) !important;
 }
 </style>

@@ -3,13 +3,17 @@
     <div class="main-content">
       <router-view />
     </div>
-    <van-tabbar v-model="active" @change="onTabChange">
-      <van-tabbar-item icon="home-o" to="/employer/dashboard">首页</van-tabbar-item>
-      <van-tabbar-item icon="plus" to="/employer/publish">发单</van-tabbar-item>
-      <van-tabbar-item icon="search" to="/employer/workers">服务者</van-tabbar-item>
-      <van-tabbar-item icon="orders-o" to="/employer/orders">订单</van-tabbar-item>
-      <van-tabbar-item icon="user-o" to="/employer/profile">我的</van-tabbar-item>
-    </van-tabbar>
+    <div class="tab-bar">
+      <button
+        v-for="(tab, index) in tabs"
+        :key="tab.path"
+        :class="['tab-item', { active: active === index }]"
+        @click="onTabChange(index)"
+      >
+        <span class="tab-icon">{{ tab.icon }}</span>
+        <span class="tab-label">{{ tab.label }}</span>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -21,12 +25,16 @@ const router = useRouter()
 const route = useRoute()
 const active = ref(0)
 
+const tabs = [
+  { label: '首页', icon: '◇', path: '/employer/dashboard' },
+  { label: '发单', icon: '＋', path: '/employer/publish' },
+  { label: '我的', icon: '○', path: '/employer/profile' }
+]
+
 const routeMap = {
   '/employer/dashboard': 0,
   '/employer/publish': 1,
-  '/employer/workers': 2,
-  '/employer/orders': 3,
-  '/employer/profile': 4
+  '/employer/profile': 2
 }
 
 watch(() => route.path, (path) => {
@@ -34,18 +42,65 @@ watch(() => route.path, (path) => {
 }, { immediate: true })
 
 const onTabChange = (index) => {
-  const paths = ['/employer/dashboard', '/employer/publish', '/employer/workers', '/employer/orders', '/employer/profile']
-  router.push(paths[index])
+  router.push(tabs[index].path)
 }
 </script>
 
 <style scoped>
 .employer-layout {
   min-height: 100vh;
-  padding-bottom: 60px;
+  background: #FFFFFF;
+  padding-bottom: 70px;
 }
 
 .main-content {
-  padding: 16px;
+  padding: 0;
+}
+
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 64px;
+  background: #FFFFFF;
+  border-top: 2px solid #000;
+  z-index: 100;
+}
+
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.tab-item.active .tab-icon {
+  font-weight: 700;
+}
+
+.tab-item.active .tab-label {
+  color: #0066FF;
+  font-weight: 700;
+}
+
+.tab-icon {
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.tab-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #666;
 }
 </style>

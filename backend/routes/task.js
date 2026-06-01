@@ -21,23 +21,20 @@ const PHYSICAL_LEVELS = {
   3: { name: '重度', color: '#f5222d' }
 };
 
-router.get('/nearby', (req, res) => {
-  const { latitude, longitude, radius = 5000, page = 1, pageSize = 20, sortBy = 'distance', type, physicalLevel } = req.query;
+router.get('/nearby', async (req, res) => {
+  try {
+    const { latitude, longitude, radius = 5000, page = 1, pageSize = 20, sortBy = 'distance', type, physicalLevel } = req.query;
 
-  db.all(`
-    SELECT t.*,
-           u.nickname as employer_nickname,
-           u.avatar_url as employer_avatar,
-           e.credit_score as employer_rating
-    FROM t_task t
-    JOIN t_user u ON t.employer_id = u.id
-    LEFT JOIN t_employer e ON u.id = e.user_id
-    WHERE t.status = 0 AND t.expires_at > datetime('now')
-  `, (err, rows) => {
-    if (err) {
-      console.error('nearby query error:', err);
-      return res.status(500).json({ code: 500, message: '查询失败' });
-    }
+    const rows = await db.allSync(`
+      SELECT t.*,
+             u.nickname as employer_nickname,
+             u.avatar_url as employer_avatar,
+             e.credit_score as employer_rating
+      FROM t_task t
+      JOIN t_user u ON t.employer_id = u.id
+      LEFT JOIN t_employer e ON u.id = e.user_id
+      WHERE t.status = 0 AND t.expires_at > datetime('now')
+    `);
 
     let tasks = rows || [];
 
@@ -114,26 +111,26 @@ router.get('/nearby', (req, res) => {
         hasMore: end < total
       }
     });
-  });
+  } catch (err) {
+    console.error('nearby query error:', err);
+    res.status(500).json({ code: 500, message: '查询失败' });
+  }
 });
 
-router.get('/public/:taskId', (req, res) => {
-  const { taskId } = req.params;
+router.get('/public/:taskId', async (req, res) => {
+  try {
+    const { taskId } = req.params;
 
-  db.get(`
-    SELECT t.*,
-           u.nickname as employer_nickname,
-           u.avatar_url as employer_avatar,
-           e.credit_score as employer_rating
-    FROM t_task t
-    JOIN t_user u ON t.employer_id = u.id
-    LEFT JOIN t_employer e ON u.id = e.user_id
-    WHERE t.id = ?
-  `, [taskId], (err, task) => {
-    if (err) {
-      console.error('public task error:', err);
-      return res.status(500).json({ code: 500, message: '查询失败' });
-    }
+    const task = await db.getSync(`
+      SELECT t.*,
+             u.nickname as employer_nickname,
+             u.avatar_url as employer_avatar,
+             e.credit_score as employer_rating
+      FROM t_task t
+      JOIN t_user u ON t.employer_id = u.id
+      LEFT JOIN t_employer e ON u.id = e.user_id
+      WHERE t.id = ?
+    `, [taskId]);
 
     if (!task) {
       return res.status(404).json({ code: 404, message: '任务不存在' });
@@ -167,89 +164,106 @@ router.get('/public/:taskId', (req, res) => {
         createdAt: task.created_at
       }
     });
-  });
+  } catch (err) {
+    console.error('public task error:', err);
+    res.status(500).json({ code: 500, message: '查询失败' });
+  }
 });
 
-router.get('/:taskId', authMiddleware, (req, res) => {
-  const { taskId } = req.params;
+router.get('/:taskId', authMiddleware, async (req, res) => {
+  try {
+    const { taskId } = req.params;
 
-  const task = db.prepare(`
-    SELECT t.*, u.nickname as employer_nickname, u.phone as employer_phone
-    FROM t_task t
-    JOIN t_user u ON t.employer_id = u.id
-    WHERE t.id = ?
-  `).get(taskId);
+    const task = await db.getSync(`
+      SELECT t.*, u.nickname as employer_nickname, u.phone as employer_phone
+      FROM t_task t
+      JOIN t_user u ON t.employer_id = u.id
+      WHERE t.id = ?
+    `, [taskId]);
 
-  if (!task) {
-    return res.status(404).json({ code: 404, message: '任务不存在' });
+    if (!task) {
+      return res.status(404).json({ code: 404, message: '任务不存在' });
+    }
+
+    res.json({ code: 0, message: 'success', data: task });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
   }
-
-  res.json({ code: 0, message: 'success', data: task });
 });
 
-router.put('/:taskId/cancel', authMiddleware, (req, res) => {
-  const { taskId } = req.params;
-  const now = new Date().toISOString();
+router.put('/:taskId/cancel', authMiddleware, async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const now = new Date().toISOString();
 
-  const task = db.prepare('SELECT * FROM t_task WHERE id = ?').get(taskId);
-  if (!task) {
-    return res.status(404).json({ code: 404, message: '任务不存在' });
+    const task = await db.getSync('SELECT * FROM t_task WHERE id = ?', [taskId]);
+    if (!task) {
+      return res.status(404).json({ code: 404, message: '任务不存在' });
+    }
+
+    if (task.employer_id !== req.user.id && task.worker_id !== req.user.id) {
+      return res.status(403).json({ code: 403, message: '无权取消此任务' });
+    }
+
+    if (task.status > 2) {
+      return res.status(400).json({ code: 400, message: '当前状态无法取消' });
+    }
+
+    await db.runSync('UPDATE t_task SET status = 4, updated_at = ? WHERE id = ?', [now, taskId]);
+
+    if (task.status === 1) {
+      await db.runSync('UPDATE t_order SET status = 5 WHERE task_id = ?', [taskId]);
+    }
+
+    res.json({ code: 0, message: '任务已取消' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
   }
-
-  if (task.employer_id !== req.user.id && task.worker_id !== req.user.id) {
-    return res.status(403).json({ code: 403, message: '无权取消此任务' });
-  }
-
-  if (task.status > 2) {
-    return res.status(400).json({ code: 400, message: '当前状态无法取消' });
-  }
-
-  db.prepare('UPDATE t_task SET status = 4, updated_at = ? WHERE id = ?').run(now, taskId);
-
-  if (task.status === 1) {
-    db.prepare('UPDATE t_order SET status = 5 WHERE task_id = ?').run(taskId);
-  }
-
-  res.json({ code: 0, message: '任务已取消' });
 });
 
-router.post('/:taskId/grab', authMiddleware, (req, res) => {
-  const { taskId } = req.params;
-  const now = new Date().toISOString();
+router.post('/:taskId/grab', authMiddleware, async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const now = new Date().toISOString();
 
-  const task = db.prepare('SELECT * FROM t_task WHERE id = ?').get(taskId);
-  if (!task) {
-    return res.status(404).json({ code: 404, message: '任务不存在' });
+    const task = await db.getSync('SELECT * FROM t_task WHERE id = ?', [taskId]);
+    if (!task) {
+      return res.status(404).json({ code: 404, message: '任务不存在' });
+    }
+
+    if (task.status !== 0) {
+      return res.status(400).json({ code: 400, message: '该任务已被接单' });
+    }
+
+    if (new Date(task.expires_at) < new Date()) {
+      return res.status(400).json({ code: 400, message: '该任务已过期' });
+    }
+
+    const worker = await db.getSync('SELECT * FROM t_worker WHERE user_id = ? AND status = 1', [req.user.id]);
+    if (!worker) {
+      return res.status(403).json({ code: 403, message: '您还未成为认证服务者' });
+    }
+
+    await db.runSync('UPDATE t_task SET worker_id = ?, status = 1, updated_at = ? WHERE id = ?', [req.user.id, now, taskId]);
+
+    const orderNo = 'ORD' + Date.now() + Math.random().toString(36).substr(2, 6).toUpperCase();
+    const platformCommission = task.budget * 0.1;
+    const workerIncome = task.budget - platformCommission;
+
+    await db.runSync(`
+      INSERT INTO t_order (task_id, order_no, employer_id, worker_id, total_amount, platform_commission, worker_income, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+    `, [taskId, orderNo, task.employer_id, req.user.id, task.budget, platformCommission, workerIncome, now]);
+
+    await db.runSync('UPDATE t_worker SET total_orders = total_orders + 1 WHERE user_id = ?', [req.user.id]);
+
+    res.json({ code: 0, message: '接单成功' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
   }
-
-  if (task.status !== 0) {
-    return res.status(400).json({ code: 400, message: '该任务已被接单' });
-  }
-
-  if (new Date(task.expires_at) < new Date()) {
-    return res.status(400).json({ code: 400, message: '该任务已过期' });
-  }
-
-  const worker = db.prepare('SELECT * FROM t_worker WHERE user_id = ? AND status = 1').get(req.user.id);
-  if (!worker) {
-    return res.status(403).json({ code: 403, message: '您还未成为认证服务者' });
-  }
-
-  db.prepare('UPDATE t_task SET worker_id = ?, status = 1, updated_at = ? WHERE id = ?')
-    .run(req.user.id, now, taskId);
-
-  const orderNo = 'ORD' + Date.now() + Math.random().toString(36).substr(2, 6).toUpperCase();
-  const platformCommission = task.budget * 0.1;
-  const workerIncome = task.budget - platformCommission;
-
-  db.prepare(`
-    INSERT INTO t_order (task_id, order_no, employer_id, worker_id, total_amount, platform_commission, worker_income, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
-  `).run(taskId, orderNo, task.employer_id, req.user.id, task.budget, platformCommission, workerIncome, now);
-
-  db.prepare('UPDATE t_worker SET total_orders = total_orders + 1 WHERE user_id = ?').run(req.user.id);
-
-  res.json({ code: 0, message: '接单成功' });
 });
 
 module.exports = router;
