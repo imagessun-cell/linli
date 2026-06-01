@@ -4,7 +4,7 @@
       <div class="user-info">
         <img :src="userInfo?.avatar_url || '/default-avatar.png'" class="avatar" />
         <div class="info">
-          <h3>{{ userInfo?.nickname || '用工方' }}</h3>
+          <h3>{{ userInfo?.nickname || '就诊人' }}</h3>
           <p>信用积分: {{ employerInfo?.credit_score || 100 }}</p>
         </div>
       </div>
@@ -17,7 +17,7 @@
       </div>
       <div class="action-item" @click="$router.push('/employer/workers')">
         <span class="icon">👴</span>
-        <span>服务者广场</span>
+        <span>陪诊师广场</span>
       </div>
       <div class="action-item" @click="$router.push('/common/training')">
         <span class="icon">📚</span>

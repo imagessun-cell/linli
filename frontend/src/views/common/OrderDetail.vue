@@ -36,7 +36,7 @@
     </div>
 
     <div class="section">
-      <h3>用工方信息</h3>
+      <h3>就诊人信息</h3>
       <div class="user-info">
         <span>{{ order.employer_nickname }}</span>
         <el-button size="small" @click="$router.push(`/common/chat/${order.employer_id}`)">咨询</el-button>
@@ -44,7 +44,7 @@
     </div>
 
     <div class="section" v-if="order.worker_nickname">
-      <h3>服务者信息</h3>
+      <h3>陪诊师信息</h3>
       <div class="user-info">
         <span>{{ order.worker_nickname }}</span>
         <el-button size="small" @click="$router.push(`/common/chat/${order.worker_id}`)">咨询</el-button>
@@ -63,7 +63,7 @@
           <span class="value">¥{{ order.platform_commission }}</span>
         </div>
         <div class="info-item">
-          <span class="label">服务者收入</span>
+          <span class="label">陪诊师收入</span>
           <span class="value">¥{{ order.worker_income }}</span>
         </div>
       </div>

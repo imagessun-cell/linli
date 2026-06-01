@@ -20,7 +20,7 @@
         </div>
         <div class="order-footer">
           <div class="worker-info" v-if="order.worker_nickname">
-            <span>服务者: {{ order.worker_nickname }}</span>
+            <span>陪诊师: {{ order.worker_nickname }}</span>
           </div>
           <span class="amount">¥{{ order.total_amount }}</span>
         </div>

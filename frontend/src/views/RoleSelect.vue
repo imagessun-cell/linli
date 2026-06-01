@@ -18,7 +18,7 @@
       >
         <div class="role-icon" aria-hidden="true">01</div>
         <div class="role-content">
-          <h3>服务者</h3>
+          <h3>陪诊师</h3>
           <p>50-65岁老年人，为社区提供陪诊、陪聊、保洁等服务</p>
         </div>
         <div class="role-check" v-if="selectedRole === 1" aria-hidden="true">✓</div>
@@ -36,8 +36,8 @@
       >
         <div class="role-icon" aria-hidden="true">02</div>
         <div class="role-content">
-          <h3>用工方</h3>
-          <p>需要养老服务的用户，发布任务邀请服务者</p>
+          <h3>就诊人</h3>
+          <p>需要养老服务的用户，发布任务邀请陪诊师</p>
         </div>
         <div class="role-check" v-if="selectedRole === 2" aria-hidden="true">✓</div>
       </div>

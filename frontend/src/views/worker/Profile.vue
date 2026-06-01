@@ -23,7 +23,7 @@
           </span>
         </div>
         <div class="info-item">
-          <span class="label">服务者状态</span>
+          <span class="label">陪诊师状态</span>
           <span class="value" :class="statusClass">
             {{ statusNames[workerInfo?.status] || '未申请' }}
           </span>

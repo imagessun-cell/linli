@@ -4,7 +4,7 @@
       <div class="user-info">
         <img :src="userInfo?.avatar_url || '/default-avatar.png'" class="avatar" />
         <div class="info">
-          <h3>{{ userInfo?.nickname || '服务者' }}</h3>
+          <h3>{{ userInfo?.nickname || '陪诊师' }}</h3>
           <p v-if="workerInfo?.status === 1">已认证</p>
           <p v-else-if="workerInfo?.status === 0">审核中</p>
           <p v-else class="warning">请先完成认证</p>
@@ -35,7 +35,7 @@
     <div class="quick-actions" v-if="workerInfo?.status !== 1">
       <el-alert type="warning" :closable="false">
         <template #title>
-          您还没有完成服务者认证，
+          您还没有完成陪诊师认证，
           <el-link type="primary" @click="$router.push('/worker/apply')">立即申请</el-link>
         </template>
       </el-alert>

@@ -1,5 +1,5 @@
 <template>
-  <div class="task-detail-container">
+  <div class="task-detail-container" v-if="task">
     <div class="task-header">
       <span class="task-icon">{{ task.typeIcon }}</span>
       <div class="task-title-area">
@@ -77,7 +77,7 @@
         size="large"
         @click="$router.push('/role-select')"
       >
-        切换为服务者身份接单
+        切换为陪诊师身份接单
       </el-button>
     </div>
 

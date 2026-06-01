@@ -18,7 +18,7 @@
         </div>
         <div class="info-item">
           <span class="label">我的角色</span>
-          <span class="value">用工方</span>
+          <span class="value">就诊人</span>
         </div>
       </div>
     </div>

@@ -159,7 +159,7 @@ const handleGrab = async () => {
     return
   }
   if (userStore.userInfo?.role !== 1) {
-    ElMessage.warning('请切换为服务者身份接单')
+    ElMessage.warning('请切换为陪诊师身份接单')
     return
   }
   grabLoading.value = true

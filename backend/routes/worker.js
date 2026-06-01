@@ -153,7 +153,7 @@ router.put('/orders/:orderId/complete', authMiddleware, async (req, res) => {
       SELECT w.id, 1, ?, ?, 1, ? FROM t_wallet w WHERE w.worker_id = ?
     `, [order.worker_income, orderId, now, req.user.id]);
 
-    res.json({ code: 0, message: '服务已完成，等待用工方确认' });
+    res.json({ code: 0, message: '服务已完成，等待就诊人确认' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ code: 500, message: '服务器错误' });
@@ -181,7 +181,6 @@ router.get('/wallet', authMiddleware, async (req, res) => {
 router.post('/wallet/withdraw', authMiddleware, async (req, res) => {
   try {
     const { amount } = req.body;
-
     const wallet = await db.getSync('SELECT * FROM t_wallet WHERE worker_id = ?', [req.user.id]);
     if (!wallet || wallet.cash_balance < amount) {
       return res.status(400).json({ code: 400, message: '余额不足' });

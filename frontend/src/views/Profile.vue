@@ -20,7 +20,7 @@
         @click="currentRole = 'worker'"
         @keydown="handleTabKeydown($event, 'worker')"
       >
-        服务者
+        陪诊师
       </button>
       <button
         role="tab"
@@ -29,7 +29,7 @@
         @click="currentRole = 'employer'"
         @keydown="handleTabKeydown($event, 'employer')"
       >
-        用工方
+        就诊人
       </button>
     </nav>
 
@@ -54,7 +54,7 @@
               </dd>
             </div>
             <div class="info-item">
-              <dt class="label">服务者状态</dt>
+              <dt class="label">陪诊师状态</dt>
               <dd class="value" :class="statusClass">
                 {{ statusNames[workerInfo?.status] || '未申请' }}
               </dd>
@@ -109,7 +109,7 @@
             </div>
             <div class="info-item">
               <dt class="label">我的角色</dt>
-              <dd class="value">用工方</dd>
+              <dd class="value">就诊人</dd>
             </div>
             <div class="info-item">
               <dt class="label">发布任务</dt>

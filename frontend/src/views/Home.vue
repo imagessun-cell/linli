@@ -68,7 +68,10 @@
           tabindex="0"
         >
           <div class="task-main">
-            <div class="task-type" aria-label="任务类型">{{ task.typeIcon }} {{ task.typeName }}</div>
+            <div class="task-type" aria-label="任务类型">
+              <span v-if="task.subTypeIcon" class="sub-type-tag">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
+              <span v-else>{{ task.typeIcon }} {{ task.typeName }}</span>
+            </div>
             <h3 class="task-title">{{ task.title }}</h3>
             <div class="task-meta">
               <span>{{ formatDistance(task.distance) }}</span>
@@ -92,7 +95,10 @@
       <div v-else class="map-container" role="region" aria-label="地图视图">
         <div id="baidu-map" class="map" aria-label="任务分布地图"></div>
         <div v-if="selectedTask" class="map-info-window" role="dialog" aria-labelledby="map-task-title">
-          <div id="map-task-title" class="info-type">{{ selectedTask.typeIcon }} {{ selectedTask.typeName }}</div>
+          <div id="map-task-title" class="info-type">
+            <span v-if="selectedTask.subTypeIcon" class="sub-type-tag">{{ selectedTask.subTypeIcon }} {{ selectedTask.subTypeName }}</span>
+            <span v-else>{{ selectedTask.typeIcon }} {{ selectedTask.typeName }}</span>
+          </div>
           <div class="info-title">{{ selectedTask.title }}</div>
           <div class="info-detail">
             <span>{{ formatDistance(selectedTask.distance) }}</span>
@@ -172,19 +178,16 @@ const sortOptions = [
 ]
 
 const taskTypes = [
-  { label: '陪诊', icon: '＋', value: 1 },
-  { label: '陪聊', icon: '＋', value: 2 },
-  { label: '保洁', icon: '＋', value: 3 },
-  { label: '做饭', icon: '＋', value: 4 },
-  { label: '接送', icon: '＋', value: 5 },
-  { label: '看护', icon: '＋', value: 6 },
-  { label: '跑腿', icon: '＋', value: 7 },
-  { label: '助教', icon: '＋', value: 8 }
+  { label: '全程陪同', icon: '👣', value: 1 },
+  { label: '挂号取药', icon: '💊', value: 2 },
+  { label: '门诊陪护', icon: '🪑', value: 3 },
+  { label: '代为问诊', icon: '📝', value: 4 }
 ]
 
 const physicalLevels = [
   { label: '轻度', value: 1, color: '#52c41a' },
-  { label: '中度', value: 2, color: '#faad14' }
+  { label: '中度', value: 2, color: '#faad14' },
+  { label: '重度', value: 3, color: '#f5222d' }
 ]
 
 let map = null
@@ -239,11 +242,12 @@ const loadTasks = async (reset = false) => {
       radius: radius.value,
       page: page.value,
       pageSize: 10,
-      sortBy: sortBy.value
+      sortBy: sortBy.value,
+      type: 1
     }
 
     if (selectedTypes.value.length > 0) {
-      params.type = selectedTypes.value.join(',')
+      params.subType = selectedTypes.value.join(',')
     }
     if (selectedLevels.value.length > 0) {
       params.physicalLevel = selectedLevels.value.join(',')
@@ -572,6 +576,17 @@ onUnmounted(() => {
   letter-spacing: 0.1em;
   color: var(--text-muted);
   margin-bottom: var(--spacing-xs);
+}
+
+.sub-type-tag {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
 }
 
 .task-title {

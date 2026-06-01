@@ -1,23 +1,23 @@
 <template>
   <div class="worker-square">
     <header class="page-header">
-      <h1>邻里</h1>
-      <p class="subtitle">找到身边的可靠服务者</p>
+      <h1>陪诊师广场</h1>
+      <p class="subtitle">找到身边的可靠陪诊师</p>
     </header>
 
     <div class="filter-bar" role="search">
-      <label for="worker-search" class="sr-only">搜索服务者</label>
+      <label for="worker-search" class="sr-only">搜索陪诊师</label>
       <input
         id="worker-search"
         v-model="searchKeyword"
-        placeholder="搜索社区或技能"
+        placeholder="搜索社区或服务类型"
         class="search-input"
         type="search"
         @search="fetchWorkers"
       />
     </div>
 
-    <main class="worker-list" role="list" aria-label="服务者列表">
+    <main class="worker-list" role="list" aria-label="陪诊师列表">
       <article
         v-for="worker in workers"
         :key="worker.id"
@@ -90,7 +90,7 @@
 
     <div v-if="!loading && workers.length === 0" class="empty" role="status">
       <span class="empty-icon" aria-hidden="true">—</span>
-      <p>暂无服务者</p>
+      <p>暂无陪诊师</p>
       <p class="tip">试试扩大搜索范围</p>
     </div>
 
@@ -106,7 +106,7 @@
         <p class="dialog-text">
           确定邀请 <strong>{{ selectedWorker?.nickname }}</strong> 为您服务吗？
         </p>
-        <p class="dialog-tips">请先发布任务，然后从任务列表中邀请该服务者</p>
+        <p class="dialog-tips">请先发布任务，然后从任务列表中邀请该陪诊师</p>
         <div class="dialog-actions">
           <button class="dialog-btn" @click="showInviteDialog = false">取消</button>
           <button class="dialog-btn primary" @click="goToPublish">去发单</button>

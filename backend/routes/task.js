@@ -5,14 +5,21 @@ const db = require('../db');
 const { getDistance } = require('./location');
 
 const TASK_TYPES = {
-  1: { name: '陪诊', icon: '🩺' },
-  2: { name: '陪聊', icon: '💬' },
-  3: { name: '保洁', icon: '🧹' },
-  4: { name: '做饭', icon: '🍳' },
-  5: { name: '接送', icon: '🚗' },
-  6: { name: '看护', icon: '👴' },
-  7: { name: '跑腿', icon: '📦' },
-  8: { name: '助教', icon: '📚' }
+  1: { name: '陪诊', icon: '🩺', hasSubTypes: true },
+  2: { name: '陪聊', icon: '💬', hasSubTypes: false },
+  3: { name: '保洁', icon: '🧹', hasSubTypes: false },
+  4: { name: '做饭', icon: '🍳', hasSubTypes: false },
+  5: { name: '接送', icon: '🚗', hasSubTypes: false },
+  6: { name: '看护', icon: '👴', hasSubTypes: false },
+  7: { name: '跑腿', icon: '📦', hasSubTypes: false },
+  8: { name: '助教', icon: '📚', hasSubTypes: false }
+};
+
+const ESCORT_SUB_TYPES = {
+  1: { name: '全程陪同', icon: '👣', desc: '从出发到返家，全程陪伴老人完成就诊所有环节', priceRange: '80-120元/半天' },
+  2: { name: '挂号取药', icon: '💊', desc: '仅代为排队挂号、缴费、取药，无需全程陪诊', priceRange: '30-50元/次' },
+  3: { name: '门诊陪护', icon: '🪑', desc: '在诊室外候诊、检查、缴费环节提供陪伴，不进入诊室', priceRange: '50-80元/次' },
+  4: { name: '代为问诊', icon: '📝', desc: '代替老人向医生描述病情、记录医嘱、取药，老人无需到场', priceRange: '60-100元/次' }
 };
 
 const PHYSICAL_LEVELS = {
@@ -21,9 +28,31 @@ const PHYSICAL_LEVELS = {
   3: { name: '重度', color: '#f5222d' }
 };
 
+router.get('/sub-types', (req, res) => {
+  res.json({
+    code: 0,
+    message: 'OK',
+    data: ESCORT_SUB_TYPES
+  });
+});
+
+router.get('/types', (req, res) => {
+  const types = Object.entries(TASK_TYPES).map(([id, info]) => ({
+    id: parseInt(id),
+    name: info.name,
+    icon: info.icon,
+    hasSubTypes: info.hasSubTypes || false
+  }));
+  res.json({
+    code: 0,
+    message: 'OK',
+    data: types
+  });
+});
+
 router.get('/nearby', async (req, res) => {
   try {
-    const { latitude, longitude, radius = 5000, page = 1, pageSize = 20, sortBy = 'distance', type, physicalLevel } = req.query;
+    const { latitude, longitude, radius = 5000, page = 1, pageSize = 20, sortBy = 'distance', type, subType, physicalLevel } = req.query;
 
     const rows = await db.allSync(`
       SELECT t.*,
@@ -65,6 +94,11 @@ router.get('/nearby', async (req, res) => {
       tasks = tasks.filter(task => types.includes(task.type));
     }
 
+    if (subType) {
+      const subTypes = subType.split(',').map(Number);
+      tasks = tasks.filter(task => task.sub_type && subTypes.includes(task.sub_type));
+    }
+
     if (physicalLevel) {
       const levels = physicalLevel.split(',').map(Number);
       tasks = tasks.filter(task => levels.includes(task.physical_level));
@@ -80,7 +114,12 @@ router.get('/nearby', async (req, res) => {
       type: task.type,
       typeName: TASK_TYPES[task.type]?.name || '其他',
       typeIcon: TASK_TYPES[task.type]?.icon || '📋',
-      title: `${TASK_TYPES[task.type]?.name || '服务'} - ${task.address.split('区')[1] || task.address.slice(0, 10)}...`,
+      subType: task.sub_type,
+      subTypeName: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.name || null) : null,
+      subTypeIcon: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.icon || '') : null,
+      title: task.sub_type
+        ? `${ESCORT_SUB_TYPES[task.sub_type]?.name || '陪诊'} - ${task.address.split('区')[1] || task.address.slice(0, 10)}...`
+        : `${TASK_TYPES[task.type]?.name || '服务'} - ${task.address.split('区')[1] || task.address.slice(0, 10)}...`,
       startTime: task.start_time,
       endTime: task.end_time,
       duration: task.duration_minutes,
@@ -144,7 +183,12 @@ router.get('/public/:taskId', async (req, res) => {
         type: task.type,
         typeName: TASK_TYPES[task.type]?.name || '其他',
         typeIcon: TASK_TYPES[task.type]?.icon || '📋',
-        title: `${TASK_TYPES[task.type]?.name || '服务'} - ${task.address.split('区')[1] || task.address.slice(0, 10)}...`,
+        subType: task.sub_type,
+        subTypeName: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.name || null) : null,
+        subTypeIcon: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.icon || '') : null,
+        title: task.sub_type
+          ? `${ESCORT_SUB_TYPES[task.sub_type]?.name || '陪诊'} - ${task.address.split('区')[1] || task.address.slice(0, 10)}...`
+          : `${TASK_TYPES[task.type]?.name || '服务'} - ${task.address.split('区')[1] || task.address.slice(0, 10)}...`,
         startTime: task.start_time,
         endTime: task.end_time,
         duration: task.duration_minutes,

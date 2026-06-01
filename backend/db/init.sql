@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS t_task (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     employer_id INTEGER NOT NULL,
     type INTEGER NOT NULL,
+    sub_type INTEGER,
     start_time TEXT NOT NULL,
     end_time TEXT NOT NULL,
     duration_minutes INTEGER NOT NULL,

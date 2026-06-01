@@ -31,15 +31,15 @@
         >
           <span class="option-icon">📋</span>
           <span class="option-label">发布任务</span>
-          <span class="option-desc">我是用工方，需要找人帮忙</span>
+          <span class="option-desc">我是就诊人，需要找人帮忙</span>
         </button>
         <button
           class="dialog-option"
           @click="goToApplyWorker"
         >
           <span class="option-icon">👤</span>
-          <span class="option-label">成为服务者</span>
-          <span class="option-desc">我想提供服务，赚取报酬</span>
+          <span class="option-label">我是陪诊师</span>
+          <span class="option-desc">我能提供陪诊服务，赚取报酬</span>
         </button>
       </div>
       <button class="dialog-close" @click="showPublishDialog = false">取消</button>
@@ -60,8 +60,8 @@ const userStore = useUserStore()
 const showPublishDialog = ref(false)
 
 const tabItems = [
-  { name: 'find', label: '找活', icon: '◇', path: '/' },
-  { name: 'workers', label: '邻里', icon: '⬡', path: '/employer/workers' },
+  { name: 'find', label: '任务大厅', icon: '◇', path: '/' },
+  { name: 'workers', label: '陪诊师', icon: '⬡', path: '/employer/workers' },
   { name: 'publish', label: '发布', icon: '＋', path: '/employer/publish', requiresAuth: true, isPublish: true },
   { name: 'profile', label: '我的', icon: '○', path: '/profile', requiresAuth: false }
 ]

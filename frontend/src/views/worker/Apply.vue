@@ -1,7 +1,7 @@
 <template>
   <div class="apply">
     <div class="header">
-      <h2>服务者认证</h2>
+      <h2>陪诊师认证</h2>
       <p>完成认证后即可开始接单服务</p>
     </div>
 
@@ -25,14 +25,10 @@
 
       <el-form-item label="技能标签" prop="skills">
         <el-checkbox-group v-model="form.skills">
-          <el-checkbox label="陪诊">陪诊</el-checkbox>
-          <el-checkbox label="陪聊">陪聊</el-checkbox>
-          <el-checkbox label="保洁">保洁</el-checkbox>
-          <el-checkbox label="做饭">做饭</el-checkbox>
-          <el-checkbox label="接送">接送</el-checkbox>
-          <el-checkbox label="看护">看护</el-checkbox>
-          <el-checkbox label="跑腿">跑腿</el-checkbox>
-          <el-checkbox label="助教">助教</el-checkbox>
+          <el-checkbox label="全程陪同">👣 全程陪同</el-checkbox>
+          <el-checkbox label="挂号取药">💊 挂号取药</el-checkbox>
+          <el-checkbox label="门诊陪护">🪑 门诊陪护</el-checkbox>
+          <el-checkbox label="代为问诊">📝 代为问诊</el-checkbox>
         </el-checkbox-group>
       </el-form-item>
 

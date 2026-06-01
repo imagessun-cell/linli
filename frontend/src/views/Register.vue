@@ -83,11 +83,11 @@ const form = reactive({
 })
 
 const roles = [
-  { label: '服务者', value: 1 },
-  { label: '用工方', value: 2 }
+  { label: '陪诊师', value: 1 },
+  { label: '就诊人', value: 2 }
 ]
 
-const roleLabels = { 1: '服务者', 2: '用工方' }
+const roleLabels = { 1: '陪诊师', 2: '就诊人' }
 
 const handleRegister = async () => {
   loading.value = true

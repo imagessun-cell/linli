@@ -5,19 +5,27 @@ const db = require('../db');
 
 router.post('/tasks', authMiddleware, async (req, res) => {
   try {
-    const { type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements } = req.body;
+    const { type, sub_type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, department, patient_info } = req.body;
 
     if (!type || !start_time || !end_time || !duration_minutes || !address || budget === undefined) {
       return res.status(400).json({ code: 400, message: '缺少必要参数' });
     }
 
+    if (type === 1 && !sub_type) {
+      return res.status(400).json({ code: 400, message: '请选择陪诊子服务类型' });
+    }
+
     const now = new Date().toISOString();
     const expiresAt = new Date(new Date(start_time).getTime() - 30 * 60 * 1000).toISOString();
+    const fullAddress = department ? `${address} ${department}` : address;
+    const fullRequirements = patient_info
+      ? `${special_requirements || ''} | 患者：${patient_info}`.trim()
+      : special_requirements;
 
     const result = await db.runSync(`
-      INSERT INTO t_task (employer_id, type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, status, created_at, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-    `, req.user.id, type, start_time, end_time, duration_minutes, address, latitude || 0, longitude || 0, physical_level || 1, budget, is_charity || 0, special_requirements, now, expiresAt);
+      INSERT INTO t_task (employer_id, type, sub_type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, status, created_at, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+    `, req.user.id, type, sub_type || null, start_time, end_time, duration_minutes, fullAddress, latitude || 0, longitude || 0, physical_level || 1, budget, is_charity || 0, fullRequirements, now, expiresAt);
 
     res.json({ code: 0, message: '任务发布成功', data: { task_id: result.lastInsertRowid } });
   } catch (err) {
