@@ -129,6 +129,9 @@ onMounted(async () => {
   border-radius: 50%;
   margin-right: 12px;
   background: #ddd;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  object-fit: cover;
 }
 
 .info h3 {

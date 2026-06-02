@@ -27,10 +27,15 @@
         <div class="worker-header">
           <div class="avatar-wrapper">
             <img
-              :src="worker.avatar_url || '/default-avatar.png'"
+              v-if="worker.avatar_url"
+              :src="worker.avatar_url"
               :alt="worker.nickname + '的头像'"
               class="avatar"
+              @error="handleAvatarError($event, worker.nickname)"
             />
+            <div v-else class="avatar-placeholder" :aria-label="worker.nickname + '的头像占位符'">
+              {{ worker.nickname.charAt(0) }}
+            </div>
           </div>
           <div class="info">
             <h2 class="worker-name">{{ worker.nickname }}</h2>
@@ -129,6 +134,17 @@ const searchKeyword = ref('')
 const showInviteDialog = ref(false)
 const selectedWorker = ref(null)
 
+const handleAvatarError = (event, nickname) => {
+  const img = event.target
+  const wrapper = img.parentElement
+  img.style.display = 'none'
+  const placeholder = document.createElement('div')
+  placeholder.className = 'avatar-placeholder'
+  placeholder.setAttribute('aria-label', nickname + '的头像占位符')
+  placeholder.textContent = nickname.charAt(0)
+  wrapper.appendChild(placeholder)
+}
+
 const fetchWorkers = async () => {
   loading.value = true
   try {
@@ -224,16 +240,30 @@ onMounted(() => {
   width: 56px;
   height: 56px;
   margin-right: var(--spacing-md);
-  border: 2px solid var(--text-primary);
+  border: 2px solid rgba(0, 0, 0, 0.08);
   border-radius: 50%;
   overflow: hidden;
   background: var(--bg-tertiary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
 }
 
 .avatar {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-warm) 100%);
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .info {

@@ -3,19 +3,19 @@
 -- ========================
 -- 仅在数据库为空时执行
 
--- 插入用户（服务者、用工方）
-INSERT INTO t_user (id, phone, nickname, role, status, real_name, face_verified, created_at, updated_at) VALUES
-(1, '13800000001', '王阿姨', 1, 0, '王淑芬', 1, datetime('now'), datetime('now')),
-(2, '13800000002', '李叔叔', 1, 0, '李建国', 1, datetime('now'), datetime('now')),
-(3, '13800000003', '张阿姨', 1, 0, '张秀英', 1, datetime('now'), datetime('now')),
-(4, '13800000004', '刘叔叔', 1, 0, '刘德明', 1, datetime('now'), datetime('now')),
-(5, '13800000005', '陈阿姨', 1, 0, '陈美珍', 0, datetime('now'), datetime('now')),
+-- 插入用户（服务者、用工方），头像使用本地中国人形象图片
+INSERT INTO t_user (id, phone, nickname, role, status, real_name, face_verified, avatar_url, created_at, updated_at) VALUES
+(1, '13800000001', '王阿姨', 1, 0, '王淑芬', 1, '/img/Avatar/KuaPai_AI_20260602114309.png', datetime('now'), datetime('now')),
+(2, '13800000002', '李叔叔', 1, 0, '李建国', 1, '/img/Avatar/KuaPai_AI_20260602113400.jpeg', datetime('now'), datetime('now')),
+(3, '13800000003', '张阿姨', 1, 0, '张秀英', 1, '/img/Avatar/KuaPai_AI_20260602113549.jpeg', datetime('now'), datetime('now')),
+(4, '13800000004', '刘叔叔', 1, 0, '刘德明', 1, '/img/Avatar/KuaPai_AI_20260602114344.png', datetime('now'), datetime('now')),
+(5, '13800000005', '陈阿姨', 1, 0, '陈美珍', 0, '/img/Avatar/KuaPai_AI_20260602113622.jpeg', datetime('now'), datetime('now')),
 
-(11, '13900000001', '赵女士', 2, 0, '赵丽华', 1, datetime('now'), datetime('now')),
-(12, '13900000002', '孙先生', 2, 0, '孙志远', 1, datetime('now'), datetime('now')),
-(13, '13900000003', '周小姐', 2, 0, '周敏', 1, datetime('now'), datetime('now')),
-(14, '13900000004', '吴先生', 2, 0, '吴国栋', 1, datetime('now'), datetime('now')),
-(15, '13900000005', '郑女士', 2, 0, '郑晓燕', 0, datetime('now'), datetime('now'));
+(11, '13900000001', '赵女士', 2, 0, '赵丽华', 1, '/img/Avatar/KuaPai_AI_20260602114540.png', datetime('now'), datetime('now')),
+(12, '13900000002', '孙先生', 2, 0, '孙志远', 1, '/img/Avatar/KuaPai_AI_20260602114655.png', datetime('now'), datetime('now')),
+(13, '13900000003', '周小姐', 2, 0, '周敏', 1, '/img/Avatar/KuaPai_AI_20260602114745.png', datetime('now'), datetime('now')),
+(14, '13900000004', '吴先生', 2, 0, '吴国栋', 1, '/img/Avatar/KuaPai_AI_20260602114703.png', datetime('now'), datetime('now')),
+(15, '13900000005', '郑女士', 2, 0, '郑晓燕', 0, '/img/Avatar/KuaPai_AI_20260602114803.png', datetime('now'), datetime('now'));
 
 -- 插入服务者扩展信息（年龄50-65，社区，技能标签）
 -- 技能标签已更新为陪诊子服务：["全程陪同","挂号取药","门诊陪护","代为问诊"]
@@ -102,3 +102,15 @@ INSERT INTO t_course (title, video_url, duration_seconds, cover_url, sort_order,
 ('服务礼仪规范', 'https://example.com/video2.mp4', 1200, 'https://example.com/cover2.jpg', 2, 1),
 ('老年人沟通技巧', 'https://example.com/video3.mp4', 1500, 'https://example.com/cover3.jpg', 3, 0),
 ('急救基础知识', 'https://example.com/video4.mp4', 2000, 'https://example.com/cover4.jpg', 4, 0);
+
+-- 更新现有用户头像（用于已有数据库）- 使用本地中国人形象图片
+UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114309.png' WHERE id = 1;
+UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602113400.jpeg' WHERE id = 2;
+UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602113549.jpeg' WHERE id = 3;
+UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114344.png' WHERE id = 4;
+UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602113622.jpeg' WHERE id = 5;
+UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114540.png' WHERE id = 11;
+UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114655.png' WHERE id = 12;
+UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114745.png' WHERE id = 13;
+UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114703.png' WHERE id = 14;
+UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114803.png' WHERE id = 15;

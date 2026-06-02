@@ -79,6 +79,15 @@
           tabindex="0"
         >
           <div class="task-main">
+            <div class="task-header">
+              <div v-if="task.employerAvatar" class="avatar-small">
+                <img :src="task.employerAvatar" :alt="task.employerName + '的头像'" @error="handleAvatarError($event, task.employerName)" />
+              </div>
+              <div v-else class="avatar-small avatar-placeholder">
+                {{ (task.employerName || '就').charAt(0) }}
+              </div>
+              <span class="employer-name">{{ task.employerName || '就诊人' }}</span>
+            </div>
             <div class="task-type" aria-label="任务类型">
               <span v-if="task.subTypeIcon" :class="['sub-type-tag', getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
               <span v-else-if="task.typeName === '陪诊'" :class="['sub-type-tag', 'tag-escort']">🪑 门诊陪护</span>
@@ -107,6 +116,15 @@
       <div v-else class="map-container" role="region" aria-label="地图视图">
         <div id="baidu-map" class="map" aria-label="任务分布地图"></div>
         <div v-if="selectedTask" class="map-info-window" role="dialog" aria-labelledby="map-task-title">
+          <div class="info-header">
+            <div v-if="selectedTask.employerAvatar" class="avatar-small">
+              <img :src="selectedTask.employerAvatar" :alt="selectedTask.employerName + '的头像'" @error="handleMapAvatarError($event, selectedTask.employerName)" />
+            </div>
+            <div v-else class="avatar-small avatar-placeholder">
+              {{ (selectedTask.employerName || '就').charAt(0) }}
+            </div>
+            <span class="employer-name">{{ selectedTask.employerName || '就诊人' }}</span>
+          </div>
           <div id="map-task-title" class="info-type">
             <span v-if="selectedTask.subTypeIcon" class="sub-type-tag">{{ selectedTask.subTypeIcon }} {{ selectedTask.subTypeName }}</span>
             <span v-else-if="selectedTask.typeName === '陪诊'" class="sub-type-tag tag-escort">🪑 门诊陪护</span>
@@ -321,6 +339,28 @@ const getSubTypeClass = (subType) => {
     4: 'tag-consult'
   }
   return classMap[subType] || ''
+}
+
+const handleAvatarError = (event, name) => {
+  const img = event.target
+  img.style.display = 'none'
+  const wrapper = img.parentElement
+  wrapper.classList.add('avatar-error')
+  const placeholder = document.createElement('div')
+  placeholder.className = 'avatar-small avatar-placeholder'
+  placeholder.textContent = (name || '就').charAt(0)
+  wrapper.appendChild(placeholder)
+}
+
+const handleMapAvatarError = (event, name) => {
+  const img = event.target
+  img.style.display = 'none'
+  const wrapper = img.parentElement
+  wrapper.classList.add('avatar-error')
+  const placeholder = document.createElement('div')
+  placeholder.className = 'avatar-small avatar-placeholder'
+  placeholder.textContent = (name || '就').charAt(0)
+  wrapper.appendChild(placeholder)
 }
 
 const formatDistance = (distance) => {
@@ -570,6 +610,45 @@ onUnmounted(() => {
   margin-top: var(--spacing-sm);
 }
 
+.avatar-small {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-warm) 100%);
+}
+
+.avatar-small img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-small.avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.task-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.employer-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
 .task-card {
   display: flex;
   justify-content: space-between;
@@ -747,6 +826,15 @@ onUnmounted(() => {
   letter-spacing: 0.1em;
   color: var(--text-muted);
   margin-bottom: var(--spacing-xs);
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .info-title {

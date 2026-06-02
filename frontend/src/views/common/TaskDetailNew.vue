@@ -105,7 +105,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import request from '@/api/request'
@@ -185,16 +185,21 @@ const initTaskMap = () => {
 }
 
 const loadTask = async () => {
+  console.log('loadTask called, route.params.id:', route.params.id)
   try {
     const res = await request.get(`/task/public/${route.params.id}`)
+    console.log('Task API response:', res)
     if (res.code === 0) {
       task.value = res.data
+      console.log('Task loaded, task.value:', task.value, 'lat:', task.value?.latitude, 'lng:', task.value?.longitude)
       nextTick(() => initTaskMap())
     } else {
       error.value = res.message || '加载失败'
+      console.log('Task load failed:', res.message)
     }
   } catch (e) {
     error.value = '加载失败'
+    console.error('Task load error:', e)
   }
 }
 
@@ -473,8 +478,10 @@ onMounted(() => {
 .publisher-avatar {
   width: 56px;
   height: 56px;
-  border: 2px solid #000;
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
   object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .publisher-info {

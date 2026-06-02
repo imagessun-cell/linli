@@ -5,6 +5,13 @@ const db = require('../db');
 
 router.post('/tasks', authMiddleware, async (req, res) => {
   try {
+    console.log('发布任务 - req.user:', req.user);
+    console.log('req.headers.authorization:', req.headers.authorization?.substring(0, 50));
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ code: 401, message: '用户未登录，请先登录' });
+    }
+
     const { type, sub_type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, department, patient_info } = req.body;
 
     if (!type || !start_time || !end_time || !duration_minutes || !address || budget === undefined) {
@@ -22,15 +29,18 @@ router.post('/tasks', authMiddleware, async (req, res) => {
       ? `${special_requirements || ''} | 患者：${patient_info}`.trim()
       : special_requirements;
 
-    const result = await db.runSync(`
-      INSERT INTO t_task (employer_id, type, sub_type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, status, created_at, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-    `, req.user.id, type, sub_type || null, start_time, end_time, duration_minutes, fullAddress, latitude || 0, longitude || 0, physical_level || 1, budget, is_charity || 0, fullRequirements, now, expiresAt);
+    console.log('准备插入数据:', { employer_id: req.user.id, type, start_time, end_time, duration_minutes, fullAddress, budget, sub_type: sub_type || null });
 
+    const result = await db.runSync(`
+      INSERT INTO t_task (employer_id, type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, status, created_at, expires_at, sub_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+    `, req.user.id, type, start_time, end_time, duration_minutes, fullAddress, latitude || 0, longitude || 0, physical_level || 1, budget, is_charity || 0, fullRequirements, now, expiresAt, sub_type || null);
+
+    console.log('任务发布成功, task_id:', result.lastInsertRowid);
     res.json({ code: 0, message: '任务发布成功', data: { task_id: result.lastInsertRowid } });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    console.error('发布任务错误:', err.message);
+    res.status(500).json({ code: 500, message: '服务器错误: ' + err.message });
   }
 });
 

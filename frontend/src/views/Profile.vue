@@ -214,10 +214,11 @@ onMounted(async () => {
   width: 96px;
   height: 96px;
   margin: 0 auto var(--spacing-md);
-  border: 3px solid var(--text-primary);
+  border: 2px solid rgba(0, 0, 0, 0.08);
   border-radius: 50%;
   overflow: hidden;
   background: var(--bg-tertiary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .avatar {

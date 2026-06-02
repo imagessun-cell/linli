@@ -135,16 +135,19 @@ onUnmounted(() => {
 }
 
 .message-item .avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: #ddd;
-  margin-right: 8px;
+  margin-right: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  object-fit: cover;
 }
 
 .message-item.mine .avatar {
   margin-right: 0;
-  margin-left: 8px;
+  margin-left: 10px;
 }
 
 .bubble {

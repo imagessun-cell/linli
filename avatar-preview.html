@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>头像预览</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #333;
+      font-size: 24px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .user-card {
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .avatar-wrapper {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid rgba(0,0,0,0.08);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-right: 16px;
+      flex-shrink: 0;
+      background: #eee;
+    }
+    .avatar-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .user-info {
+      flex: 1;
+    }
+    .nickname {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    .role {
+      font-size: 14px;
+      color: #666;
+    }
+    .role-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #E8F5E9;
+      color: #2E7D32;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .error-msg {
+      color: #d32f2f;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin: 24px 0 16px;
+      padding-left: 8px;
+      border-left: 4px solid #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>👤 头像预览测试</h1>
+
+    <h2 class="section-title">陪诊师</h2>
+    <div id="escorts"></div>
+
+    <h2 class="section-title">就诊人</h2>
+    <div id="patients"></div>
+  </div>
+
+  <script>
+    const baseUrl = 'http://localhost:3000';
+
+    const users = [
+      { id: 1, nickname: '王阿姨', realName: '王淑芬', role: 'escort', avatar: '/img/Avatar/KuaPai_AI_20260602113400.jpeg' },
+      { id: 2, nickname: '李叔叔', realName: '李建国', role: 'escort', avatar: '/img/Avatar/KuaPai_AI_20260602114309.png' },
+      { id: 3, nickname: '张阿姨', realName: '张秀英', role: 'escort', avatar: '/img/Avatar/KuaPai_AI_20260602113549.jpeg' },
+      { id: 4, nickname: '刘叔叔', realName: '刘德明', role: 'escort', avatar: '/img/Avatar/KuaPai_AI_20260602114344.png' },
+      { id: 5, nickname: '陈阿姨', realName: '陈美珍', role: 'escort', avatar: '/img/Avatar/KuaPai_AI_20260602113622.jpeg' },
+      { id: 11, nickname: '赵女士', realName: '赵丽华', role: 'patient', avatar: '/img/Avatar/KuaPai_AI_20260602114540.png' },
+      { id: 12, nickname: '孙先生', realName: '孙志远', role: 'patient', avatar: '/img/Avatar/KuaPai_AI_20260602114655.png' },
+      { id: 13, nickname: '周小姐', realName: '周敏', role: 'patient', avatar: '/img/Avatar/KuaPai_AI_20260602114745.png' },
+      { id: 14, nickname: '吴先生', realName: '吴国栋', role: 'patient', avatar: '/img/Avatar/KuaPai_AI_20260602114703.png' },
+      { id: 15, nickname: '郑女士', realName: '郑晓燕', role: 'patient', avatar: '/img/Avatar/KuaPai_AI_20260602114803.png' },
+    ];
+
+    function createUserCard(user) {
+      const div = document.createElement('div');
+      div.className = 'user-card';
+
+      const fullUrl = baseUrl + user.avatar;
+      const roleLabel = user.role === 'escort' ? '陪诊师' : '就诊人';
+
+      div.innerHTML = `
+        <div class="avatar-wrapper">
+          <img src="${fullUrl}" alt="${user.nickname}的头像"
+               onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,#4CAF50,#8BC34A);color:white;font-size:20px;font-weight:600;>${user.nickname.charAt(0)}</div>';">
+        </div>
+        <div class="user-info">
+          <div class="nickname">${user.nickname} · ${user.realName}</div>
+          <div class="role"><span class="role-tag">${roleLabel}</span></div>
+        </div>
+      `;
+      return div;
+    }
+
+    const escortsContainer = document.getElementById('escorts');
+    const patientsContainer = document.getElementById('patients');
+
+    users.forEach(user => {
+      const card = createUserCard(user);
+      if (user.role === 'escort') {
+        escortsContainer.appendChild(card);
+      } else {
+        patientsContainer.appendChild(card);
+      }
+    });
+  </script>
+</body>
+</html>

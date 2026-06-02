@@ -76,6 +76,10 @@ const login = async (req, res) => {
   }
 
   const token = generateToken(user);
+  console.log('=== Login Debug ===');
+  console.log('user object:', user);
+  console.log('user.id:', user.id);
+  console.log('generated token payload:', jwt.decode(token));
 
   res.json({
     code: 0,
