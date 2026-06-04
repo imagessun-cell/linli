@@ -15,7 +15,7 @@
       <div class="hero-meta">
         <span>{{ formatDistance(task.distance) }}</span>
         <span>{{ task.duration }}分钟</span>
-        <span>⭐ {{ task.employerRating }}</span>
+        <span>💪 {{ task.employerRating }}</span>
       </div>
     </div>
 
@@ -76,7 +76,7 @@
           <img :src="task.employerAvatar || '/default-avatar.png'" class="publisher-avatar" />
           <div class="publisher-info">
             <span class="publisher-name">{{ task.employerNickname }}</span>
-            <span class="publisher-rating">⭐ {{ task.employerRating || 5.0 }}</span>
+            <span class="publisher-rating">💪 {{ task.employerRating || 5.0 }}</span>
           </div>
         </div>
         <div class="contact-actions">

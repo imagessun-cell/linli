@@ -1,0 +1,103 @@
+/* ============================================================
+ * Base — iOS HIG 风格 + 适老化全局重置
+ * ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #app { height: 100%; }
+html {
+  font-size: var(--ds-font-body);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  font-family: var(--ds-font-family);
+  font-size: var(--ds-font-body);
+  line-height: var(--ds-line-base);
+  color: var(--ds-text);
+  background: var(--ds-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "tnum" 1, "kern" 1;
+  overscroll-behavior-y: contain;
+}
+
+#app { min-height: 100vh; background: var(--ds-bg); }
+
+/* iOS 风格滚动条 (隐藏但保留可滚动) */
+::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* 标题层级 (iOS-style) */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  color: var(--ds-text);
+  font-weight: var(--ds-weight-bold);
+  line-height: var(--ds-line-tight);
+  letter-spacing: -0.01em;
+}
+h1 { font-size: var(--ds-font-h1); }
+h2 { font-size: var(--ds-font-h2); }
+h3 { font-size: var(--ds-font-h3); }
+h4 { font-size: var(--ds-font-callout); }
+h5 { font-size: var(--ds-font-body); }
+h6 { font-size: var(--ds-font-sub); }
+
+p { margin: 0; }
+
+a {
+  color: var(--ds-link);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+a:active { opacity: 0.6; }
+
+img { max-width: 100%; display: block; }
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+/* 全局焦点环 (适老化加强) */
+:focus-visible {
+  outline: 3px solid var(--ds-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 隐藏但可读 */
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0);
+  white-space: nowrap; border: 0;
+}
+
+/* 安全区容器 */
+.safe-top    { padding-top:    var(--ds-safe-top); }
+.safe-bottom { padding-bottom: var(--ds-safe-bottom); }
+
+/* 全局禁用 iOS 双击放大 / 选中 */
+* { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+input, textarea { -webkit-user-select: text; user-select: text; }
+
+/* 减弱动效 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

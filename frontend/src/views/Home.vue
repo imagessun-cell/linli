@@ -2,19 +2,57 @@
   <div class="home-container">
     <header class="home-header">
       <h1>LINLI</h1>
-      <h2 class="header-tagline">邻里互助，老有所为</h2>
+      <h2 class="header-tagline">邻里守候，就诊无忧</h2>
     </header>
 
     <div class="search-bar" role="search">
       <label for="search-input" class="sr-only">搜索任务</label>
-      <input
-        id="search-input"
-        v-model="searchKeyword"
-        placeholder="搜索地址或关键词"
-        class="search-input"
-        type="search"
-        @keyup.enter="handleSearch"
-      />
+      <div class="search-input-wrapper">
+        <input
+          id="search-input"
+          v-model="searchKeyword"
+          placeholder="搜索地址或关键词"
+          class="search-input"
+          type="search"
+          autocomplete="off"
+          @input="onSearchInput"
+          @focus="onSearchFocus"
+          @blur="hideSuggestionsLater"
+          @keyup.enter="handleSearch"
+          @keydown.down.prevent="moveHighlight(1)"
+          @keydown.up.prevent="moveHighlight(-1)"
+          @keydown.esc="showSuggestions = false"
+        />
+        <ul v-if="showSuggestions && (suggestions.length > 0 || hotKeywords.length > 0)" class="suggestion-list" role="listbox">
+          <li v-if="suggestions.length > 0" class="suggestion-section">相关地址</li>
+          <li
+            v-for="(s, idx) in suggestions"
+            :key="'s-' + idx"
+            class="suggestion-item"
+            :class="{ active: highlightIndex === idx }"
+            role="option"
+            :aria-selected="highlightIndex === idx"
+            @mousedown.prevent="selectSuggestion(s)"
+          >
+            <span class="suggestion-icon">{{ suggestionIcon(s.type) }}</span>
+            <span v-html="highlightKeyword(s.text, searchKeyword)"></span>
+          </li>
+          <li v-if="hotKeywords.length > 0 && !searchKeyword" class="suggestion-section">热门关键词</li>
+          <li
+            v-for="(kw, idx) in hotKeywords"
+            v-if="!searchKeyword"
+            :key="'h-' + idx"
+            class="suggestion-item hot"
+            :class="{ active: highlightIndex === suggestions.length + idx }"
+            role="option"
+            :aria-selected="highlightIndex === suggestions.length + idx"
+            @mousedown.prevent="selectSuggestion({ text: kw })"
+          >
+            <span class="suggestion-icon">🔥</span>
+            <span>{{ kw }}</span>
+          </li>
+        </ul>
+      </div>
       <button class="filter-btn" @click="showFilters = true" aria-label="打开筛选">筛选</button>
     </div>
 
@@ -97,7 +135,7 @@
             <div class="task-meta">
               <span>{{ formatDistance(task.distance) }}</span>
               <span>{{ task.duration }}分钟</span>
-              <span>⭐ {{ task.employerRating }}</span>
+              <span>💪 {{ task.employerRating }}</span>
             </div>
           </div>
           <div class="task-side">
@@ -194,13 +232,18 @@ const page = ref(1)
 const hasMore = ref(true)
 
 const searchKeyword = ref('')
+const suggestions = ref([])
+const hotKeywords = ref([])
+const showSuggestions = ref(false)
+const highlightIndex = ref(-1)
 const sortBy = ref('distance')
 const viewMode = ref('list')
 const showFilters = ref(false)
 const selectedTypes = ref([])
 const selectedLevels = ref([])
-const radius = ref(5000000)
+const radius = ref(50000)
 const selectedTask = ref(null)
+const userLocation = ref({ lat: 31.230416, lng: 121.473701 })
 
 const sortOptions = [
   { label: '距离', value: 'distance' },
@@ -223,7 +266,6 @@ const physicalLevels = [
 
 let map = null
 let markers = []
-let userLocation = { lat: 31.230416, lng: 121.473701 }
 
 const getUserLocation = () => {
   return new Promise((resolve) => {
@@ -235,12 +277,12 @@ const getUserLocation = () => {
           try {
             const res = await request.get('/location/convert', { lat, lng })
             if (res.code === 0) {
-              userLocation = { lat: res.data.lat, lng: res.data.lng }
+              userLocation.value = { lat: res.data.lat, lng: res.data.lng }
             } else {
-              userLocation = { lat, lng }
+              userLocation.value = { lat, lng }
             }
           } catch {
-            userLocation = { lat, lng }
+            userLocation.value = { lat, lng }
           }
           resolve()
         },
@@ -268,8 +310,8 @@ const loadTasks = async (reset = false) => {
 
   try {
     const params = {
-      latitude: userLocation.lat,
-      longitude: userLocation.lng,
+      latitude: userLocation.value.lat,
+      longitude: userLocation.value.lng,
       radius: radius.value,
       page: page.value,
       pageSize: 10,
@@ -284,7 +326,9 @@ const loadTasks = async (reset = false) => {
       params.physicalLevel = selectedLevels.value.join(',')
     }
 
+    console.log('[Home.vue] loadTasks params:', params)
     const res = await request.get('/task/nearby', { params })
+    console.log('[Home.vue] loadTasks response:', res.code, 'list length:', res.data?.list?.length)
 
     if (res.code === 0) {
       if (reset) {
@@ -294,10 +338,12 @@ const loadTasks = async (reset = false) => {
       }
       hasMore.value = res.data.hasMore
       page.value++
+    } else {
+      console.warn('[Home.vue] loadTasks non-zero code:', res)
     }
   } catch (e) {
-    console.error(e)
-    ElMessage.error('加载失败')
+    console.error('[Home.vue] loadTasks error:', e)
+    ElMessage.error('加载失败：' + (e?.message || e))
   } finally {
     loading.value = false
     loadingMore.value = false
@@ -324,10 +370,87 @@ const applyFilters = () => {
 const resetFilters = () => {
   selectedTypes.value = []
   selectedLevels.value = []
-  radius.value = 5000000
+  radius.value = 50000
+}
+
+let suggestTimer = null
+const onSearchInput = () => {
+  const q = searchKeyword.value.trim()
+  highlightIndex.value = -1
+  showSuggestions.value = true
+  if (suggestTimer) clearTimeout(suggestTimer)
+  if (!q) {
+    suggestions.value = []
+    return
+  }
+  suggestTimer = setTimeout(() => fetchSuggestions(q), 200)
+}
+
+const fetchSuggestions = async (q) => {
+  try {
+    const res = await request.get('/task/suggestions', { q, limit: 8 })
+    if (res.code === 0) {
+      suggestions.value = res.data.suggestions || []
+      if (Array.isArray(res.data.hotKeywords)) {
+        hotKeywords.value = res.data.hotKeywords
+      }
+      console.log('[Home.vue] fetchSuggestions q=', q, 'got', suggestions.value.length, 'suggestions,', hotKeywords.value.length, 'hot')
+    }
+  } catch (e) {
+    console.warn('[Home.vue] fetchSuggestions error:', e)
+  }
+}
+
+const onSearchFocus = () => {
+  showSuggestions.value = true
+  // 进入即拉一次，确保下拉至少有热门关键词
+  if (suggestions.value.length === 0 && hotKeywords.value.length === 0) {
+    fetchSuggestions('')
+  }
+}
+
+const hideSuggestionsLater = () => {
+  // 延迟关闭，保证 mousedown 触发 selectSuggestion
+  setTimeout(() => { showSuggestions.value = false }, 150)
+}
+
+const moveHighlight = (delta) => {
+  const total = suggestions.value.length + (searchKeyword.value ? 0 : hotKeywords.value.length)
+  if (total === 0) return
+  let next = highlightIndex.value + delta
+  if (next < 0) next = total - 1
+  if (next >= total) next = 0
+  highlightIndex.value = next
+}
+
+const selectSuggestion = (s) => {
+  if (!s || !s.text) return
+  searchKeyword.value = s.text
+  showSuggestions.value = false
+  highlightIndex.value = -1
+  loadTasks(true)
+}
+
+const highlightKeyword = (text, keyword) => {
+  if (!keyword) return text
+  const escaped = String(keyword).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const re = new RegExp(escaped, 'gi')
+  return String(text).replace(re, (m) => `<mark>${m}</mark>`)
+}
+
+const suggestionIcon = (type) => {
+  switch (type) {
+    case 'type': return '🩺'
+    case 'subType': return '💊'
+    case 'requirement': return '📝'
+    case 'keyword': return '🏥'
+    case 'address':
+    default: return '📍'
+  }
 }
 
 const handleSearch = () => {
+  showSuggestions.value = false
   loadTasks(true)
 }
 
@@ -421,8 +544,11 @@ const initMap = () => {
 }
 
 onMounted(async () => {
+  console.log('[Home.vue] onMounted start, default userLocation:', userLocation.value)
   await getUserLocation()
+  console.log('[Home.vue] after getUserLocation, userLocation:', userLocation.value, 'radius:', radius.value, 'sortBy:', sortBy.value)
   await loadTasks(true)
+  console.log('[Home.vue] after loadTasks, tasks length:', tasks.value.length, 'hasMore:', hasMore.value)
 })
 
 watch(viewMode, (newMode) => {
@@ -472,20 +598,81 @@ onUnmounted(() => {
   padding: var(--spacing-md);
   gap: var(--spacing-sm);
   border-bottom: var(--border-light);
+  position: relative;
+}
+
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
 }
 
 .search-input {
-  flex: 1;
+  width: 100%;
   padding: var(--spacing-xs);
   font-size: var(--font-size-base);
   border: var(--border-medium);
   outline: none;
   min-height: var(--touch-target-min);
+  box-sizing: border-box;
+  border-radius: var(--radius-md);
 }
 
 .search-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.suggestion-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  max-height: 360px;
+  overflow-y: auto;
+  z-index: 100;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.suggestion-section {
+  padding: 8px var(--spacing-md) 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: #f7f7f7;
+  list-style: none;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px var(--spacing-md);
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+
+.suggestion-item:hover,
+.suggestion-item.active {
+  background: var(--accent-light, #e6f0ff);
+}
+
+.suggestion-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.suggestion-item :deep(mark) {
+  background: transparent;
+  color: var(--accent, #007AFF);
+  font-weight: 600;
 }
 
 .filter-btn {
@@ -873,7 +1060,7 @@ onUnmounted(() => {
   position: fixed;
   top: 0;
   right: 0;
-  bottom: 0;
+  bottom: 76px;
   width: 90%;
   max-width: 400px;
   background: var(--bg-primary);

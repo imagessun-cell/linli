@@ -2,7 +2,7 @@
   <div class="login-container">
     <header class="login-header">
       <h1>LINLI</h1>
-      <p class="subtitle">邻里互助，老有所为</p>
+      <p class="subtitle">邻里守候，就诊无忧</p>
     </header>
 
     <main class="login-box">

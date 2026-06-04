@@ -134,6 +134,11 @@ const routes = [
     name: 'TaskHall',
     component: () => import('@/views/worker/TaskHall.vue'),
     meta: { requiresAuth: true, role: 1 }
+  },
+  {
+    path: '/demo/search',
+    name: 'SearchDemo',
+    component: () => import('@/views/common/SearchDemo.vue')
   }
 ]
 

@@ -6,6 +6,21 @@
       </el-select>
     </div>
 
+    <div class="sort-bar">
+      <div class="sort-tabs" role="tablist" aria-label="排序方式">
+        <button
+          v-for="sort in sortOptions"
+          :key="sort.value"
+          role="tab"
+          :aria-selected="sortBy === sort.value"
+          :class="{ active: sortBy === sort.value }"
+          @click="changeSort(sort.value)"
+        >
+          {{ sort.label }}
+        </button>
+      </div>
+    </div>
+
     <div class="task-list">
       <div v-for="task in tasks" :key="task.id" class="task-card" @click="$router.push(`/worker/task/${task.id}`)">
         <div class="task-header">
@@ -16,6 +31,7 @@
           <p class="address">{{ task.address }}</p>
           <p class="time">{{ formatDateTime(task.start_time) }} - {{ formatTime(task.end_time) }}</p>
           <p class="duration">服务时长: {{ task.duration_minutes }}分钟</p>
+          <p v-if="task.distance != null" class="distance">距离: {{ formatDistance(task.distance) }}</p>
         </div>
         <div class="task-footer">
           <span class="employer">雇主: {{ task.employer_nickname || '匿名' }}</span>
@@ -53,6 +69,14 @@ const loading = ref(false)
 const page = ref(1)
 const total = ref(0)
 const filterType = ref('')
+const sortBy = ref('distance')
+const userLocation = ref({ lat: 31.230416, lng: 121.473701 })
+
+const sortOptions = [
+  { label: '距离', value: 'distance' },
+  { label: '报酬', value: 'budget' },
+  { label: '体力', value: 'physicalLevel' }
+]
 
 const taskTypes = ['', '陪诊', '陪聊', '小时保洁', '做饭', '接送', '看护', '跑腿', '助教', '其他']
 
@@ -68,10 +92,32 @@ const formatTime = (time) => {
   return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
+const formatDistance = (km) => {
+  if (km == null) return ''
+  if (km < 1) return `${Math.round(km * 1000)}m`
+  return `${km.toFixed(1)}km`
+}
+
+const getUserLocation = () => {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { timeout: 5000 }
+    )
+  })
+}
+
 const fetchTasks = async () => {
   loading.value = true
   try {
-    const res = await request.get('/worker/tasks/hall', { page: page.value, limit: 20 })
+    const params = { page: page.value, limit: 20, sortBy: sortBy.value }
+    if (userLocation.value) {
+      params.lat = userLocation.value.lat
+      params.lng = userLocation.value.lng
+    }
+    const res = await request.get('/worker/tasks/hall', params)
     if (res.code === 0) {
       tasks.value = res.data.tasks
       total.value = res.data.total
@@ -83,8 +129,19 @@ const fetchTasks = async () => {
   }
 }
 
-onMounted(() => {
+const changeSort = (sort) => {
+  sortBy.value = sort
+  page.value = 1
   fetchTasks()
+}
+
+onMounted(async () => {
+  // 优先尝试获取真实位置，失败则使用默认位置（上海市中心）
+  const loc = await getUserLocation()
+  if (loc) {
+    userLocation.value = loc
+  }
+  await fetchTasks()
 })
 </script>
 
@@ -95,6 +152,38 @@ onMounted(() => {
 
 .filter-bar {
   margin-bottom: 16px;
+}
+
+.sort-bar {
+  margin-bottom: 16px;
+}
+
+.sort-tabs {
+  display: flex;
+  gap: 8px;
+  background: #f5f5f5;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.sort-tabs button {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: #666;
+  border-radius: 8px;
+  cursor: pointer;
+  min-height: 40px;
+  transition: all 0.2s;
+}
+
+.sort-tabs button.active {
+  background: white;
+  color: #667eea;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .task-list {
@@ -142,6 +231,12 @@ onMounted(() => {
 .task-content .duration {
   font-size: 12px;
   color: #999;
+}
+
+.task-content .distance {
+  font-size: 12px;
+  color: #667eea;
+  margin-top: 4px;
 }
 
 .task-footer {

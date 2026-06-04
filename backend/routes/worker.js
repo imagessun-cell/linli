@@ -56,8 +56,10 @@ router.get('/tasks/recommend', authMiddleware, async (req, res) => {
 
 router.get('/tasks/hall', authMiddleware, async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20, sortBy = 'distance', lat, lng } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
+    const userLat = lat ? parseFloat(lat) : null;
+    const userLng = lng ? parseFloat(lng) : null;
 
     const tasks = await db.allSync(`
       SELECT t.*, u.nickname as employer_nickname
@@ -67,6 +69,36 @@ router.get('/tasks/hall', authMiddleware, async (req, res) => {
       ORDER BY t.is_charity DESC, t.budget DESC, t.created_at DESC
       LIMIT ? OFFSET ?
     `, [parseInt(limit), offset]);
+
+    // 计算距离并按排序方式排序
+    const calcDistance = (lat1, lng1, lat2, lng2) => {
+      if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) return null;
+      const toRad = (v) => (v * Math.PI) / 180;
+      const R = 6371; // 地球半径（km）
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    tasks.forEach((t) => {
+      t.distance = calcDistance(userLat, userLng, t.latitude, t.longitude);
+    });
+
+    if (sortBy === 'distance') {
+      tasks.sort((a, b) => {
+        if (a.distance == null && b.distance == null) return 0;
+        if (a.distance == null) return 1;
+        if (b.distance == null) return -1;
+        return a.distance - b.distance;
+      });
+    } else if (sortBy === 'budget') {
+      tasks.sort((a, b) => (b.budget || 0) - (a.budget || 0));
+    } else if (sortBy === 'physicalLevel') {
+      tasks.sort((a, b) => (a.physical_level || 99) - (b.physical_level || 99));
+    }
 
     const totalResult = await db.getSync(`
       SELECT COUNT(*) as count FROM t_task WHERE status = 0 AND expires_at > datetime('now')

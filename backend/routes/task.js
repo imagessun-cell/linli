@@ -156,6 +156,91 @@ router.get('/nearby', async (req, res) => {
   }
 });
 
+router.get('/suggestions', async (req, res) => {
+  try {
+    const { q = '', limit = 8 } = req.query;
+    const keyword = String(q).trim();
+
+    if (!keyword) {
+      return res.json({ code: 0, message: 'OK', data: { suggestions: [], hotKeywords: getHotKeywords() } });
+    }
+
+    // 1) 从真实任务表中查（address）
+    const like = `%${keyword}%`;
+    const rows = await db.allSync(`
+      SELECT DISTINCT address, type, sub_type
+      FROM t_task
+      WHERE status = 0 AND expires_at > datetime('now') AND address LIKE ?
+      LIMIT ?
+    `, [like, parseInt(limit) * 2]);
+
+    const suggestionMap = new Map();
+
+    const pushIfNew = (item) => {
+      if (!item || !item.text) return;
+      if (!suggestionMap.has(item.text)) {
+        suggestionMap.set(item.text, item);
+      }
+    };
+
+    // 整段地址 / 拆分关键词
+    rows.forEach((row) => {
+      const addr = row.address || '';
+      if (addr.toLowerCase().includes(keyword.toLowerCase())) {
+        pushIfNew({ text: addr, type: 'address', taskType: row.type });
+      }
+      const parts = addr.split(/[市区县路街道号]/).filter(p => p.length >= 2);
+      parts.forEach((part) => {
+        if (part.includes(keyword)) {
+          pushIfNew({ text: part, type: 'keyword', taskType: row.type });
+        }
+      });
+    });
+
+    // 2) 任务类型 / 子类型联想
+    Object.entries(TASK_TYPES).forEach(([k, v]) => {
+      if (v.name.includes(keyword)) {
+        pushIfNew({ text: v.name, type: 'type', taskType: Number(k) });
+      }
+    });
+    Object.entries(ESCORT_SUB_TYPES).forEach(([k, v]) => {
+      if (v.name.includes(keyword)) {
+        pushIfNew({ text: v.name, type: 'subType', taskType: 1 });
+      }
+    });
+
+    // 3) 特殊需求 / 备注联想
+    const reqRows = await db.allSync(`
+      SELECT DISTINCT special_requirements
+      FROM t_task
+      WHERE status = 0 AND expires_at > datetime('now') AND special_requirements LIKE ?
+      LIMIT ?
+    `, [like, parseInt(limit)]);
+    reqRows.forEach((row) => {
+      const txt = row.special_requirements || '';
+      if (txt.includes(keyword)) {
+        // 截取关键词附近片段（最多 30 字）
+        const idx = txt.indexOf(keyword);
+        const start = Math.max(0, idx - 8);
+        const end = Math.min(txt.length, idx + keyword.length + 16);
+        const snippet = (start > 0 ? '…' : '') + txt.slice(start, end) + (end < txt.length ? '…' : '');
+        pushIfNew({ text: snippet, type: 'requirement', taskType: null });
+      }
+    });
+
+    const suggestions = Array.from(suggestionMap.values()).slice(0, parseInt(limit));
+    res.json({ code: 0, message: 'OK', data: { suggestions, hotKeywords: getHotKeywords() } });
+  } catch (err) {
+    console.error('suggestions error:', err);
+    res.status(500).json({ code: 500, message: '查询失败' });
+  }
+});
+
+const HOT_KEYWORDS = ['陪诊', '中山医院', '华山医院', '仁济医院', '瑞金医院', '徐汇区', '浦东新区', '静安区'];
+function getHotKeywords() {
+  return HOT_KEYWORDS;
+}
+
 router.get('/public/:taskId', async (req, res) => {
   try {
     const { taskId } = req.params;

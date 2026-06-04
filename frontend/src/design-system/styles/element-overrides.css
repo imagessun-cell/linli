@@ -1,0 +1,156 @@
+/* ============================================================
+ * Element Plus 主题覆盖 — 让 Element Plus 走 iOS HIG 风格
+ * (保留库,只换皮,降低重写成本)
+ * ============================================================ */
+
+/* ---------- Button ---------- */
+.el-button {
+  min-height: var(--ds-touch-min);
+  padding: 0 var(--ds-space-5);
+  font-size: var(--ds-font-body);
+  font-weight: var(--ds-weight-semi);
+  border-radius: var(--ds-radius-md);
+  border: 1px solid transparent;
+  background: var(--ds-fill-1);
+  color: var(--ds-text);
+  transition: background 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
+}
+.el-button:hover { background: var(--ds-fill-2); }
+.el-button:active { transform: scale(0.98); }
+.el-button:focus-visible { outline: 3px solid var(--ds-blue); outline-offset: 2px; }
+
+.el-button--primary {
+  background: var(--ds-blue);
+  color: var(--ds-text-on-blue);
+  border-color: var(--ds-blue);
+}
+.el-button--primary:hover { background: var(--ds-blue-hover); border-color: var(--ds-blue-hover); }
+.el-button--primary:active { background: var(--ds-blue-active); }
+
+.el-button--success { background: var(--ds-green); color: #fff; border-color: var(--ds-green); }
+.el-button--warning { background: var(--ds-orange); color: #fff; border-color: var(--ds-orange); }
+.el-button--danger  { background: var(--ds-red);   color: #fff; border-color: var(--ds-red); }
+
+.el-button.is-disabled,
+.el-button.is-disabled:hover { opacity: 0.4; cursor: not-allowed; }
+
+.el-button--large { min-height: var(--ds-touch-large); padding: 0 var(--ds-space-6); font-size: var(--ds-font-callout); }
+.el-button--small { min-height: 40px; padding: 0 var(--ds-space-3); font-size: var(--ds-font-sub); }
+
+/* ---------- Input ---------- */
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+  background: var(--ds-fill-2);
+  box-shadow: none !important;
+  border-radius: var(--ds-radius-md);
+  padding: 4px 12px;
+  min-height: var(--ds-touch-min);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.el-input__wrapper:hover,
+.el-textarea__inner:hover,
+.el-select__wrapper:hover { background: var(--ds-fill-1); }
+.el-input__wrapper.is-focus,
+.el-textarea__inner:focus,
+.el-select__wrapper.is-focused {
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--ds-blue) !important;
+}
+.el-input__inner,
+.el-textarea__inner {
+  font-size: var(--ds-font-body);
+  color: var(--ds-text);
+  min-height: calc(var(--ds-touch-min) - 8px);
+}
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder { color: var(--ds-text-3); }
+
+/* ---------- Dialog / Drawer / MessageBox ---------- */
+.el-dialog {
+  border-radius: var(--ds-radius-xl);
+  overflow: hidden;
+  box-shadow: var(--ds-shadow-3);
+  max-width: 480px;
+  width: calc(100% - 32px);
+}
+.el-dialog__header { padding: 20px 20px 0; }
+.el-dialog__title  { font-size: var(--ds-font-h3); font-weight: var(--ds-weight-bold); }
+.el-dialog__body   { padding: 16px 20px; font-size: var(--ds-font-body); color: var(--ds-text); }
+.el-dialog__footer { padding: 12px 20px 20px; }
+.el-dialog__headerbtn { font-size: 22px; }
+
+.el-message-box {
+  border-radius: var(--ds-radius-xl);
+  max-width: 420px;
+}
+.el-message-box__btns .el-button { min-height: var(--ds-touch-min); }
+
+.el-message {
+  border-radius: var(--ds-radius-md);
+  min-height: var(--ds-touch-min);
+  font-size: var(--ds-font-sub);
+  box-shadow: var(--ds-shadow-2);
+  border: 0;
+}
+.el-message__content { padding: 0; }
+
+/* ---------- Tag ---------- */
+.el-tag {
+  border-radius: var(--ds-radius-sm);
+  font-size: var(--ds-font-caption);
+  font-weight: var(--ds-weight-semi);
+  height: auto;
+  line-height: 1.4;
+  padding: 2px 8px;
+  background: var(--ds-fill-2);
+  color: var(--ds-text);
+  border: 0;
+}
+.el-tag.el-tag--primary { background: var(--ds-blue-soft); color: var(--ds-blue); }
+.el-tag.el-tag--success { background: var(--ds-green-soft); color: var(--ds-green); }
+.el-tag.el-tag--warning { background: var(--ds-orange-soft); color: var(--ds-orange); }
+.el-tag.el-tag--danger  { background: var(--ds-red-soft);    color: var(--ds-red); }
+.el-tag.el-tag--info    { background: var(--ds-fill-2);     color: var(--ds-text-2); }
+
+/* ---------- Switch ---------- */
+.el-switch__core {
+  border-radius: var(--ds-radius-pill);
+  height: 28px;
+  width: 50px;
+  background: var(--ds-fill-1);
+  border-color: var(--ds-separator);
+}
+.el-switch__core .el-switch__button { width: 24px; height: 24px; }
+.el-switch.is-checked .el-switch__core { background: var(--ds-green); border-color: var(--ds-green); }
+
+/* ---------- Checkbox / Radio ---------- */
+.el-checkbox__inner,
+.el-radio__inner {
+  width: 22px; height: 22px;
+  border-radius: var(--ds-radius-xs);
+  border: 1.5px solid var(--ds-text-3);
+  background: #fff;
+}
+.el-radio__inner { border-radius: 50%; }
+.el-checkbox__inner::after { left: 6px; top: 2px; width: 6px; height: 11px; }
+.el-checkbox.is-checked .el-checkbox__inner,
+.el-radio.is-checked .el-radio__inner {
+  background: var(--ds-blue);
+  border-color: var(--ds-blue);
+}
+.el-checkbox.is-checked .el-checkbox__inner::after { border-color: #fff; }
+.el-radio.is-checked .el-radio__inner::after { background: #fff; }
+
+/* ---------- Menu (用于 TabBar 等) ---------- */
+.el-menu { border: 0; }
+.el-menu-item { font-size: var(--ds-font-body); min-height: var(--ds-touch-min); }
+
+/* ---------- Divider ---------- */
+.el-divider { border-color: var(--ds-separator); }
+
+/* ---------- Loading ---------- */
+.el-loading-mask { background: rgba(255,255,255,0.7); backdrop-filter: blur(6px); }
+
+/* ---------- Notification ---------- */
+.el-notification { border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-3); border: 0; }

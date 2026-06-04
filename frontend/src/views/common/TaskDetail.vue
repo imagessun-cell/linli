@@ -42,7 +42,7 @@
         <img :src="task.employerAvatar || '/default-avatar.png'" class="avatar" />
         <div class="publisher-detail">
           <span class="name">{{ task.employerNickname }}</span>
-          <span class="rating">⭐ {{ task.employerRating || 5.0 }}</span>
+          <span class="rating">💪 {{ task.employerRating || 5.0 }}</span>
         </div>
       </div>
     </div>
