@@ -178,18 +178,21 @@ onMounted(() => {
 .worker-square {
   padding: var(--spacing-md);
   padding-bottom: calc(80px + env(safe-area-inset-bottom));
-  background: var(--bg-secondary);
+  background: var(--bg-warm);
   min-height: 100vh;
 }
 
 .page-header {
   text-align: center;
   margin-bottom: var(--spacing-lg);
+  padding-top: var(--spacing-md);
 }
 
 .page-header h1 {
   font-size: var(--font-size-2xl);
   margin: 0 0 var(--spacing-xs);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .subtitle {
@@ -206,15 +209,18 @@ onMounted(() => {
   width: 100%;
   padding: var(--spacing-md);
   font-size: var(--font-size-base);
-  border: var(--border);
+  border: var(--border-light);
   border-radius: var(--border-radius);
   background: var(--bg-primary);
   min-height: var(--touch-target-min);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s var(--transition-soft);
 }
 
 .search-input:focus {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .worker-list {
@@ -225,9 +231,11 @@ onMounted(() => {
 
 .worker-card {
   background: var(--bg-primary);
-  border: var(--border);
+  border: var(--border-light);
   border-radius: var(--border-radius);
   padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s var(--transition-soft);
 }
 
 .worker-header {
@@ -240,11 +248,11 @@ onMounted(() => {
   width: 56px;
   height: 56px;
   margin-right: var(--spacing-md);
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid var(--accent-soft);
   border-radius: 50%;
   overflow: hidden;
   background: var(--bg-tertiary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm);
   flex-shrink: 0;
 }
 
@@ -260,8 +268,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-warm) 100%);
-  color: white;
+  background: var(--accent-light);
+  color: var(--accent);
   font-size: 20px;
   font-weight: 600;
 }
@@ -272,8 +280,9 @@ onMounted(() => {
 
 .worker-name {
   font-size: var(--font-size-lg);
-  font-weight: 700;
+  font-weight: 600;
   margin: 0 0 var(--spacing-xs);
+  color: var(--text-primary);
 }
 
 .worker-location {
@@ -308,10 +317,11 @@ onMounted(() => {
 
 .skill-tag {
   padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   background: var(--accent-light);
   color: var(--accent);
-  border-radius: var(--border-radius);
+  border-radius: var(--border-radius-sm);
+  font-weight: 500;
 }
 
 .worker-stats {
@@ -351,13 +361,13 @@ onMounted(() => {
   flex: 1;
   padding: var(--spacing-md);
   font-size: var(--font-size-base);
-  font-weight: 600;
+  font-weight: 500;
   background: var(--bg-primary);
   color: var(--text-primary);
-  border: var(--border-medium);
+  border: var(--border-light);
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s var(--transition-soft);
   min-height: var(--touch-target-min);
 }
 
@@ -366,15 +376,10 @@ onMounted(() => {
   outline-offset: 2px;
 }
 
-.action-btn.primary {
-  background: var(--accent);
-  color: var(--bg-primary);
+.action-btn:hover {
+  background: var(--bg-secondary);
   border-color: var(--accent);
-}
-
-.action-btn.primary:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  color: var(--accent);
 }
 
 .loading {
@@ -413,27 +418,30 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(45, 45, 45, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: var(--spacing-md);
+  backdrop-filter: blur(2px);
 }
 
 .dialog-content {
   background: var(--bg-primary);
-  border: var(--border);
-  border-radius: var(--border-radius);
+  border: var(--border-light);
+  border-radius: var(--border-radius-lg);
   padding: var(--spacing-xl);
   width: 100%;
   max-width: 400px;
+  box-shadow: var(--shadow-xl);
 }
 
 .dialog-title {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   margin: 0 0 var(--spacing-lg);
   text-align: center;
+  font-weight: 600;
 }
 
 .dialog-text {
@@ -458,13 +466,13 @@ onMounted(() => {
   flex: 1;
   padding: var(--spacing-md);
   font-size: var(--font-size-base);
-  font-weight: 600;
+  font-weight: 500;
   background: var(--bg-primary);
   color: var(--text-primary);
-  border: var(--border-medium);
+  border: var(--border-light);
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s var(--transition-soft);
   min-height: var(--touch-target-min);
 }
 
@@ -473,15 +481,23 @@ onMounted(() => {
   outline-offset: 2px;
 }
 
+.dialog-btn:hover {
+  background: var(--bg-secondary);
+}
+
 .dialog-btn.primary {
-  background: var(--accent);
-  color: var(--bg-primary);
-  border-color: var(--accent);
+  background: var(--accent) !important;
+  color: #FFFFFF !important;
+  border-color: var(--accent) !important;
 }
 
 .dialog-btn.primary:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  background: var(--accent-hover) !important;
+}
+
+.dialog-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .sr-only {

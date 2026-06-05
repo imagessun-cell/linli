@@ -1,6 +1,6 @@
 <template>
   <nav class="global-tab-bar" role="navigation" aria-label="主导航">
-    <button
+    <span
       v-for="tab in tabItems"
       :key="tab.name"
       role="tab"
@@ -11,7 +11,7 @@
     >
       <span class="tab-icon" aria-hidden="true">{{ tab.icon }}</span>
       <span class="tab-label">{{ tab.label }}</span>
-    </button>
+    </span>
   </nav>
 
   <div
@@ -107,8 +107,10 @@ const goToApplyWorker = () => {
   right: 0;
   display: flex;
   background: var(--bg-primary);
+  border-top: var(--border-light);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
   z-index: 1000;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding:0 0 1rem 0;
 }
 
 .tab-item {
@@ -118,12 +120,13 @@ const goToApplyWorker = () => {
   align-items: center;
   justify-content: center;
   padding: var(--spacing-sm) var(--spacing-xs);
-  min-height: var(--touch-target-min);
-  border: 2px solid #FFFFFF;
+  min-height: 64px;
+  border: none;
   background: transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s var(--transition-soft);
   color: var(--text-muted);
+  position: relative;
 }
 
 .tab-item:focus-visible {
@@ -135,6 +138,18 @@ const goToApplyWorker = () => {
   color: var(--accent);
 }
 
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 0 0 3px 3px;
+}
+
 .tab-icon {
   font-size: var(--font-size-xl);
   margin-bottom: 2px;
@@ -142,8 +157,9 @@ const goToApplyWorker = () => {
 }
 
 .tab-label {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 .publish-dialog-overlay {
@@ -152,21 +168,23 @@ const goToApplyWorker = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(45, 45, 45, 0.4);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   z-index: 2000;
   padding: var(--spacing-md);
+  backdrop-filter: blur(2px);
 }
 
 .publish-dialog {
   background: var(--bg-primary);
-  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
   padding: var(--spacing-xl);
   width: 100%;
   max-width: 500px;
-  animation: slideUp 0.3s ease-out;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.06);
+  animation: slideUp 0.4s var(--transition-smooth);
 }
 
 @keyframes slideUp {
@@ -181,9 +199,11 @@ const goToApplyWorker = () => {
 }
 
 .dialog-title {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   text-align: center;
-  margin: 0 0 var(--spacing-xl);
+  margin: 0 0 var(--spacing-lg);
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .dialog-options {
@@ -198,10 +218,10 @@ const goToApplyWorker = () => {
   align-items: center;
   padding: var(--spacing-xl);
   background: var(--bg-secondary);
-  border: var(--border-medium);
+  border: 1px solid transparent;
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s var(--transition-soft);
   min-height: 100px;
 }
 
@@ -212,17 +232,17 @@ const goToApplyWorker = () => {
 
 .dialog-option:hover {
   background: var(--accent-light);
-  border-color: var(--accent);
+  border-color: var(--accent-soft);
 }
 
 .option-icon {
-  font-size: 36px;
+  font-size: 32px;
   margin-bottom: var(--spacing-sm);
 }
 
 .option-label {
   font-size: var(--font-size-lg);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--spacing-xs);
 }
@@ -237,13 +257,13 @@ const goToApplyWorker = () => {
   padding: var(--spacing-md);
   margin-top: var(--spacing-lg);
   font-size: var(--font-size-base);
-  font-weight: 600;
+  font-weight: 500;
   background: var(--bg-primary);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   border: var(--border-light);
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s var(--transition-soft);
   min-height: var(--touch-target-min);
 }
 
@@ -254,6 +274,7 @@ const goToApplyWorker = () => {
 
 .dialog-close:hover {
   background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 @media (prefers-reduced-motion: reduce) {

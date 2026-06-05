@@ -126,6 +126,25 @@ CREATE TABLE IF NOT EXISTS t_course (
     is_required INTEGER DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS t_task_type (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    icon TEXT DEFAULT '📋',
+    sort_order INTEGER DEFAULT 0,
+    has_sub_types INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+INSERT OR IGNORE INTO t_task_type (id, name, icon, sort_order, has_sub_types) VALUES
+(1, '陪诊', '🩺', 1, 1),
+(2, '陪聊', '💬', 2, 0),
+(3, '保洁', '🧹', 3, 0),
+(4, '做饭', '🍳', 4, 0),
+(5, '接送', '🚗', 5, 0),
+(6, '看护', '👴', 6, 0),
+(7, '跑腿', '📦', 7, 0),
+(8, '助教', '📚', 8, 0);
+
 CREATE TABLE IF NOT EXISTS t_learning_record (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     worker_id INTEGER NOT NULL,

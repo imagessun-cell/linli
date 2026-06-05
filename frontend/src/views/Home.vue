@@ -117,31 +117,36 @@
           tabindex="0"
         >
           <div class="task-main">
-            <div class="task-header">
-              <div v-if="task.employerAvatar" class="avatar-small">
-                <img :src="task.employerAvatar" :alt="task.employerName + '的头像'" @error="handleAvatarError($event, task.employerName)" />
-              </div>
-              <div v-else class="avatar-small avatar-placeholder">
-                {{ (task.employerName || '就').charAt(0) }}
-              </div>
-              <span class="employer-name">{{ task.employerName || '就诊人' }}</span>
-            </div>
-            <div class="task-type" aria-label="任务类型">
+            <span class="task-type" aria-label="任务类型">
               <span v-if="task.subTypeIcon" :class="['sub-type-tag', getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
-              <span v-else-if="task.typeName === '陪诊'" :class="['sub-type-tag', 'tag-escort']">🪑 门诊陪护</span>
               <span v-else>{{ task.typeIcon }} {{ task.typeName }}</span>
-            </div>
+            </span>
             <h3 class="task-title">{{ task.title }}</h3>
             <div class="task-meta">
               <span>{{ formatDistance(task.distance) }}</span>
               <span>{{ task.duration }}分钟</span>
               <span>💪 {{ task.employerRating }}</span>
+              <span class="poster-info">
+              <i v-if="task.employerAvatar" class="avatar-small">
+                <img :src="task.employerAvatar" :alt="task.employerName + '的头像'" @error="handleAvatarError($event, task.employerName)" />
+              </i>
+              <i v-else class="avatar-small avatar-placeholder">
+                {{ (task.employerName || '就').charAt(0) }}
+              </i>
+              <span class="employer-name">{{ task.employerName || '就诊人' }}</span>
+              </span>
+
+
             </div>
           </div>
           <div class="task-side">
             <div class="task-budget" aria-label="报酬">¥{{ task.budget }}</div>
-           
           </div>
+
+
+            <div class="task-header">
+                  </div>
+          
         </div>
 
         <div v-if="hasMore" class="load-more">
@@ -241,14 +246,14 @@ const viewMode = ref('list')
 const showFilters = ref(false)
 const selectedTypes = ref([])
 const selectedLevels = ref([])
-const radius = ref(50000)
+const radius = ref(50000000)
 const selectedTask = ref(null)
 const userLocation = ref({ lat: 31.230416, lng: 121.473701 })
 
 const sortOptions = [
-  { label: '距离', value: 'distance' },
-  { label: '报酬', value: 'budget' },
-  { label: '体力', value: 'physicalLevel' }
+  { label: '距离排序', value: 'distance' },
+  { label: '报酬排序', value: 'budget' },
+  { label: '体力排序', value: 'physicalLevel' }
 ]
 
 const taskTypes = [
@@ -315,12 +320,15 @@ const loadTasks = async (reset = false) => {
       radius: radius.value,
       page: page.value,
       pageSize: 10,
-      sortBy: sortBy.value,
-      type: 1
+      sortBy: sortBy.value
+    }
+
+    if (searchKeyword.value.trim()) {
+      params.keyword = searchKeyword.value.trim()
     }
 
     if (selectedTypes.value.length > 0) {
-      params.subType = selectedTypes.value.join(',')
+      params.type = selectedTypes.value.join(',')
     }
     if (selectedLevels.value.length > 0) {
       params.physicalLevel = selectedLevels.value.join(',')
@@ -370,7 +378,7 @@ const applyFilters = () => {
 const resetFilters = () => {
   selectedTypes.value = []
   selectedLevels.value = []
-  radius.value = 50000
+  radius.value = 50000000
 }
 
 let suggestTimer = null
@@ -388,7 +396,7 @@ const onSearchInput = () => {
 
 const fetchSuggestions = async (q) => {
   try {
-    const res = await request.get('/task/suggestions', { q, limit: 8 })
+    const res = await request.get('/task/suggestions', { params: { q, limit: 8 } })
     if (res.code === 0) {
       suggestions.value = res.data.suggestions || []
       if (Array.isArray(res.data.hotKeywords)) {
@@ -608,13 +616,16 @@ onUnmounted(() => {
 
 .search-input {
   width: 100%;
-  padding: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-base);
-  border: var(--border-medium);
+  border: var(--border-light);
   outline: none;
   min-height: var(--touch-target-min);
   box-sizing: border-box;
-  border-radius: var(--radius-md);
+  border-radius: var(--border-radius);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s var(--transition-soft);
 }
 
 .search-input:focus {
@@ -627,41 +638,42 @@ onUnmounted(() => {
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #fff;
+  background: var(--bg-primary);
   border: var(--border-light);
-  border-radius: var(--radius-md);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
   max-height: 360px;
   overflow-y: auto;
   z-index: 100;
   list-style: none;
   margin: 0;
-  padding: 4px 0;
+  padding: var(--spacing-xs) 0;
 }
 
 .suggestion-section {
-  padding: 8px var(--spacing-md) 4px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  background: #f7f7f7;
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  background: var(--bg-secondary);
   list-style: none;
+  font-weight: 500;
 }
 
 .suggestion-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px var(--spacing-md);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
   min-height: var(--touch-target-min);
   cursor: pointer;
   font-size: var(--font-size-base);
   color: var(--text-primary);
-  transition: background 0.15s;
+  transition: all 0.2s var(--transition-soft);
 }
 
 .suggestion-item:hover,
 .suggestion-item.active {
-  background: var(--accent-light, #e6f0ff);
+  background: var(--accent-light);
 }
 
 .suggestion-icon {
@@ -671,25 +683,28 @@ onUnmounted(() => {
 
 .suggestion-item :deep(mark) {
   background: transparent;
-  color: var(--accent, #007AFF);
+  color: var(--accent);
   font-weight: 600;
 }
 
 .filter-btn {
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-xs) var(--spacing-lg);
   font-size: var(--font-size-base);
-  font-weight: 600;
-  text-transform: uppercase;
+  font-weight: 500;
   background: var(--bg-primary) !important;
-  border: var(--border) !important;
+  border: var(--border-light) !important;
   cursor: pointer;
   min-width: 80px;
   min-height: var(--touch-target-min);
+  border-radius: var(--border-radius) !important;
+  color: var(--text-secondary) !important;
+  transition: all 0.3s var(--transition-soft);
 }
 
 .filter-btn:hover {
-  background: var(--text-primary) !important;
-  color: var(--bg-primary) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  background: var(--accent-light) !important;
 }
 
 .sort-bar {
@@ -698,24 +713,27 @@ onUnmounted(() => {
   align-items: center;
   padding: var(--spacing-sm) var(--spacing-md);
   border-bottom: var(--border-light);
+  background: var(--bg-tertiary);
 }
 
 .sort-tabs {
   display: flex;
-  gap: 0;
+  gap: 4px;
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
 }
 
 .sort-tabs button {
   padding: var(--spacing-sm) var(--spacing-sm);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  text-transform: uppercase;
-  background: none;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
   min-height: var(--touch-target-min);
   position: relative;
+  transition: all 0.3s var(--transition-soft);
 }
 
 .sort-tabs button:focus-visible {
@@ -725,16 +743,8 @@ onUnmounted(() => {
 
 .sort-tabs button.active {
   color: var(--text-primary);
-}
-
-.sort-tabs button.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: var(--spacing-md);
-  right: var(--spacing-md);
-  height: 3px;
-  background: var(--accent);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .view-toggle {
@@ -747,11 +757,14 @@ onUnmounted(() => {
   height: var(--touch-target-min);
   font-size: var(--font-size-lg);
   background: var(--bg-primary);
-  border: var(--border-medium) !important;
+  border: var(--border-light) !important;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: var(--border-radius-sm) !important;
+  transition: all 0.3s var(--transition-soft);
+  color: var(--text-muted) !important;
 }
 
 .view-toggle button:focus-visible {
@@ -761,7 +774,7 @@ onUnmounted(() => {
 
 .view-toggle button.active {
   background: var(--text-primary);
-  color: var(--bg-primary);
+  color: var(--bg-primary) !important;
 }
 
 .content-area {
@@ -798,8 +811,8 @@ onUnmounted(() => {
 }
 
 .avatar-small {
-  width: 36px;
-  height: 36px;
+  width: 22px ;
+  height: 22px;
   border-radius: 50%;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -843,6 +856,8 @@ onUnmounted(() => {
   border-bottom: var(--border-light);
   cursor: pointer;
   min-height: 100px;
+  transition: all 0.3s var(--transition-soft);
+  background: var(--bg-primary);
 }
 
 .task-card:hover {
@@ -854,69 +869,63 @@ onUnmounted(() => {
   outline-offset: -3px;
 }
 
+.task-card:last-child {
+  border-bottom: none;
+}
+
 .task-main {
   flex: 1;
 }
 
 .task-type {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
   color: var(--text-muted);
   margin-bottom: var(--spacing-xs);
+  letter-spacing: 0.05em;
+  padding-bottom: var(--spacing-xs);
+  display: block;
 }
 
 .sub-type-tag {
   display: inline-block;
   color: white;
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: var(--border-radius-full);
   font-size: var(--font-size-xs);
-  font-weight: 600;
-}
-
-.sub-type-tag.tag-accompany {
-  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-}
-
-.sub-type-tag.tag-pharmacy {
-  background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
-}
-
-.sub-type-tag.tag-escort {
-  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
-}
-
-.sub-type-tag.tag-consult {
-  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+  font-weight: 500;
+  background: var(--accent);
 }
 
 .main-type-tag {
   display: inline-block;
   color: white;
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: var(--border-radius-full);
   font-size: var(--font-size-xs);
-  font-weight: 600;
-}
-
-.main-type-tag.tag-escort-main {
-  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  font-weight: 500;
+  background: var(--accent-soft);
+  color: var(--text-primary);
 }
 
 .task-title {
   font-size: var(--font-size-lg);
-  font-weight: 700;
+  font-weight: 600;
   margin: 0 0 var(--spacing-sm);
   color: var(--text-primary);
+  line-height: 1.4;
 }
 
 .task-meta {
   display: flex;
   gap: var(--spacing-lg);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
+  .poster-info{
+    display: grid;
+    gap: 4px;
+    grid-template-columns: 24px 6em;
+  }
 }
 
 .task-side {
@@ -1075,12 +1084,12 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-lg) var(--spacing-md);
-  border-bottom: var(--border);
+  border-bottom: var(--border-light);
 }
 
 .drawer-header h2 {
-  font-size: var(--font-size-xl);
-  font-weight: 700;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
   margin: 0;
 }
 
@@ -1151,32 +1160,35 @@ onUnmounted(() => {
   padding: var(--spacing-md);
   display: flex;
   gap: var(--spacing-md);
-  border-top: var(--border);
+  border-top: var(--border-light);
 }
 
 .drawer-footer button {
   flex: 1;
   padding: var(--spacing-md);
   font-size: var(--font-size-base);
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 500;
   background: var(--bg-primary);
-  border: var(--border) !important;
+  border: var(--border-light) !important;
   cursor: pointer;
   min-height: var(--touch-target-min);
+  border-radius: var(--border-radius) !important;
+  transition: all 0.3s var(--transition-soft);
+  color: var(--text-primary) !important;
 }
 
 .drawer-footer button.primary {
-  background: var(--text-primary);
-  color: var(--bg-primary);
+  background: var(--accent) !important;
+  color: #FFFFFF !important;
+  border-color: var(--accent) !important;
 }
 
 .drawer-footer button:hover {
-  background: var(--bg-secondary);
+  background: var(--bg-secondary) !important;
 }
 
 .drawer-footer button.primary:hover {
-  background: var(--accent);
-  border-color: var(--accent) !important;
+  background: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
 }
 </style>

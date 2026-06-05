@@ -139,6 +139,33 @@ const routes = [
     path: '/demo/search',
     name: 'SearchDemo',
     component: () => import('@/views/common/SearchDemo.vue')
+  },
+  {
+    path: '/admin',
+    component: () => import('@/views/admin/Layout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'AdminDashboard',
+        component: () => import('@/views/admin/Dashboard.vue')
+      },
+      {
+        path: 'users',
+        name: 'AdminUsers',
+        component: () => import('@/views/admin/Users.vue')
+      },
+      {
+        path: 'tasks',
+        name: 'AdminTasks',
+        component: () => import('@/views/admin/Tasks.vue')
+      },
+      {
+        path: 'types',
+        name: 'AdminTypes',
+        component: () => import('@/views/admin/Types.vue')
+      }
+    ]
   }
 ]
 

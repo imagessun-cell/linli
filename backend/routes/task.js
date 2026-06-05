@@ -52,7 +52,7 @@ router.get('/types', (req, res) => {
 
 router.get('/nearby', async (req, res) => {
   try {
-    const { latitude, longitude, radius = 5000, page = 1, pageSize = 20, sortBy = 'distance', type, subType, physicalLevel } = req.query;
+    const { latitude, longitude, radius = 5000, page = 1, pageSize = 20, sortBy = 'distance', type, subType, physicalLevel, keyword } = req.query;
 
     const rows = await db.allSync(`
       SELECT t.*,
@@ -104,6 +104,15 @@ router.get('/nearby', async (req, res) => {
       tasks = tasks.filter(task => levels.includes(task.physical_level));
     }
 
+    if (keyword) {
+      const kw = keyword.trim().toLowerCase();
+      tasks = tasks.filter(task => {
+        return (task.address && task.address.toLowerCase().includes(kw)) ||
+               (task.special_requirements && task.special_requirements.toLowerCase().includes(kw)) ||
+               (TASK_TYPES[task.type] && TASK_TYPES[task.type].name.includes(kw));
+      });
+    }
+
     const total = tasks.length;
     const start = (parseInt(page) - 1) * parseInt(pageSize);
     const end = start + parseInt(pageSize);
@@ -118,8 +127,8 @@ router.get('/nearby', async (req, res) => {
       subTypeName: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.name || null) : null,
       subTypeIcon: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.icon || '') : null,
       title: task.sub_type
-        ? `${ESCORT_SUB_TYPES[task.sub_type]?.name || '陪诊'} - ${task.address.split('区')[1] || task.address.slice(0, 10)}...`
-        : `${TASK_TYPES[task.type]?.name || '服务'} - ${task.address.split('区')[1] || task.address.slice(0, 10)}...`,
+        ? `${ESCORT_SUB_TYPES[task.sub_type]?.name || '陪诊'} - ${task.address}`
+        : `${task.address}`,
       startTime: task.start_time,
       endTime: task.end_time,
       duration: task.duration_minutes,
@@ -272,8 +281,8 @@ router.get('/public/:taskId', async (req, res) => {
         subTypeName: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.name || null) : null,
         subTypeIcon: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.icon || '') : null,
         title: task.sub_type
-          ? `${ESCORT_SUB_TYPES[task.sub_type]?.name || '陪诊'} - ${task.address.split('区')[1] || task.address.slice(0, 10)}...`
-          : `${TASK_TYPES[task.type]?.name || '服务'} - ${task.address.split('区')[1] || task.address.slice(0, 10)}...`,
+          ? `${ESCORT_SUB_TYPES[task.sub_type]?.name || '陪诊'} - ${task.address}`
+          : `${task.address}`,
         startTime: task.start_time,
         endTime: task.end_time,
         duration: task.duration_minutes,

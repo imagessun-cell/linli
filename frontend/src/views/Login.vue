@@ -125,7 +125,7 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   padding: var(--spacing-lg);
-  background: var(--bg-primary);
+  background: var(--bg-warm);
 }
 
 .login-header {
@@ -134,23 +134,26 @@ const handleLogin = async () => {
 }
 
 .login-header h1 {
-  font-size: var(--font-size-4xl);
-  font-weight: 900;
-  letter-spacing: 0.06em;
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
   margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
 }
 
 .subtitle {
   font-size: var(--font-size-base);
   color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 300;
   margin: 0;
 }
 
 .login-box {
   width: 100%;
   max-width: 400px;
+  background: var(--bg-primary);
+  padding: var(--spacing-xl);
+  border-radius: var(--border-radius-lg);
+  border: var(--border-light);
+  box-shadow: var(--shadow-md);
 }
 
 .form-group {
@@ -160,9 +163,7 @@ const handleLogin = async () => {
 .form-group label {
   display: block;
   font-size: var(--font-size-base);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--spacing-sm);
 }
@@ -170,12 +171,14 @@ const handleLogin = async () => {
 .form-group input {
   width: 100%;
   padding: var(--spacing-md);
-  font-size: var(--font-size-lg);
-  border: var(--border-medium);
+  font-size: var(--font-size-base);
+  border: var(--border-light);
   background: var(--bg-primary);
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  border-radius: var(--border-radius);
+  transition: all 0.3s var(--transition-soft);
   min-height: var(--touch-target-min);
+  box-shadow: var(--shadow-sm);
 }
 
 .form-group input:focus {
@@ -195,21 +198,19 @@ const handleLogin = async () => {
 .code-btn {
   padding: var(--spacing-md) var(--spacing-lg);
   font-size: var(--font-size-base);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: var(--text-primary) !important;
-  color: var(--bg-primary) !important;
-  border: var(--border) !important;
+  font-weight: 500;
+  background: var(--accent) !important;
+  color: #FFFFFF !important;
+  border: none !important;
   cursor: pointer;
-  transition: background-color 0.2s;
+  border-radius: var(--border-radius) !important;
+  transition: all 0.3s var(--transition-soft);
   min-width: 100px;
   min-height: var(--touch-target-min);
 }
 
 .code-btn:hover:not(:disabled) {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
+  background: var(--accent-hover) !important;
 }
 
 .code-btn:disabled {
@@ -225,21 +226,20 @@ const handleLogin = async () => {
 .submit-btn {
   width: 100%;
   padding: var(--spacing-md);
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  background: var(--text-primary);
-  color: var(--bg-primary);
-  border: var(--border) !important;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  background: var(--accent) !important;
+  color: #FFFFFF !important;
+  border: none !important;
   cursor: pointer;
+  border-radius: var(--border-radius) !important;
   min-height: var(--touch-target-min);
+  transition: all 0.3s var(--transition-soft);
   margin-top: var(--spacing-md);
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: var(--accent);
-  border-color: var(--accent) !important;
+  background: var(--accent-hover) !important;
 }
 
 .submit-btn:focus-visible {
@@ -257,13 +257,14 @@ const handleLogin = async () => {
   padding: var(--spacing-md);
   background: var(--bg-secondary);
   border: var(--border-light);
+  border-radius: var(--border-radius);
   font-size: var(--font-size-base);
   text-align: center;
 }
 
 .mock-notice strong {
   color: var(--accent);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .register-link {
@@ -278,9 +279,14 @@ const handleLogin = async () => {
 
 .register-link a {
   color: var(--accent);
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: underline;
   margin-left: var(--spacing-xs);
+  transition: color 0.3s var(--transition-soft);
+}
+
+.register-link a:hover {
+  color: var(--accent-hover);
 }
 
 .register-link a:hover {
