@@ -115,7 +115,7 @@ const handleRegister = async () => {
   align-items: center;
   justify-content: center;
   padding: var(--spacing-lg);
-  background: var(--bg-primary);
+  background: var(--bg-warm);
 }
 
 .register-header {
@@ -124,23 +124,26 @@ const handleRegister = async () => {
 }
 
 .register-header h1 {
-  font-size: var(--font-size-4xl);
-  font-weight: 900;
-  letter-spacing: 0.06em;
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
   margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
 }
 
 .subtitle {
   font-size: var(--font-size-base);
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
   margin: 0;
 }
 
 .register-box {
   width: 100%;
   max-width: 400px;
+  background: var(--bg-primary);
+  padding: var(--spacing-xl);
+  border-radius: var(--border-radius-lg);
+  border: var(--border-light);
+  box-shadow: var(--shadow-md);
 }
 
 .form-group {
@@ -150,9 +153,7 @@ const handleRegister = async () => {
 .form-group label {
   display: block;
   font-size: var(--font-size-base);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--spacing-sm);
 }
@@ -160,12 +161,14 @@ const handleRegister = async () => {
 .form-group input {
   width: 100%;
   padding: var(--spacing-md);
-  font-size: var(--font-size-lg);
-  border: var(--border-medium);
+  font-size: var(--font-size-base);
+  border: var(--border-light);
   background: var(--bg-primary);
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  border-radius: var(--border-radius);
+  transition: all 0.3s var(--transition-soft);
   min-height: var(--touch-target-min);
+  box-shadow: var(--shadow-sm);
 }
 
 .form-group input:focus {
@@ -182,9 +185,7 @@ const handleRegister = async () => {
 .role-legend {
   display: block;
   font-size: var(--font-size-base);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--spacing-sm);
 }
@@ -201,13 +202,14 @@ const handleRegister = async () => {
   justify-content: center;
   padding: var(--spacing-md);
   font-size: var(--font-size-base);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border: var(--border-medium);
+  font-weight: 500;
+  border: var(--border-light);
+  border-radius: var(--border-radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s var(--transition-soft);
   min-height: var(--touch-target-min);
+  background: var(--bg-primary);
+  color: var(--text-muted);
 }
 
 .role-option input {
@@ -218,7 +220,9 @@ const handleRegister = async () => {
 }
 
 .role-option:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-soft);
+  background: var(--accent-light);
+  color: var(--accent);
 }
 
 .role-option:focus-within {
@@ -227,29 +231,28 @@ const handleRegister = async () => {
 }
 
 .role-option.active {
-  background: var(--text-primary);
-  color: var(--bg-primary);
-  border-color: var(--text-primary);
+  background: var(--accent) !important;
+  color: #FFFFFF !important;
+  border-color: var(--accent) !important;
 }
 
 .submit-btn {
   width: 100%;
   padding: var(--spacing-md);
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  background: var(--text-primary);
-  color: var(--bg-primary);
-  border: var(--border) !important;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  background: var(--accent) !important;
+  color: #FFFFFF !important;
+  border: none !important;
   cursor: pointer;
+  border-radius: var(--border-radius) !important;
   min-height: var(--touch-target-min);
+  transition: all 0.3s var(--transition-soft);
   margin-top: var(--spacing-md);
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: var(--accent);
-  border-color: var(--accent) !important;
+  background: var(--accent-hover) !important;
 }
 
 .submit-btn:focus-visible {
@@ -274,9 +277,10 @@ const handleRegister = async () => {
 
 .login-link a {
   color: var(--accent);
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: underline;
   margin-left: var(--spacing-xs);
+  transition: color 0.3s var(--transition-soft);
 }
 
 .login-link a:hover {

@@ -13,7 +13,7 @@
     </header>
 
     <nav class="role-tabs" role="tablist" aria-label="角色选择">
-      <button
+      <div
         role="tab"
         :aria-selected="currentRole === 'worker'"
         :class="['role-tab', { active: currentRole === 'worker' }]"
@@ -21,8 +21,8 @@
         @keydown="handleTabKeydown($event, 'worker')"
       >
         陪诊师
-      </button>
-      <button
+      </div>
+      <div
         role="tab"
         :aria-selected="currentRole === 'employer'"
         :class="['role-tab', { active: currentRole === 'employer' }]"
@@ -30,7 +30,7 @@
         @keydown="handleTabKeydown($event, 'employer')"
       >
         就诊人
-      </button>
+      </div>
     </nav>
 
     <main class="profile-content" role="tabpanel">
@@ -40,6 +40,12 @@
       </div>
 
       <div v-else-if="currentRole === 'worker'" class="role-content worker-content">
+
+        <div class="actions">
+          <button class="action-btn" @click="$router.push('/worker/my-tasks')">我的任务</button>
+        </div>
+
+        
         <section class="info-section" aria-labelledby="worker-basic-title">
           <h3 id="worker-basic-title" class="section-title">基本信息</h3>
           <dl class="info-list">
@@ -93,10 +99,6 @@
             </div>
           </dl>
         </section>
-
-        <div class="actions">
-          <button class="action-btn" @click="$router.push('/worker/my-tasks')">我的任务</button>
-        </div>
       </div>
 
       <div v-else class="role-content employer-content">
@@ -125,6 +127,7 @@
     </main>
 
     <footer v-if="isLoggedIn" class="logout-section">
+      <router-link to="/admin" class="admin-link">⚙️ 管理后台</router-link>
       <button class="logout-btn" @click="handleLogout">退出登录</button>
     </footer>
   </div>
@@ -197,12 +200,11 @@ onMounted(async () => {
 <style scoped>
 .profile-container {
   min-height: 100vh;
-  background: var(--bg-secondary);
+  background: var(--bg-warm);
   padding-bottom: 100px;
 }
 
 .profile-header {
-  background: var(--bg-primary);
 }
 
 .avatar-section {
@@ -214,11 +216,11 @@ onMounted(async () => {
   width: 96px;
   height: 96px;
   margin: 0 auto var(--spacing-md);
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid var(--accent-soft);
   border-radius: 50%;
   overflow: hidden;
   background: var(--bg-tertiary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .avatar {
@@ -229,35 +231,40 @@ onMounted(async () => {
 
 .nickname {
   font-size: var(--font-size-xl);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 var(--spacing-xs);
-  letter-spacing: 0;
 }
 
 .phone {
   font-size: var(--font-size-base);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin: 0;
 }
 
 .role-tabs {
   display: flex;
-  background: var(--bg-primary);
   box-sizing: content-box;
+  padding: 0 var(--spacing-md);
+  gap: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-light);
+  border-color: var(--border-light);
 }
 
 .role-tab {
   flex: 1;
-  padding: var(--spacing-lg) var(--spacing-md);
-  border: 2px solid #FFFFFF;
+  padding: var(--spacing-md) var(--spacing-md);
+  border: var(--border-light);
   background: transparent;
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-size: var(--font-size-base);
+  font-weight: 500;
   color: var(--text-muted);
   cursor: pointer;
   position: relative;
   min-height: var(--touch-target-min);
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  transition: all 0.3s var(--transition-soft);
+  margin-bottom: -2px;
 }
 
 .role-tab:focus-visible {
@@ -266,17 +273,11 @@ onMounted(async () => {
 }
 
 .role-tab.active {
-  color: var(--text-primary);
-}
-
-.role-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--accent);
+  color: var(--accent);
+  background: var(--bg-primary);
+  border-color: var(--border-light);
+  border-bottom-color: var(--bg-primary);
+  font-weight: 600;
 }
 
 .profile-content {
@@ -296,29 +297,30 @@ onMounted(async () => {
 
 .login-btn {
   padding: var(--spacing-md) var(--spacing-2xl);
-  background: #000000 !important;
-  color: var(--bg-primary) !important;
-  border: 3px solid #000000 !important;
+  background: var(--accent) !important;
+  color: #FFFFFF !important;
+  border: none !important;
   font-size: var(--font-size-lg);
-  font-weight: 700;
+  font-weight: 600;
   min-width: 200px;
+  border-radius: var(--border-radius) !important;
 }
 
 .login-btn:hover {
   background: var(--accent-hover) !important;
-  border-color: var(--accent-hover) !important;
 }
 
 .info-section {
   background: var(--bg-primary);
-  border: var(--border);
+  border: var(--border-light);
   margin-bottom: var(--spacing-lg);
   border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
 }
 
 .section-title {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
+  font-size: var(--font-size-base);
+  font-weight: 600;
   color: var(--text-primary);
   padding: var(--spacing-md) var(--spacing-lg);
   margin: 0;
@@ -344,13 +346,13 @@ onMounted(async () => {
 
 .label {
   font-size: var(--font-size-base);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin: 0;
 }
 
 .value {
   font-size: var(--font-size-base);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
   margin: 0;
 }
@@ -373,11 +375,12 @@ onMounted(async () => {
 }
 
 .wallet-section {
-  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--success-light) 100%);
+  background: var(--bg-primary);
+  border-color: var(--accent-soft);
 }
 
 .wallet-section .section-title {
-  color: var(--success);
+  color: var(--accent);
 }
 
 .stats-grid {
@@ -394,7 +397,7 @@ onMounted(async () => {
 .stat-value {
   display: block;
   font-size: var(--font-size-2xl);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--spacing-xs);
 }
@@ -405,7 +408,7 @@ onMounted(async () => {
 }
 
 .actions {
-  padding: var(--spacing-md);
+  padding: var(--spacing-md) 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
@@ -415,25 +418,48 @@ onMounted(async () => {
   padding: var(--spacing-md) var(--spacing-lg);
   background: var(--bg-primary) !important;
   color: var(--text-primary) !important;
-  border: var(--border) !important;
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+  border: var(--border-light) !important;
+  font-size: var(--font-size-base);
+  font-weight: 500;
   min-height: 56px;
   text-align: center;
+  border-radius: var(--border-radius) !important;
+  transition: all 0.3s var(--transition-soft);
 }
 
-.action-btn.primary {
-  background: var(--accent) !important;
-  color: var(--bg-primary) !important;
+.action-btn:hover {
+  background: var(--bg-secondary) !important;
   border-color: var(--accent) !important;
-}
-
-.action-btn:active {
-  transform: scale(0.98);
+  color: var(--accent) !important;
 }
 
 .logout-section {
   padding: var(--spacing-lg) var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.admin-link {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-md);
+  background: var(--bg-primary) !important;
+  color: var(--accent) !important;
+  border: var(--border-light) !important;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  min-height: 56px;
+  border-radius: var(--border-radius) !important;
+  transition: all 0.3s var(--transition-soft);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.admin-link:hover {
+  background: var(--accent-light) !important;
+  border-color: var(--accent) !important;
 }
 
 .logout-btn {
@@ -441,14 +467,17 @@ onMounted(async () => {
   padding: var(--spacing-md);
   background: var(--bg-primary) !important;
   color: var(--danger) !important;
-  border: 2px solid var(--danger) !important;
-  font-size: var(--font-size-lg);
-  font-weight: 700;
+  border: var(--border-light) !important;
+  font-size: var(--font-size-base);
+  font-weight: 500;
   min-height: 56px;
+  border-radius: var(--border-radius) !important;
+  transition: all 0.3s var(--transition-soft);
 }
 
 .logout-btn:hover {
-  background: var(--danger) !important;
-  color: var(--bg-primary) !important;
+  background: var(--danger-light) !important;
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
 }
 </style>

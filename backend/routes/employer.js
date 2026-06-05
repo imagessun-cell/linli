@@ -44,9 +44,9 @@ router.post('/tasks', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/workers', authMiddleware, async (req, res) => {
+router.get('/workers', async (req, res) => {
   try {
-    const { page = 1, limit = 20, skills, community } = req.query;
+    const { page = 1, limit = 20, skills, community, keyword } = req.query;
     const offset = (page - 1) * limit;
 
     let sql = `
@@ -64,6 +64,11 @@ router.get('/workers', authMiddleware, async (req, res) => {
     if (community) {
       sql += ` AND w.community LIKE ?`;
       params.push(`%${community}%`);
+    }
+    if (keyword && keyword.trim()) {
+      const kw = keyword.trim();
+      sql += ` AND (w.community LIKE ? OR w.skills LIKE ? OR u.nickname LIKE ?)`;
+      params.push(`%${kw}%`, `%${kw}%`, `%${kw}%`);
     }
 
     sql += ` ORDER BY w.avg_rating DESC, w.total_orders DESC LIMIT ? OFFSET ?`;

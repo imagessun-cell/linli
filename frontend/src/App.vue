@@ -15,42 +15,76 @@ import GlobalTabBar from '@/components/GlobalTabBar.vue'
 }
 
 :root {
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F5F5F5;
-  --bg-tertiary: #EEEEEE;
-  --text-primary: #000000;
-  --text-secondary: #333333;
-  --text-muted: #555555;
-  --accent: #0052CC;
-  --accent-hover: #003999;
-  --accent-light: #E6F0FF;
-  --danger: #CC0000;
-  --danger-light: #FFE6E6;
-  --success: #007700;
-  --success-light: #E6FFE6;
-  --warning: #CC6600;
-  --warning-light: #FFF3E6;
-  --border: 2px solid #000000;
-  --border-medium: 1.5px solid #333333;
-  --border-light: 1px solid #CCCCCC;
-  --spacing-xs: 8px;
-  --spacing-sm: 12px;
+  /* 柔和温暖基底 - Editorial Luxury 氛围 */
+  --bg-primary: #FDFBF7;
+  --bg-secondary: #F5F0EB;
+  --bg-tertiary: #EDE8E1;
+  --bg-warm: #FAF6F0;
+
+  /* 文字 - 高可读性但柔和 */
+  --text-primary: #2D2D2D;
+  --text-secondary: #4A4A4A;
+  --text-muted: #7A7A7A;
+
+  /* 主色 - 温暖柔和调 */
+  --accent: #8B9D83;
+  --accent-hover: #6F7F68;
+  --accent-light: #E8EDE4;
+  --accent-soft: #D4DDCE;
+
+  /* 语义色 - 低饱和度 */
+  --danger: #C47A7A;
+  --danger-light: #F2E4E4;
+  --success: #7A9E7A;
+  --success-light: #E4EDE4;
+  --warning: #C4A07A;
+  --warning-light: #F0E8DE;
+
+  /* 边框 - 柔和线条 */
+  --border: 1.5px solid #D4CCC3;
+  --border-medium: 1px solid #DED7D0;
+  --border-light: 1px solid #E8E3DE;
+  --border-soft: 1px solid rgba(139, 157, 131, 0.15);
+
+  /* 阴影 - 极度柔化 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.07);
+
+  /* 圆角 - 柔和曲线 */
+  --border-radius-sm: 8px;
+  --border-radius: 12px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 24px;
+  --border-radius-full: 9999px;
+
+  /* 间距 - 宽敞舒适 */
+  --spacing-xs: 6px;
+  --spacing-sm: 10px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
   --spacing-2xl: 48px;
   --spacing-3xl: 64px;
-  --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-size-xs: 14px;
-  --font-size-sm: 16px;
-  --font-size-base: 18px;
-  --font-size-lg: 20px;
-  --font-size-xl: 24px;
-  --font-size-2xl: 30px;
-  --font-size-3xl: 36px;
-  --font-size-4xl: 48px;
+
+  /* 字体 - 清晰大头 */
+  --font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 13px;
+  --font-size-sm: 15px;
+  --font-size-base: 17px;
+  --font-size-lg: 19px;
+  --font-size-xl: 22px;
+  --font-size-2xl: 26px;
+  --font-size-3xl: 32px;
+  --font-size-4xl: 40px;
+
   --touch-target-min: 48px;
-  --border-radius: 4px;
+
+  /* 过渡 - 柔和物理曲线 */
+  --transition-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --transition-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-soft: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html {
@@ -59,9 +93,9 @@ html {
 
 body {
   font-family: var(--font-family);
-  background-color: var(--bg-primary);
+  background-color: var(--bg-warm);
   color: var(--text-primary);
-  line-height: 1.6;
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -100,10 +134,10 @@ button, .el-button, .el-button span {
   font-family: var(--font-family);
   font-weight: 600;
   font-size: var(--font-size-base);
-  border: var(--border) !important;
-  color: var(---bg-primar) !important;
-  
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  border: var(--border-medium) !important;
+  color: var(--text-primary) !important;
+  background: var(--bg-primary) !important;
+  transition: all 0.3s var(--transition-soft);
   min-height: var(--touch-target-min);
   padding: var(--spacing-sm) var(--spacing-lg);
   touch-action: manipulation;
@@ -111,8 +145,9 @@ button, .el-button, .el-button span {
 }
 
 button:hover, .el-button:hover {
-  background: var(--text-primary) !important;
-  color: var(--bg-primary) !important;
+  background: var(--bg-secondary) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
 }
 
 button:focus-visible, .el-button:focus-visible {
@@ -121,14 +156,14 @@ button:focus-visible, .el-button:focus-visible {
 }
 
 button.primary, .el-button--primary, .el-button[type="primary"] {
-  background: var(--text-primary) !important;
-  color: var(--bg-primary) !important;
-  border-color: var(--text-primary) !important;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #FFFFFF !important;
 }
 
 button.primary:hover, .el-button--primary:hover {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
+  background: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
 }
 
 input, select, textarea {
@@ -136,11 +171,12 @@ input, select, textarea {
   font-size: var(--font-size-base);
   min-height: var(--touch-target-min);
   padding: var(--spacing-sm) var(--spacing-md);
-  border: var(--border-medium);
+  border: var(--border-light);
   border-radius: var(--border-radius);
   background: var(--bg-primary);
   color: var(--text-primary);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s var(--transition-soft);
+  box-shadow: var(--shadow-sm);
 }
 
 input:focus, select:focus, textarea:focus {
