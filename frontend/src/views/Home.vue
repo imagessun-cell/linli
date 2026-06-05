@@ -264,7 +264,7 @@ const viewMode = ref('list')
 const showFilters = ref(false)
 const selectedTypes = ref([])
 const selectedLevels = ref([])
-const radius = ref(50000)
+const radius = ref(5000000)
 const selectedTask = ref(null)
 // 默认位置：北京·朝阳区（BD09 坐标），GPS 获取失败时回退到此
 const userLocation = ref({ lat: 39.929, lng: 116.494 })
@@ -355,13 +355,6 @@ watch(userLocation, () => {
   if (map) recenterMap()
 })
 
-// 仅展示官方 4 种任务类型（sub_type 1-4）
-const OFFICIAL_TASK_TYPES = new Set([1])
-const filterOfficialTasks = (list) => {
-  if (!Array.isArray(list)) return []
-  return list.filter(t => OFFICIAL_TASK_TYPES.has(t.type) && t.subType && t.subType >= 1 && t.subType <= 4)
-}
-
 const loadTasks = async (reset = false) => {
   if (reset) {
     page.value = 1
@@ -400,11 +393,11 @@ const loadTasks = async (reset = false) => {
     console.log('[Home.vue] loadTasks response:', res.code, 'list length:', res.data?.list?.length)
 
     if (res.code === 0) {
-      const filtered = filterOfficialTasks(res.data.list)
+      const list = Array.isArray(res.data.list) ? res.data.list : []
       if (reset) {
-        tasks.value = filtered
+        tasks.value = list
       } else {
-        tasks.value = [...tasks.value, ...filtered]
+        tasks.value = [...tasks.value, ...list]
       }
       hasMore.value = res.data.hasMore
       page.value++
@@ -440,7 +433,7 @@ const applyFilters = () => {
 const resetFilters = () => {
   selectedTypes.value = []
   selectedLevels.value = []
-  radius.value = 50000
+  radius.value = 5000000
 }
 
 let suggestTimer = null
