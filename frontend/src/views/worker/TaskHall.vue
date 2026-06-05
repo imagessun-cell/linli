@@ -70,7 +70,8 @@ const page = ref(1)
 const total = ref(0)
 const filterType = ref('')
 const sortBy = ref('distance')
-const userLocation = ref({ lat: 31.230416, lng: 121.473701 })
+// 默认位置：北京·朝阳区（BD09），GPS 失败时回退
+const userLocation = ref({ lat: 39.929, lng: 116.494 })
 
 const sortOptions = [
   { label: '距离', value: 'distance' },
@@ -78,7 +79,7 @@ const sortOptions = [
   { label: '体力', value: 'physicalLevel' }
 ]
 
-const taskTypes = ['', '陪诊', '陪聊', '小时保洁', '做饭', '接送', '看护', '跑腿', '助教', '其他']
+const taskTypes = ['', '全程陪同', '挂号取药', '门诊陪护', '代为问诊']
 
 const formatDateTime = (time) => {
   if (!time) return ''
@@ -136,7 +137,7 @@ const changeSort = (sort) => {
 }
 
 onMounted(async () => {
-  // 优先尝试获取真实位置，失败则使用默认位置（上海市中心）
+  // 优先尝试获取真实位置，失败则使用默认位置（北京·朝阳区）
   const loc = await getUserLocation()
   if (loc) {
     userLocation.value = loc

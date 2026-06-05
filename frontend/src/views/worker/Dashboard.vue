@@ -74,7 +74,7 @@ const userInfo = ref(userStore.userInfo)
 const workerInfo = ref(null)
 const recommendTasks = ref([])
 
-const taskTypes = ['', '陪诊', '陪聊', '小时保洁', '做饭', '接送', '看护', '跑腿', '助教', '其他']
+const taskTypes = ['', '全程陪同', '挂号取药', '门诊陪护', '代为问诊']
 
 const getTaskTypeName = (type) => taskTypes[type] || '未知'
 

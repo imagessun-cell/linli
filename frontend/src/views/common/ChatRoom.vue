@@ -1,6 +1,10 @@
 <template>
   <div class="chat-room">
-    <div class="message-list" ref="messageListRef">
+    <div v-if="!isValidTarget" class="chat-error">
+      <el-empty description="聊天对象无效，请返回消息列表重新进入" />
+    </div>
+    <template v-else>
+      <div class="message-list" ref="messageListRef">
       <div v-for="msg in messages" :key="msg.id" class="message-item" :class="{ mine: msg.from_user_id === userId }">
         <img v-if="msg.from_user_id !== userId" :src="msg.from_avatar || '/default-avatar.png'" class="avatar" />
         <div class="bubble">
@@ -14,12 +18,14 @@
       <el-input v-model="inputText" placeholder="输入消息..." @keyup.enter="sendMessage" />
       <el-button type="primary" @click="sendMessage" :disabled="!inputText.trim()">发送</el-button>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import request from '@/api/request'
 import { io } from 'socket.io-client'
@@ -28,10 +34,11 @@ const route = useRoute()
 const userStore = useUserStore()
 
 const userId = ref(userStore.userInfo?.id)
-const targetUserId = ref(route.params.userId)
+const targetUserId = ref(Number(route.params.userId))
 const messages = ref([])
 const inputText = ref('')
 const messageListRef = ref(null)
+const isValidTarget = ref(Number.isInteger(targetUserId.value) && targetUserId.value > 0)
 
 let socket = null
 
@@ -63,6 +70,10 @@ const fetchMessages = async () => {
 
 const sendMessage = async () => {
   if (!inputText.value.trim()) return
+  if (!isValidTarget.value) {
+    ElMessage.error('聊天对象无效')
+    return
+  }
 
   try {
     const res = await request.post('/message/send', {

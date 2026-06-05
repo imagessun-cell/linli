@@ -27,20 +27,26 @@ const init = (server) => {
 
     socket.join(`user_${socket.user.id}`);
 
-    socket.on('send_message', (data) => {
-      const { to_user_id, content, type = 1 } = data;
-      const db = require('../db');
-      const now = new Date().toISOString();
+    socket.on('send_message', async (data) => {
+      try {
+        const { to_user_id, content, type = 1 } = data;
+        const db = require('../db');
+        const now = new Date().toISOString();
 
-      const result = db.prepare(`
-        INSERT INTO t_message (from_user_id, to_user_id, content, type, created_at)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(socket.user.id, to_user_id, content, type, now);
+        const result = await db.runSync(
+          `INSERT INTO t_message (from_user_id, to_user_id, content, type, created_at)
+           VALUES (?, ?, ?, ?, ?)`,
+          [socket.user.id, to_user_id, content, type, now]
+        );
 
-      const message = db.prepare('SELECT * FROM t_message WHERE id = ?').get(result.lastInsertRowid);
+        const message = await db.getSync('SELECT * FROM t_message WHERE id = ?', [result.lastInsertRowid]);
 
-      io.to(`user_${to_user_id}`).emit('new_message', message);
-      socket.emit('message_sent', message);
+        io.to(`user_${to_user_id}`).emit('new_message', message);
+        socket.emit('message_sent', message);
+      } catch (err) {
+        console.error('socket send_message error:', err);
+        socket.emit('message_error', { message: '消息发送失败' });
+      }
     });
 
     socket.on('join_order_room', (orderId) => {

@@ -69,7 +69,7 @@ const router = useRouter()
 const task = ref(null)
 const loading = ref(false)
 
-const taskTypes = ['', '陪诊', '陪聊', '小时保洁', '做饭', '接送', '看护', '跑腿', '助教', '其他']
+const taskTypes = ['', '全程陪同', '挂号取药', '门诊陪护', '代为问诊']
 const taskStatusNames = ['', '已接单', '服务中', '已完成', '已取消', '争议中']
 
 const formatDateTime = (time) => {

@@ -159,6 +159,23 @@
 
       <div v-else class="map-container" role="region" aria-label="地图视图">
         <div id="baidu-map" class="map" aria-label="任务分布地图"></div>
+
+        <!-- 我的位置浮标：右下角，距 global-tab-bar 20px -->
+        <button
+          :class="['map-locate-btn', { spinning: locating }]"
+          @click="relocate"
+          :disabled="locating"
+          :aria-label="locating ? '正在定位' : '回到我的位置'"
+          :title="locating ? '正在定位…' : '回到我的位置'"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" stroke="currentColor"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor"/>
+            <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-dasharray="2 3"/>
+          </svg>
+          <span class="map-locate-btn__label">{{ locating ? '定位中…' : '我的位置' }}</span>
+        </button>
+
         <div v-if="selectedTask" class="map-info-window" role="dialog" aria-labelledby="map-task-title">
           <div class="info-header">
             <div v-if="selectedTask.employerAvatar" class="avatar-small">
@@ -247,14 +264,15 @@ const viewMode = ref('list')
 const showFilters = ref(false)
 const selectedTypes = ref([])
 const selectedLevels = ref([])
-const radius = ref(50000000)
+const radius = ref(50000)
 const selectedTask = ref(null)
-const userLocation = ref({ lat: 31.230416, lng: 121.473701 })
+// 默认位置：北京·朝阳区（BD09 坐标），GPS 获取失败时回退到此
+const userLocation = ref({ lat: 39.929, lng: 116.494 })
 
 const sortOptions = [
-  { label: '距离排序', value: 'distance' },
-  { label: '报酬排序', value: 'budget' },
-  { label: '体力排序', value: 'physicalLevel' }
+  { label: '距离', value: 'distance' },
+  { label: '报酬', value: 'budget' },
+  { label: '体力', value: 'physicalLevel' }
 ]
 
 const taskTypes = [
@@ -272,34 +290,76 @@ const physicalLevels = [
 
 let map = null
 let markers = []
+let userMarker = null
+const locating = ref(false)
 
 const getUserLocation = () => {
   return new Promise((resolve) => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude
-          const lng = position.coords.longitude
-          try {
-            const res = await request.get('/location/convert', { lat, lng })
-            if (res.code === 0) {
-              userLocation.value = { lat: res.data.lat, lng: res.data.lng }
-            } else {
-              userLocation.value = { lat, lng }
-            }
-          } catch {
-            userLocation.value = { lat, lng }
+    if (!navigator.geolocation) { resolve(); return }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+        let finalLat = lat, finalLng = lng
+        try {
+          const res = await request.get('/location/convert', { lat, lng })
+          if (res.code === 0) {
+            finalLat = res.data.lat
+            finalLng = res.data.lng
           }
-          resolve()
-        },
-        () => {
-          resolve()
+        } catch (e) {
+          console.warn('[Home.vue] /location/convert failed, using raw GPS', e)
         }
-      )
-    } else {
-      resolve()
-    }
+        userLocation.value = { lat: finalLat, lng: finalLng }
+        console.log('[Home.vue] userLocation updated →', userLocation.value)
+        resolve()
+      },
+      (err) => {
+        console.warn('[Home.vue] geolocation failed:', err?.message)
+        ElMessage?.warning?.('未获取到定位权限，列表将按默认位置展示')
+        resolve()
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    )
   })
+}
+
+// 重新定位：重新获取 GPS 并刷新任务
+const relocate = async () => {
+  locating.value = true
+  try {
+    await getUserLocation()
+    if (map) recenterMap()
+    await loadTasks(true)
+  } finally {
+    locating.value = false
+  }
+}
+
+// 地图以用户当前坐标为中心
+const recenterMap = () => {
+  if (!map) return
+  const { lat, lng } = userLocation.value
+  const point = new BMapGL.Point(lng, lat)
+  map.centerAndZoom(point, 13)
+  if (userMarker) {
+    userMarker.setPosition(point)
+  } else {
+    userMarker = new BMapGL.Marker(point)
+    map.addOverlay(userMarker)
+  }
+}
+
+// 监听位置变化：自动重新加载任务列表
+watch(userLocation, () => {
+  if (map) recenterMap()
+})
+
+// 仅展示官方 4 种任务类型（sub_type 1-4）
+const OFFICIAL_TASK_TYPES = new Set([1])
+const filterOfficialTasks = (list) => {
+  if (!Array.isArray(list)) return []
+  return list.filter(t => OFFICIAL_TASK_TYPES.has(t.type) && t.subType && t.subType >= 1 && t.subType <= 4)
 }
 
 const loadTasks = async (reset = false) => {
@@ -340,10 +400,11 @@ const loadTasks = async (reset = false) => {
     console.log('[Home.vue] loadTasks response:', res.code, 'list length:', res.data?.list?.length)
 
     if (res.code === 0) {
+      const filtered = filterOfficialTasks(res.data.list)
       if (reset) {
-        tasks.value = res.data.list
+        tasks.value = filtered
       } else {
-        tasks.value = [...tasks.value, ...res.data.list]
+        tasks.value = [...tasks.value, ...filtered]
       }
       hasMore.value = res.data.hasMore
       page.value++
@@ -379,7 +440,7 @@ const applyFilters = () => {
 const resetFilters = () => {
   selectedTypes.value = []
   selectedLevels.value = []
-  radius.value = 50000000
+  radius.value = 50000
 }
 
 let suggestTimer = null
@@ -533,9 +594,17 @@ const initMap = () => {
   if (!mapContainer) return
 
   map = new BMapGL.Map('baidu-map')
-  const point = new BMapGL.Point(userLocation.lng, userLocation.lat)
+  const point = new BMapGL.Point(userLocation.value.lng, userLocation.value.lat)
   map.centerAndZoom(point, 13)
   map.enableScrollWheelZoom(true)
+
+  // 我自己的位置标记
+  if (userMarker) {
+    userMarker.setPosition(point)
+  } else {
+    userMarker = new BMapGL.Marker(point)
+    map.addOverlay(userMarker)
+  }
 
   markers.forEach(m => map.removeOverlay(m))
   markers = []
@@ -577,7 +646,6 @@ onUnmounted(() => {
 .home-container {
   min-height: 100vh;
   background: var(--bg-primary);
-  padding-bottom: 100px;
 }
 
 .home-header {
@@ -607,7 +675,10 @@ onUnmounted(() => {
   padding: var(--spacing-md);
   gap: var(--spacing-sm);
   border-bottom: var(--border-light);
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 51;
+  background: var(--bg-primary);
 }
 
 .search-input-wrapper {
@@ -715,6 +786,9 @@ onUnmounted(() => {
   padding: var(--spacing-sm) var(--spacing-md);
   border-bottom: var(--border-light);
   background: var(--bg-tertiary);
+  position: sticky;
+  top: var(--search-bar-height, 72px);
+  z-index: 50;
 }
 
 .sort-tabs {
@@ -777,6 +851,13 @@ onUnmounted(() => {
 .view-toggle button.active {
   background: var(--text-primary);
   color: var(--accent) !important;
+}
+
+/* locate-btn 浮标已迁移到地图上，view-toggle 不再需要旧样式 */
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .content-area {
@@ -999,7 +1080,7 @@ onUnmounted(() => {
 
 .map-container {
   position: relative;
-  height: calc(100vh - 200px);
+  height: calc(100vh - 264px);
 }
 
 .map {
@@ -1007,14 +1088,60 @@ onUnmounted(() => {
   height: 100%;
 }
 
+/* global-tab-bar 高度见 App.vue 全局变量 --global-tab-bar-height */
+
+/* 我的位置浮标：地图右下角，距 global-tab-bar 20px */
+.map-locate-btn {
+  position: absolute;
+  right: var(--spacing-md);
+  bottom: calc(var(--global-tab-bar-height) + 20px);
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: var(--border-light);
+  border-radius: 22px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.25s var(--transition-soft);
+}
+
+.map-locate-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.map-locate-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.map-locate-btn.spinning svg {
+  animation: spin 1s linear infinite;
+}
+
+.map-locate-btn__label {
+  white-space: nowrap;
+}
+
+/* 选中的地标卡片：底部贴齐"我的位置"按钮上方 */
 .map-info-window {
   position: absolute;
-  bottom: var(--spacing-lg);
+  bottom: calc(var(--global-tab-bar-height) + 20px);
   left: var(--spacing-md);
   right: var(--spacing-md);
+  z-index: 99;
   background: var(--bg-primary);
   border: var(--border);
+  border-radius: var(--border-radius);
   padding: var(--spacing-lg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .info-type {

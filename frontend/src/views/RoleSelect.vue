@@ -19,7 +19,7 @@
         <div class="role-icon" aria-hidden="true">01</div>
         <div class="role-content">
           <h3>陪诊师</h3>
-          <p>50-65岁老年人，为社区提供陪诊、陪聊、保洁等服务</p>
+          <p>50-65岁老年人，为社区提供全程陪同、挂号取药、门诊陪护、代为问诊等服务</p>
         </div>
         <div class="role-check" v-if="selectedRole === 1" aria-hidden="true">✓</div>
       </div>

@@ -61,7 +61,7 @@ const userInfo = ref(userStore.userInfo)
 const employerInfo = ref(null)
 const recentOrders = ref([])
 
-const taskTypes = ['', '陪诊', '陪聊', '小时保洁', '做饭', '接送', '看护', '跑腿', '助教', '其他']
+const taskTypes = ['', '全程陪同', '挂号取药', '门诊陪护', '代为问诊']
 const statusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中' }
 
 const statusClass = (status) => {

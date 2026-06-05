@@ -68,6 +68,12 @@ import GlobalTabBar from '@/components/GlobalTabBar.vue'
   --spacing-2xl: 48px;
   --spacing-3xl: 64px;
 
+  /* 全局底部导航栏高度（含 padding-bottom 16px + border-top 1px） */
+  --global-tab-bar-height: 81px;
+
+  /* 搜索栏高度（padding 16px×2 + input 44px = 76px） */
+  --search-bar-height: 76px;
+
   /* 字体 - 清晰大头 */
   --font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-size-xs: 13px;
@@ -129,7 +135,7 @@ a:hover {
   color: var(--accent-hover);
 }
 
-button, .el-button, .el-button span {
+button, .el-button {
   border-radius: var(--border-radius) !important;
   font-family: var(--font-family);
   font-weight: 600;
@@ -179,11 +185,7 @@ input, select, textarea {
   box-shadow: var(--shadow-sm);
 }
 
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-light);
-}
+
 
 input::placeholder {
   color: var(--text-muted);

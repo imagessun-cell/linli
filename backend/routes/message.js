@@ -60,24 +60,39 @@ router.post('/send', authMiddleware, async (req, res) => {
   try {
     const { to_user_id, content, type = 1 } = req.body;
 
-    if (!to_user_id || !content) {
-      return res.status(400).json({ code: 400, message: '缺少必要参数' });
+    const targetId = Number(to_user_id);
+    if (!Number.isInteger(targetId) || targetId <= 0) {
+      return res.status(400).json({ code: 400, message: 'to_user_id 无效' });
+    }
+    if (!content || !String(content).trim()) {
+      return res.status(400).json({ code: 400, message: '消息内容不能为空' });
+    }
+    if (targetId === req.user.id) {
+      return res.status(400).json({ code: 400, message: '不能给自己发消息' });
+    }
+
+    const targetUser = await db.getSync('SELECT id FROM t_user WHERE id = ?', [targetId]);
+    if (!targetUser) {
+      return res.status(400).json({ code: 400, message: '接收方用户不存在' });
     }
 
     const now = new Date().toISOString();
     const result = await db.runSync(`
       INSERT INTO t_message (from_user_id, to_user_id, content, type, created_at)
       VALUES (?, ?, ?, ?, ?)
-    `, [req.user.id, to_user_id, content, type, now]);
-
+    `, [req.user.id, targetId, String(content), type, now]);
     const message = await db.getSync('SELECT * FROM t_message WHERE id = ?', [result.lastInsertRowid]);
 
-    const io = req.app.get('io');
-    if (io) {
-      io.to(`user_${to_user_id}`).emit('message', message);
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user_${targetId}`).emit('new_message', message);
+      }
+    } catch (e) {
+      console.error('socket emit error:', e);
     }
 
-    res.json({ code: 0, message: '发送成功', data: message });
+    res.json({ code: 0, message: 'success', data: message });
   } catch (err) {
     console.error(err);
     res.status(500).json({ code: 500, message: '服务器错误' });

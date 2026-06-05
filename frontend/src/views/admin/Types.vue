@@ -89,7 +89,11 @@ const fetchTypes = async () => {
   loading.value = true
   try {
     const res = await request.get('/admin/types')
-    if (res.code === 0) types.value = res.data
+    if (res.code === 0) {
+      // 前端过滤：仅保留官方 4 种任务类型（sub_type 1-4 的名称）
+      const allowedNames = new Set(['全程陪同', '挂号取药', '门诊陪护', '代为问诊'])
+      types.value = (res.data || []).filter(t => allowedNames.has(t.name))
+    }
   } catch (e) {
     console.error(e)
   } finally {
