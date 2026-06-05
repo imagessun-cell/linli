@@ -76,10 +76,11 @@
           :aria-pressed="viewMode === 'list'"
           aria-label="列表视图"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <line x1="3" y1="12" x2="21" y2="12"/>
-            <line x1="3" y1="18" x2="21" y2="18"/>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 6h13M8 12h13M8 18h13" stroke="currentColor"/>
+            <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
+            <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+            <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
           </svg>
         </button>
         <button
@@ -88,9 +89,9 @@
           :aria-pressed="viewMode === 'map'"
           aria-label="地图视图"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-            <circle cx="12" cy="10" r="3"/>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="currentColor"/>
+            <circle cx="12" cy="9" r="2.5" stroke="currentColor"/>
           </svg>
         </button>
       </div>
@@ -720,20 +721,20 @@ onUnmounted(() => {
   display: flex;
   gap: 4px;
   border-radius: var(--border-radius-sm);
-  overflow: hidden;
 }
 
 .sort-tabs button {
-  padding: var(--spacing-sm) var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-sm);
   font-weight: 500;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: var(--text-muted);
   cursor: pointer;
   min-height: var(--touch-target-min);
   position: relative;
   transition: all 0.3s var(--transition-soft);
+  border-radius: var(--border-radius-sm);
 }
 
 .sort-tabs button:focus-visible {
@@ -742,8 +743,10 @@ onUnmounted(() => {
 }
 
 .sort-tabs button.active {
-  color: var(--text-primary);
+  color: var(--accent) !important;
+  font-weight: 600;
   background: var(--bg-primary);
+  border-color: var(--accent);
   box-shadow: var(--shadow-sm);
 }
 
@@ -753,7 +756,6 @@ onUnmounted(() => {
 }
 
 .view-toggle button {
-  width: var(--touch-target-min);
   height: var(--touch-target-min);
   font-size: var(--font-size-lg);
   background: var(--bg-primary);
@@ -774,7 +776,7 @@ onUnmounted(() => {
 
 .view-toggle button.active {
   background: var(--text-primary);
-  color: var(--bg-primary) !important;
+  color: var(--accent) !important;
 }
 
 .content-area {
