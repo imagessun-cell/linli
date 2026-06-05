@@ -164,6 +164,7 @@ router.get('/suggestions', async (req, res) => {
     if (!keyword) {
       return res.json({ code: 0, message: 'OK', data: { suggestions: [], hotKeywords: getHotKeywords() } });
     }
+    console.log('[suggestions] keyword=', JSON.stringify(keyword), 'SERVICE_KEYWORDS hit=', !!SERVICE_KEYWORDS[keyword]);
 
     // 1) 从真实任务表中查（address）
     const like = `%${keyword}%`;
@@ -209,7 +210,32 @@ router.get('/suggestions', async (req, res) => {
       }
     });
 
-    // 3) 特殊需求 / 备注联想
+    // 3) 静态词库联想（覆盖单字、双字常见搜索）
+    if (SERVICE_KEYWORDS[keyword]) {
+      SERVICE_KEYWORDS[keyword].forEach((text) => {
+        pushIfNew({ text, type: 'service', taskType: null });
+      });
+    }
+    // 模糊匹配 SERVICE_KEYWORDS 的 key 含 keyword
+    Object.keys(SERVICE_KEYWORDS).forEach((k) => {
+      if (k !== keyword && k.includes(keyword) && keyword.length >= 1) {
+        SERVICE_KEYWORDS[k].slice(0, 2).forEach((text) => {
+          pushIfNew({ text, type: 'service', taskType: null });
+        });
+      }
+    });
+    HOSPITAL_KEYWORDS.forEach((h) => {
+      if (h.includes(keyword)) {
+        pushIfNew({ text: h, type: 'hospital', taskType: null });
+      }
+    });
+    DISTRICT_KEYWORDS.forEach((d) => {
+      if (d.includes(keyword)) {
+        pushIfNew({ text: d, type: 'district', taskType: null });
+      }
+    });
+
+    // 4) 特殊需求 / 备注联想
     const reqRows = await db.allSync(`
       SELECT DISTINCT special_requirements
       FROM t_task
@@ -228,7 +254,18 @@ router.get('/suggestions', async (req, res) => {
       }
     });
 
-    const suggestions = Array.from(suggestionMap.values()).slice(0, parseInt(limit));
+    let suggestions = Array.from(suggestionMap.values()).slice(0, parseInt(limit));
+
+    // 5) Fallback：当结果不足时，从热门词/医院/行政区中补齐匹配项
+    if (suggestions.length < parseInt(limit)) {
+      const fillers = [...HOT_KEYWORDS, ...HOSPITAL_KEYWORDS, ...DISTRICT_KEYWORDS];
+      fillers.forEach((f) => {
+        if (f.includes(keyword) && !suggestionMap.has(f)) {
+          suggestions.push({ text: f, type: 'hot', taskType: null });
+        }
+      });
+      suggestions = suggestions.slice(0, parseInt(limit));
+    }
     res.json({ code: 0, message: 'OK', data: { suggestions, hotKeywords: getHotKeywords() } });
   } catch (err) {
     console.error('suggestions error:', err);
@@ -236,7 +273,83 @@ router.get('/suggestions', async (req, res) => {
   }
 });
 
-const HOT_KEYWORDS = ['陪诊', '中山医院', '华山医院', '仁济医院', '瑞金医院', '徐汇区', '浦东新区', '静安区'];
+const HOT_KEYWORDS = [
+  '陪诊', '陪聊', '全程陪同', '挂号取药', '门诊陪护', '代为问诊',
+  '中山医院', '华山医院', '仁济医院', '瑞金医院',
+  '徐汇区', '浦东新区', '静安区', '黄浦区', '杨浦区',
+  '上门保洁', '上门做饭', '老人陪护'
+];
+
+// 扩展服务词库：覆盖单字/双字常见搜索
+const SERVICE_KEYWORDS = {
+  // 医疗场景
+  '挂号': ['挂号取药', '预约挂号', '网上挂号', '挂号窗口'],
+  '就诊': ['陪同就诊', '协助就诊', '独立就诊'],
+  '取药': ['取药送药', '代取药品', '取药陪同'],
+  '复诊': ['复诊陪同', '复诊提醒', '定期复诊'],
+  '住院': ['住院陪护', '住院探视', '出院陪同'],
+  '手术': ['手术陪同', '术前检查', '术后护理'],
+  '体检': ['体检陪同', '上门体检', '体检报告解读'],
+  '康复': ['术后康复', '康复理疗', '康复指导'],
+  '化验': ['化验陪同', '取化验单', '化验解读'],
+  '检查': ['检查陪同', 'CT检查', '核磁共振'],
+
+  // 服务动作
+  '陪': ['陪诊', '陪聊', '陪护', '陪伴', '陪老人', '陪看病'],
+  '诊': ['陪诊', '就诊', '复诊', '门诊', '出诊'],
+  '聊': ['陪聊', '聊天', '心理陪聊', '上门陪聊'],
+  '护': ['陪护', '护理', '护工', '上门护理', '住院护工'],
+  '接': ['接送', '陪同接送', '上门接送', '医院接送'],
+  '保': ['保洁', '上门保洁', '日常保洁', '深度保洁'],
+  '做': ['做饭', '上门做饭', '家常菜', '老人餐'],
+
+  // 医疗设施
+  '医': ['医院', '陪诊医院', '中山医院', '华山医院', '肿瘤医院'],
+  '院': ['医院', '养老院', '中医院', '专科医院'],
+  '药': ['取药', '送药', '药品', '买药'],
+  '病': ['看病', '陪看病', '病人陪护', '老年病'],
+
+  // 老人相关
+  '老': ['老人陪护', '老年餐', '老人陪伴', '独居老人'],
+  '养': ['养老', '康复养老', '居家养老', '医养结合'],
+  '残': ['残疾陪护', '轮椅协助', '助残服务'],
+  '轮': ['轮椅', '轮椅协助', '轮椅出行'],
+
+  // 行政区
+  '徐': ['徐汇区', '徐家汇'],
+  '浦': ['浦东新区', '黄浦区'],
+  '静': ['静安区'],
+  '黄': ['黄浦区'],
+  '杨': ['杨浦区'],
+  '虹': ['虹口区'],
+  '长': ['长宁区', '长海医院'],
+  '闵': ['闵行区'],
+
+  // 城市级：输入"上海"时展开为下属行政区与医院
+  '上海': [
+    '徐汇区', '黄浦区', '长宁区', '静安区', '普陀区', '虹口区',
+    '杨浦区', '闵行区', '宝山区', '嘉定区', '浦东新区', '金山区',
+    '松江区', '青浦区', '奉贤区', '崇明区',
+    '中山医院', '华山医院', '仁济医院', '瑞金医院', '肿瘤医院', '肺科医院',
+    '华东医院', '长海医院', '东方医院', '龙华医院'
+  ]
+};
+
+// 城市/医院名缩写
+const HOSPITAL_KEYWORDS = [
+  '中山医院', '华山医院', '仁济医院', '瑞金医院', '肿瘤医院', '肺科医院',
+  '华东医院', '长海医院', '东方医院', '龙华医院', '市一医院', '市五医院',
+  '第六人民医院', '第九人民医院', '第十人民医院', '第一人民医院',
+  '闵行区中心医院', '徐汇区中心医院', '静安区中心医院', '杨浦区中心医院',
+  '儿童医院', '妇产科医院', '精神卫生中心', '传染病医院', '胸科医院',
+  '五官科医院', '皮肤病医院', '中医院', '口腔医院'
+];
+
+const DISTRICT_KEYWORDS = [
+  '徐汇区', '黄浦区', '长宁区', '静安区', '普陀区', '虹口区',
+  '杨浦区', '闵行区', '宝山区', '嘉定区', '浦东新区', '金山区',
+  '松江区', '青浦区', '奉贤区', '崇明区'
+];
 function getHotKeywords() {
   return HOT_KEYWORDS;
 }
