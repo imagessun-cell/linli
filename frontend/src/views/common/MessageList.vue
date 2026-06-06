@@ -83,32 +83,37 @@ onMounted(() => {
 <style scoped>
 .message-list-page {
   padding: 0;
+  background: var(--bg-warm);
+  min-height: 100vh;
 }
 
 .page-title {
-  font-size: 18px;
-  font-weight: 600;
-  padding: 16px;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  padding: var(--spacing-lg);
   margin: 0;
+  color: var(--text-primary);
 }
 
 .conversation-list {
-  background: white;
-  border-radius: 12px;
+  background: var(--bg-primary);
+  margin: 0 var(--spacing-md);
+  border-radius: var(--border-radius);
   overflow: hidden;
+  border: 1px solid var(--border-light);
 }
 
 .conversation-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--spacing-md) var(--spacing-md);
+  border-bottom: 1px solid var(--border-light);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s var(--transition-soft);
 }
 
 .conversation-item:hover {
-  background: #f9f9f9;
+  background: var(--bg-secondary);
 }
 
 .conversation-item:last-child {
@@ -120,9 +125,9 @@ onMounted(() => {
   height: 48px;
   border-radius: 50%;
   margin-right: 12px;
-  background: #ddd;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -131,10 +136,15 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin-right: 12px;
   font-size: 18px;
   font-weight: 600;
   color: #fff;
-  background: #c0c4cc;
+  background: var(--accent-soft);
+  flex-shrink: 0;
 }
 
 .content {
@@ -150,23 +160,24 @@ onMounted(() => {
 }
 
 .nickname {
-  font-size: 15px;
+  font-size: var(--font-size-base);
   font-weight: 600;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .time {
-  font-size: 12px;
-  color: #999;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
   flex-shrink: 0;
   margin-left: 8px;
 }
 
 .preview {
-  font-size: 13px;
-  color: #999;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -174,24 +185,29 @@ onMounted(() => {
 }
 
 .unread-badge {
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
-  background: #f56c6c;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--danger);
   color: #fff;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-left: 8px;
+  margin-left: var(--spacing-sm);
 }
 
 .loading {
   text-align: center;
-  padding: 40px;
-  color: #999;
+  padding: var(--spacing-2xl);
+  color: var(--text-muted);
+  font-size: var(--font-size-base);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .conversation-item { transition: none; }
 }
 </style>

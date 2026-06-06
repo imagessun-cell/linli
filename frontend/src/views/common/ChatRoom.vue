@@ -192,35 +192,44 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  background: var(--bg-warm);
 }
 
 .detail-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
-  border-bottom: 1px solid #000;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .back-btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  background: none;
-  border: 1px solid #000;
+  font-size: 18px;
+  background: transparent;
+  border: none !important;
   cursor: pointer;
+  border-radius: 50% !important;
+  color: var(--text-secondary) !important;
+  transition: all 0.2s var(--transition-soft);
+  padding: 0 !important;
+  min-height: unset !important;
 }
 
 .back-btn:hover {
-  background: #000;
-  color: #fff;
+  background: var(--bg-secondary) !important;
+  color: var(--accent) !important;
 }
+
 .header-label {
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .loading {
@@ -228,19 +237,19 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
-  font-size: 14px;
+  color: var(--text-muted);
+  font-size: var(--font-size-base);
 }
 
 .message-list {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: var(--spacing-md) var(--spacing-md);
 }
 
 .message-item {
   display: flex;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .message-item.mine {
@@ -248,13 +257,13 @@ onUnmounted(() => {
 }
 
 .message-item .avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: #ddd;
+  background: var(--bg-tertiary);
   margin-right: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -263,10 +272,15 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-right: 10px;
+  font-size: 14px;
   font-weight: 600;
   color: #fff;
-  background: #c0c4cc;
+  background: var(--accent-soft);
+  flex-shrink: 0;
 }
 
 .message-item.mine .avatar {
@@ -276,27 +290,29 @@ onUnmounted(() => {
 
 .bubble {
   max-width: 70%;
-  padding: 10px 14px;
-  background: white;
-  border-radius: 12px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-primary);
+  border-radius: var(--border-radius);
   position: relative;
+  box-shadow: var(--shadow-sm);
 }
 
 .message-item.mine .bubble {
-  background: #667eea;
+  background: var(--accent);
   color: white;
 }
 
 .bubble p {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   line-height: 1.5;
   word-break: break-all;
+  margin: 0;
 }
 
 .bubble .time {
   display: block;
   font-size: 10px;
-  color: #999;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
@@ -306,10 +322,11 @@ onUnmounted(() => {
 
 .input-area {
   display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  background: white;
-  border-top: 1px solid #f0f0f0;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-light);
+  align-items: center;
 }
 
 .input-area .el-input {

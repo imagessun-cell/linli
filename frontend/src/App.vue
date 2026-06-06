@@ -15,51 +15,56 @@ import GlobalTabBar from '@/components/GlobalTabBar.vue'
 }
 
 :root {
-  /* 柔和温暖基底 - Editorial Luxury 氛围 */
-  --bg-primary: #FDFBF7;
-  --bg-secondary: #F5F0EB;
-  --bg-tertiary: #EDE8E1;
-  --bg-warm: #FAF6F0;
+  /* 医疗品牌色系 - 洁净、专业、温暖 */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F7FA;
+  --bg-tertiary: #EDF0F5;
+  --bg-warm: #F0F4F7;
 
-  /* 文字 - 高可读性但柔和 */
-  --text-primary: #2D2D2D;
-  --text-secondary: #4A4A4A;
-  --text-muted: #7A7A7A;
+  /* 文字 - 清晰易读 */
+  --text-primary: #1E2A3A;
+  --text-secondary: #3D4A5A;
+  --text-muted: #8B95A5;
 
-  /* 主色 - 温暖柔和调 */
-  --accent: #8B9D83;
-  --accent-hover: #6F7F68;
-  --accent-light: #E8EDE4;
-  --accent-soft: #D4DDCE;
+  /* 主色 - 治愈蓝 */
+  --accent: #2C7A9E;
+  --accent-hover: #216080;
+  --accent-light: #E6F0F6;
+  --accent-soft: #B8D4E3;
 
-  /* 语义色 - 低饱和度 */
-  --danger: #C47A7A;
-  --danger-light: #F2E4E4;
-  --success: #7A9E7A;
-  --success-light: #E4EDE4;
-  --warning: #C4A07A;
-  --warning-light: #F0E8DE;
+  /* 暖色点缀 - 社区关怀 */
+  --accent-warm: #D4956B;
+  --accent-warm-hover: #C08056;
+  --accent-warm-light: #F5EDE6;
 
-  /* 边框 - 柔和线条 */
-  --border: 1.5px solid #D4CCC3;
-  --border-medium: 1px solid #DED7D0;
-  --border-light: 1px solid #E8E3DE;
-  --border-soft: 1px solid rgba(139, 157, 131, 0.15);
+  /* 语义色 - 医疗场景 */
+  --danger: #D35D6E;
+  --danger-light: #F5E6E8;
+  --success: #3E9B7A;
+  --success-light: #E6F3EF;
+  --warning: #D4A050;
+  --warning-light: #F5EDE0;
 
-  /* 阴影 - 极度柔化 */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.06);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.07);
+  /* 边框 - 干净线条 */
+  --border: 1.5px solid #DCE0E6;
+  --border-medium: 1px solid #E2E6EC;
+  --border-light: 1px solid #EBEEF2;
+  --border-soft: 1px solid rgba(44, 122, 158, 0.12);
 
-  /* 圆角 - 柔和曲线 */
+  /* 阴影 - 干净层次 */
+  --shadow-sm: 0 1px 3px rgba(30, 42, 58, 0.06);
+  --shadow-md: 0 4px 12px rgba(30, 42, 58, 0.08);
+  --shadow-lg: 0 8px 24px rgba(30, 42, 58, 0.10);
+  --shadow-xl: 0 16px 48px rgba(30, 42, 58, 0.12);
+
+  /* 圆角 - 柔和精准 */
   --border-radius-sm: 8px;
   --border-radius: 12px;
   --border-radius-lg: 16px;
   --border-radius-xl: 24px;
   --border-radius-full: 9999px;
 
-  /* 间距 - 宽敞舒适 */
+  /* 间距 */
   --spacing-xs: 6px;
   --spacing-sm: 10px;
   --spacing-md: 16px;
@@ -68,26 +73,23 @@ import GlobalTabBar from '@/components/GlobalTabBar.vue'
   --spacing-2xl: 48px;
   --spacing-3xl: 64px;
 
-  /* 全局底部导航栏高度（含 padding-bottom 16px + border-top 1px） */
-  --global-tab-bar-height: 81px;
+  --global-tab-bar-height: 72px;
+  --search-bar-height: 0px;
 
-  /* 搜索栏高度（padding 16px×2 + input 44px = 76px） */
-  --search-bar-height: 76px;
+  /* 字体 */
+  --font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 28px;
+  --font-size-4xl: 36px;
 
-  /* 字体 - 清晰大头 */
-  --font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-size-xs: 13px;
-  --font-size-sm: 15px;
-  --font-size-base: 17px;
-  --font-size-lg: 19px;
-  --font-size-xl: 22px;
-  --font-size-2xl: 26px;
-  --font-size-3xl: 32px;
-  --font-size-4xl: 40px;
+  --touch-target-min: 44px;
 
-  --touch-target-min: 48px;
-
-  /* 过渡 - 柔和物理曲线 */
+  /* 过渡 */
   --transition-spring: cubic-bezier(0.32, 0.72, 0, 1);
   --transition-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   --transition-soft: cubic-bezier(0.4, 0, 0.2, 1);
@@ -101,7 +103,7 @@ body {
   font-family: var(--font-family);
   background-color: var(--bg-warm);
   color: var(--text-primary);
-  line-height: 1.7;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -117,16 +119,16 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
 }
 
-h1 { font-size: var(--font-size-4xl); }
-h2 { font-size: var(--font-size-3xl); }
-h3 { font-size: var(--font-size-2xl); }
-h4 { font-size: var(--font-size-xl); }
-h5 { font-size: var(--font-size-lg); }
-h6 { font-size: var(--font-size-base); }
+h1 { font-size: var(--font-size-3xl); }
+h2 { font-size: var(--font-size-2xl); }
+h3 { font-size: var(--font-size-xl); }
+h4 { font-size: var(--font-size-lg); }
+h5 { font-size: var(--font-size-base); }
+h6 { font-size: var(--font-size-sm); }
 
 a {
   color: var(--accent);
-  text-decoration: underline;
+  text-decoration: none;
   font-weight: 500;
 }
 
@@ -139,14 +141,15 @@ button, .el-button {
   font-family: var(--font-family);
   font-weight: 600;
   font-size: var(--font-size-base);
-  border: var(--border-medium) !important;
+  border: 1.5px solid var(--border-medium) !important;
   color: var(--text-primary) !important;
   background: var(--bg-primary) !important;
-  transition: all 0.3s var(--transition-soft);
+  transition: all 0.25s var(--transition-soft);
   min-height: var(--touch-target-min);
   padding: var(--spacing-sm) var(--spacing-lg);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
 }
 
 button:hover, .el-button:hover {
@@ -156,7 +159,7 @@ button:hover, .el-button:hover {
 }
 
 button:focus-visible, .el-button:focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--accent-light);
   outline-offset: 2px;
 }
 
@@ -171,20 +174,35 @@ button.primary:hover, .el-button--primary:hover {
   border-color: var(--accent-hover) !important;
 }
 
+button.primary-warm, .el-button--primary-warm {
+  background: var(--accent-warm) !important;
+  border-color: var(--accent-warm) !important;
+  color: #FFFFFF !important;
+}
+
+button.primary-warm:hover, .el-button--primary-warm:hover {
+  background: var(--accent-warm-hover) !important;
+  border-color: var(--accent-warm-hover) !important;
+}
+
 input, select, textarea {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
   min-height: var(--touch-target-min);
   padding: var(--spacing-sm) var(--spacing-md);
-  border: var(--border-light);
+  border: 1.5px solid var(--border-light);
   border-radius: var(--border-radius);
   background: var(--bg-primary);
   color: var(--text-primary);
-  transition: all 0.3s var(--transition-soft);
+  transition: all 0.25s var(--transition-soft);
   box-shadow: var(--shadow-sm);
 }
 
-
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+  outline: none;
+}
 
 input::placeholder {
   color: var(--text-muted);
@@ -197,25 +215,5 @@ label {
   color: var(--text-primary);
   margin-bottom: var(--spacing-xs);
   display: block;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
 }
 </style>

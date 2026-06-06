@@ -1,19 +1,38 @@
 <template>
   <div class="home-container">
     <header class="home-header">
-      <h1>LINLI</h1>
-      <h2 class="header-tagline">邻里守候，就诊无忧</h2>
+      <div class="header-brand">
+        <h1>LINLI</h1>
+        <h2 class="header-tagline">邻里守候，就诊无忧</h2>
+      </div>
+      <div class="header-actions">
+        <button class="header-icon-btn" @click="toggleSearch" aria-label="搜索">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </button>
+        <button class="header-icon-btn filter-header-btn" @click="showFilters = true" aria-label="打开筛选">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="8" y1="12" x2="20" y2="12" />
+            <line x1="12" y1="18" x2="20" y2="18" />
+            <circle cx="6" cy="6" r="1.5" fill="currentColor" stroke="none" />
+            <circle cx="10" cy="12" r="1.5" fill="currentColor" stroke="none" />
+            <circle cx="14" cy="18" r="1.5" fill="currentColor" stroke="none" />
+          </svg>
+        </button>
+      </div>
     </header>
 
-    <div class="search-bar" role="search">
-      <label for="search-input" class="sr-only">搜索任务</label>
+    <div class="search-bar" role="search" :class="{ expanded: searchExpanded }">
       <div class="search-input-wrapper">
         <input
           id="search-input"
           v-model="searchKeyword"
           placeholder="搜索地址或关键词"
           class="search-input"
-          type="search"
+          type="text"
           autocomplete="off"
           @input="onSearchInput"
           @focus="onSearchFocus"
@@ -21,8 +40,14 @@
           @keyup.enter="handleSearch"
           @keydown.down.prevent="moveHighlight(1)"
           @keydown.up.prevent="moveHighlight(-1)"
-          @keydown.esc="showSuggestions = false"
+          @keydown.esc="closeSearch"
         />
+        <button v-if="searchKeyword" class="search-clear-btn" @click="clearSearch" aria-label="清除搜索">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
         <ul v-if="showSuggestions && (suggestions.length > 0 || hotKeywords.length > 0)" class="suggestion-list" role="listbox">
           <li v-if="suggestions.length > 0" class="suggestion-section">相关地址</li>
           <li
@@ -53,7 +78,6 @@
           </li>
         </ul>
       </div>
-      <button class="filter-btn" @click="showFilters = true" aria-label="打开筛选">筛选</button>
     </div>
 
     <div class="sort-bar">
@@ -126,7 +150,7 @@
             <div class="task-meta">
               <span>{{ formatDistance(task.distance) }}</span>
               <span>{{ task.duration }}分钟</span>
-              <span>💪 {{ task.employerRating }}</span>
+              <span>体力等级{{ task.employerRating }}</span>
               <span class="poster-info">
               <i v-if="task.employerAvatar" class="avatar-small">
                 <img :src="task.employerAvatar" :alt="task.employerName + '的头像'" @error="handleAvatarError($event, task.employerName)" />
@@ -134,14 +158,14 @@
               <i v-else class="avatar-small avatar-placeholder">
                 {{ (task.employerName || '就').charAt(0) }}
               </i>
-              <span class="employer-name">{{ task.employerName || '就诊人' }}</span>
+              <span class="employer-name">{{ task.employerNickname || '就诊人' }}</span>
               </span>
 
 
             </div>
           </div>
           <div class="task-side">
-            <div class="task-budget" aria-label="报酬">¥{{ task.budget }}</div>
+            <div class="task-budget" aria-label="报酬">{{ task.budget }}</div>
           </div>
 
 
@@ -259,6 +283,7 @@ const suggestions = ref([])
 const hotKeywords = ref([])
 const showSuggestions = ref(false)
 const highlightIndex = ref(-1)
+const searchExpanded = ref(false)
 const sortBy = ref('distance')
 const viewMode = ref('list')
 const showFilters = ref(false)
@@ -477,6 +502,28 @@ const hideSuggestionsLater = () => {
   setTimeout(() => { showSuggestions.value = false }, 150)
 }
 
+const toggleSearch = () => {
+  searchExpanded.value = !searchExpanded.value
+  if (searchExpanded.value) {
+    nextTick(() => {
+      document.getElementById('search-input')?.focus()
+    })
+  }
+}
+
+const closeSearch = () => {
+  showSuggestions.value = false
+  if (!searchKeyword.value.trim()) {
+    searchExpanded.value = false
+  }
+}
+
+const clearSearch = () => {
+  searchKeyword.value = ''
+  showSuggestions.value = false
+  document.getElementById('search-input')?.focus()
+}
+
 const moveHighlight = (delta) => {
   const total = suggestions.value.length + (searchKeyword.value ? 0 : hotKeywords.value.length)
   if (total === 0) return
@@ -638,40 +685,83 @@ onUnmounted(() => {
 <style scoped>
 .home-container {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-warm);
 }
 
 .home-header {
   display: flex;
   align-items: center;
-  padding: var(--spacing-lg) var(--spacing-md);
-  border-bottom: var(--border);
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-md);
+  background: var(--accent);
+  border-bottom: none;
+}
+
+.header-brand {
+  display: flex;
+  align-items: baseline;
   gap: var(--spacing-sm);
+  min-width: 0;
 }
 
 .home-header h1 {
   font-size: var(--font-size-2xl);
-  font-weight: 900;
-  letter-spacing: -0.03em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  flex-shrink: 0;
 }
 
 .header-tagline {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: 400;
-  font-style: italic;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.7);
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  cursor: pointer;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  min-height: unset !important;
+  transition: all 0.2s var(--transition-soft);
+}
+
+.header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #fff !important;
 }
 
 .search-bar {
-  display: flex;
-  padding: var(--spacing-md);
-  gap: var(--spacing-sm);
-  border-bottom: var(--border-light);
-  position: sticky;
-  top: 0;
-  z-index: 51;
+  max-height: 0;
+  padding: 0 var(--spacing-md);
+  border-bottom: none;
   background: var(--bg-primary);
+  transition: all 0.3s var(--transition-spring);
+}
+
+.search-bar.expanded {
+  max-height: 160px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: var(--border-light);
 }
 
 .search-input-wrapper {
@@ -681,7 +771,7 @@ onUnmounted(() => {
 
 .search-input {
   width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-sm) 36px var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-base);
   border: var(--border-light);
   outline: none;
@@ -696,6 +786,30 @@ onUnmounted(() => {
 .search-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none !important;
+  background: #e0e0e0 !important;
+  color: #666 !important;
+  cursor: pointer;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  min-height: unset !important;
+  transition: all 0.2s var(--transition-soft);
+}
+
+.search-clear-btn:hover {
+  background: #d0d0d0 !important;
 }
 
 .suggestion-list {
@@ -752,97 +866,67 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-.filter-btn {
-  padding: var(--spacing-xs) var(--spacing-lg);
-  font-size: var(--font-size-base);
-  font-weight: 500;
-  background: var(--bg-primary) !important;
-  border: var(--border-light) !important;
-  cursor: pointer;
-  min-width: 80px;
-  min-height: var(--touch-target-min);
-  border-radius: var(--border-radius) !important;
-  color: var(--text-secondary) !important;
-  transition: all 0.3s var(--transition-soft);
-}
-
-.filter-btn:hover {
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
-  background: var(--accent-light) !important;
-}
-
 .sort-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: var(--border-light);
-  background: var(--bg-tertiary);
+  padding: var(--spacing-sm) var(--spacing-sm);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
   position: sticky;
-  top: var(--search-bar-height, 72px);
+  top: 0;
   z-index: 50;
 }
 
 .sort-tabs {
   display: flex;
-  gap: 4px;
-  border-radius: var(--border-radius-sm);
+  gap: 2px;
 }
 
 .sort-tabs button {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-md);
   font-size: var(--font-size-sm);
   font-weight: 500;
   background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-muted);
+  border: none !important;
+  color: var(--text-muted) !important;
   cursor: pointer;
-  min-height: var(--touch-target-min);
+  min-height: 32px;
   position: relative;
-  transition: all 0.3s var(--transition-soft);
-  border-radius: var(--border-radius-sm);
-}
-
-.sort-tabs button:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: -3px;
+  transition: all 0.2s var(--transition-soft);
+  border-radius: var(--border-radius-sm) !important;
 }
 
 .sort-tabs button.active {
   color: var(--accent) !important;
   font-weight: 600;
-  background: var(--bg-primary);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-sm);
+  background: var(--accent-light);
 }
 
 .view-toggle {
   display: flex;
-  gap: var(--spacing-xs);
+  gap: 2px;
 }
 
 .view-toggle button {
-  height: var(--touch-target-min);
-  font-size: var(--font-size-lg);
-  background: var(--bg-primary);
-  border: var(--border-light) !important;
+  height: 32px;
+  width: 32px;
+  font-size: var(--font-size-sm);
+  background: transparent;
+  border: none !important;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--border-radius-sm) !important;
-  transition: all 0.3s var(--transition-soft);
+  transition: all 0.2s var(--transition-soft);
   color: var(--text-muted) !important;
-}
-
-.view-toggle button:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
+  padding: 0 !important;
+  min-height: unset !important;
 }
 
 .view-toggle button.active {
-  background: var(--text-primary);
+  background: var(--accent-light);
   color: var(--accent) !important;
 }
 
@@ -867,24 +951,26 @@ onUnmounted(() => {
 }
 
 .loading {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   padding: var(--spacing-2xl);
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: 48px;
   display: block;
   margin-bottom: var(--spacing-md);
-  opacity: 0.3;
+  opacity: 0.2;
+  color: var(--accent-soft);
 }
 
 .empty p {
   font-size: var(--font-size-lg);
   margin: 0;
+  color: var(--text-secondary);
 }
 
 .empty .tip {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   margin-top: var(--spacing-sm);
 }
@@ -931,11 +1017,10 @@ onUnmounted(() => {
 .task-card {
   display: flex;
   justify-content: space-between;
-  padding: var(--spacing-lg) var(--spacing-md);
-  border-bottom: var(--border-light);
+  padding: var(--spacing-lg) var(--spacing-lg);
+  border-bottom:1px solid rgba(44, 122, 158, 0.218);
   cursor: pointer;
-  min-height: 100px;
-  transition: all 0.3s var(--transition-soft);
+  transition: all 0.2s var(--transition-soft);
   background: var(--bg-primary);
 }
 
@@ -944,7 +1029,7 @@ onUnmounted(() => {
 }
 
 .task-card:focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--accent-light);
   outline-offset: -3px;
 }
 
@@ -954,37 +1039,26 @@ onUnmounted(() => {
 
 .task-main {
   flex: 1;
+  min-width: 0;
 }
 
 .task-type {
   font-size: var(--font-size-xs);
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--accent);
   margin-bottom: var(--spacing-xs);
   letter-spacing: 0.05em;
-  padding-bottom: var(--spacing-xs);
   display: block;
 }
 
 .sub-type-tag {
   display: inline-block;
   color: white;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: var(--border-radius-full);
   font-size: var(--font-size-xs);
   font-weight: 500;
   background: var(--accent);
-}
-
-.main-type-tag {
-  display: inline-block;
-  color: white;
-  padding: 4px 12px;
-  border-radius: var(--border-radius-full);
-  font-size: var(--font-size-xs);
-  font-weight: 500;
-  background: var(--accent-soft);
-  color: var(--text-primary);
 }
 
 .task-title {
@@ -997,27 +1071,39 @@ onUnmounted(() => {
 
 .task-meta {
   display: flex;
-  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
-  .poster-info{
-    display: grid;
-    gap: 4px;
-    grid-template-columns: 24px 6em;
-  }
+}
+
+.task-meta .poster-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .task-side {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: var(--spacing-sm);
+  justify-content: center;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+  margin-left: var(--spacing-md);
 }
 
 .task-budget {
   font-size: var(--font-size-2xl);
-  font-weight: 900;
-  color: var(--danger);
+  font-weight: 800;
+  color: var(--accent-warm);
+  line-height: 1;
+}
+
+.task-budget::before {
+  content: '¥';
+  font-size: var(--font-size-sm);
+  font-weight: 600;
 }
 
 .grab-btn, .login-btn, .detail-btn {
@@ -1194,64 +1280,63 @@ onUnmounted(() => {
   position: fixed;
   top: 0;
   right: 0;
-  bottom: 76px;
+  bottom: 0;
   width: 90%;
   max-width: 400px;
   background: var(--bg-primary);
-  border-left: var(--border);
-  z-index: 1000;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
+  box-shadow: -8px 0 24px rgba(30, 42, 58, 0.1);
 }
 
 .drawer-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-lg) var(--spacing-md);
-  border-bottom: var(--border-light);
+  padding: var(--spacing-lg) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .drawer-header h2 {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
   margin: 0;
+  color: var(--text-primary);
 }
 
 .close-btn {
-  width: var(--touch-target-min);
-  height: var(--touch-target-min);
-  font-size: var(--font-size-2xl);
-  background: none;
-  border: none;
+  width: 36px;
+  height: 36px;
+  border: none !important;
+  background: transparent !important;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary);
+  color: var(--text-muted) !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  min-height: unset !important;
+  font-size: 20px;
+  transition: all 0.2s var(--transition-soft);
 }
 
 .close-btn:hover {
-  background: var(--bg-secondary);
-}
-
-.close-btn:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: -3px;
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
 }
 
 .filter-section {
-  padding: var(--spacing-lg) var(--spacing-md);
-  border-bottom: var(--border-light);
+  padding: var(--spacing-lg) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .filter-section h3 {
-  font-size: var(--font-size-base);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
   color: var(--text-secondary);
-  margin: 0 0 var(--spacing-md);
+  margin: 0 0 var(--spacing-sm);
 }
 
 .filter-chips {
@@ -1263,17 +1348,27 @@ onUnmounted(() => {
 .chip {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--font-size-base);
-  border: var(--border-medium);
+  font-size: var(--font-size-sm);
+  border: 1.5px solid var(--border-light);
   cursor: pointer;
-  min-height: 44px;
+  min-height: 36px;
+  border-radius: var(--border-radius-full) !important;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  transition: all 0.2s var(--transition-soft);
+}
+
+.chip:hover {
+  border-color: var(--accent-soft);
+  background: var(--accent-light);
 }
 
 .chip:has(input:checked) {
-  background: var(--text-primary);
-  color: var(--bg-primary);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .chip input {
@@ -1282,29 +1377,30 @@ onUnmounted(() => {
 
 .drawer-footer {
   margin-top: auto;
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
   display: flex;
-  gap: var(--spacing-md);
-  border-top: var(--border-light);
+  gap: var(--spacing-sm);
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 .drawer-footer button {
   flex: 1;
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-base);
-  font-weight: 500;
-  background: var(--bg-primary);
-  border: var(--border-light) !important;
+  font-weight: 600;
+  background: var(--bg-primary) !important;
+  border: 1.5px solid var(--border-light) !important;
   cursor: pointer;
   min-height: var(--touch-target-min);
   border-radius: var(--border-radius) !important;
-  transition: all 0.3s var(--transition-soft);
+  transition: all 0.2s var(--transition-soft);
   color: var(--text-primary) !important;
 }
 
 .drawer-footer button.primary {
   background: var(--accent) !important;
-  color: #FFFFFF !important;
+  color: #fff !important;
   border-color: var(--accent) !important;
 }
 

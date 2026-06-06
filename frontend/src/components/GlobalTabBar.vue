@@ -9,40 +9,31 @@
       :class="['tab-item', { active: isActive(tab) }]"
       @click="handleTabClick(tab)"
     >
-      <span class="tab-icon" aria-hidden="true">{{ tab.icon }}</span>
+      <span class="tab-icon" aria-hidden="true" v-html="icons[tab.iconKey]"></span>
       <span class="tab-label">{{ tab.label }}</span>
     </span>
   </nav>
 
   <div
     v-if="showPublishDialog"
-    class="publish-dialog-overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="publish-dialog-title"
+    class="publish-overlay"
     @click.self="showPublishDialog = false"
   >
     <div class="publish-dialog">
-      <h2 id="publish-dialog-title" class="dialog-title">请选择发布类型</h2>
-      <div class="dialog-options">
-        <button
-          class="dialog-option"
-          @click="goToPublishTask"
-        >
-          <span class="option-icon">📋</span>
-          <span class="option-label">发布任务</span>
-          <span class="option-desc">我是就诊人，需要找人帮忙</span>
-        </button>
-        <button
-          class="dialog-option"
-          @click="goToApplyWorker"
-        >
-          <span class="option-icon">👤</span>
-          <span class="option-label">我是陪诊师</span>
-          <span class="option-desc">我能提供陪诊服务，赚取报酬</span>
-        </button>
+      <h2 class="publish-title">选择发布类型</h2>
+      <div class="publish-options">
+        <div class="publish-option" @click="goToPublishTask">
+          <span class="publish-option-icon">📋</span>
+          <span class="publish-option-label">发布任务</span>
+          <span class="publish-option-desc">我是就诊人，需要找人帮忙</span>
+        </div>
+        <div class="publish-option" @click="goToApplyWorker">
+          <span class="publish-option-icon">👤</span>
+          <span class="publish-option-label">我是陪诊师</span>
+          <span class="publish-option-desc">我能提供陪诊服务</span>
+        </div>
       </div>
-      <button class="dialog-close" @click="showPublishDialog = false">取消</button>
+      <button class="publish-cancel" @click="showPublishDialog = false">取消</button>
     </div>
   </div>
 </template>
@@ -59,12 +50,20 @@ const userStore = useUserStore()
 
 const showPublishDialog = ref(false)
 
+const icons = {
+  find: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>`,
+  workers: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  messages: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  publish: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>`,
+  profile: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+}
+
 const tabItems = [
-  { name: 'find', label: '任务大厅', icon: '◇', path: '/' },
-  { name: 'workers', label: '陪诊师', icon: '⬡', path: '/employer/workers' },
-  { name: 'messages', label: '消息', icon: '💬', path: '/common/messages', requiresAuth: true },
-  { name: 'publish', label: '发布', icon: '＋', path: '/employer/publish', requiresAuth: true, isPublish: true },
-  { name: 'profile', label: '我的', icon: '○', path: '/profile', requiresAuth: false }
+  { name: 'find', label: '任务大厅', iconKey: 'find', path: '/' },
+  { name: 'workers', label: '陪诊师', iconKey: 'workers', path: '/employer/workers' },
+  { name: 'messages', label: '消息', iconKey: 'messages', path: '/common/messages', requiresAuth: true },
+  { name: 'publish', label: '发布', iconKey: 'publish', path: '/employer/publish', requiresAuth: true, isPublish: true },
+  { name: 'profile', label: '我的', iconKey: 'profile', path: '/profile', requiresAuth: false }
 ]
 
 const isActive = (tab) => {
@@ -111,10 +110,11 @@ const goToApplyWorker = () => {
   right: 0;
   display: flex;
   background: var(--bg-primary);
-  border-top: var(--border-light);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
+  border-top: 1px solid var(--border-light);
+  box-shadow: 0 -1px 8px rgba(30, 42, 58, 0.04);
   z-index: 1000;
-  padding:0 0 1rem 0;
+  padding: 4px 0 env(safe-area-inset-bottom, 8px);
+  height: var(--global-tab-bar-height);
 }
 
 .tab-item {
@@ -123,167 +123,147 @@ const goToApplyWorker = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-sm) var(--spacing-xs);
-  min-height: 64px;
+  gap: 8px;
+  padding: 4px;
   border: none;
   background: transparent;
   cursor: pointer;
-  transition: all 0.3s var(--transition-soft);
+  transition: all 0.2s var(--transition-soft);
   color: var(--text-muted);
   position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab-item:active {
+  transform: scale(0.95);
 }
 
 .tab-item:focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--accent-light);
   outline-offset: -3px;
+  border-radius: var(--border-radius-sm);
 }
 
 .tab-item.active {
   color: var(--accent);
 }
 
-.tab-item.active::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 3px;
-  background: var(--accent);
-  border-radius: 0 0 3px 3px;
-}
-
 .tab-icon {
-  font-size: var(--font-size-xl);
-  margin-bottom: 2px;
-  line-height: 1;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tab-label {
-  font-size: var(--font-size-base);
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.02em;
+  line-height: 1.2;
 }
 
-.publish-dialog-overlay {
+/* 发布弹窗 */
+.publish-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(45, 45, 45, 0.4);
+  background: rgba(30, 42, 58, 0.35);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   z-index: 2000;
   padding: var(--spacing-md);
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .publish-dialog {
   background: var(--bg-primary);
   border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-  padding: var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-lg) calc(var(--spacing-lg) + env(safe-area-inset-bottom));
   width: 100%;
-  max-width: 500px;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.06);
-  animation: slideUp 0.4s var(--transition-smooth);
+  max-width: 400px;
+  animation: slideUp 0.35s var(--transition-smooth);
 }
 
 @keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
-.dialog-title {
-  font-size: var(--font-size-lg);
+.publish-title {
   text-align: center;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
   margin: 0 0 var(--spacing-lg);
   color: var(--text-primary);
-  font-weight: 600;
 }
 
-.dialog-options {
+.publish-options {
   display: flex;
-  flex-direction: column;
   gap: var(--spacing-md);
 }
 
-.dialog-option {
+.publish-option {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--spacing-xl);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-lg) var(--spacing-md);
   background: var(--bg-secondary);
-  border: 1px solid transparent;
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: all 0.3s var(--transition-soft);
-  min-height: 100px;
+  transition: all 0.2s var(--transition-soft);
+  border: 1.5px solid transparent;
 }
 
-.dialog-option:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.dialog-option:hover {
+.publish-option:hover {
+  border-color: var(--accent);
   background: var(--accent-light);
-  border-color: var(--accent-soft);
 }
 
-.option-icon {
-  font-size: 32px;
-  margin-bottom: var(--spacing-sm);
+.publish-option-icon {
+  font-size: 28px;
 }
 
-.option-label {
-  font-size: var(--font-size-lg);
+.publish-option-label {
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
 }
 
-.option-desc {
-  font-size: var(--font-size-sm);
+.publish-option-desc {
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
+  text-align: center;
+  line-height: 1.3;
 }
 
-.dialog-close {
+.publish-cancel {
   width: 100%;
   padding: var(--spacing-md);
-  margin-top: var(--spacing-lg);
+  margin-top: var(--spacing-md);
   font-size: var(--font-size-base);
   font-weight: 500;
-  background: var(--bg-primary);
-  color: var(--text-muted);
-  border: var(--border-light);
-  border-radius: var(--border-radius);
+  background: var(--bg-primary) !important;
+  color: var(--text-muted) !important;
+  border: 1.5px solid var(--border-light) !important;
+  border-radius: var(--border-radius) !important;
   cursor: pointer;
-  transition: all 0.3s var(--transition-soft);
+  transition: all 0.2s var(--transition-soft);
   min-height: var(--touch-target-min);
 }
 
-.dialog-close:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.dialog-close:hover {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+.publish-cancel:hover {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .publish-dialog {
-    animation: none;
-  }
+  .publish-dialog { animation: none; }
 }
 </style>
