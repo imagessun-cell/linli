@@ -401,6 +401,7 @@ router.get('/public/:taskId', async (req, res) => {
         employerNickname: task.employer_nickname,
         employerAvatar: task.employer_avatar,
         employerRating: task.employer_rating || 5.0,
+        employerId: task.employer_id,
         status: task.status,
         createdAt: task.created_at
       }

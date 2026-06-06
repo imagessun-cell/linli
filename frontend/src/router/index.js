@@ -115,7 +115,7 @@ const routes = [
     path: '/common/chat/:userId',
     name: 'ChatRoom',
     component: () => import('@/views/common/ChatRoom.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, hideTabBar: true }
   },
   {
     path: '/common/training',

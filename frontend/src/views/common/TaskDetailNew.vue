@@ -13,9 +13,8 @@
       </div>
       <h1 class="hero-title">{{ task.title }}</h1>
       <div class="hero-meta">
-        <span>{{ formatDistance(task.distance) }}</span>
-        <span>{{ task.duration }}分钟</span>
-        <span>💪 {{ task.employerRating }}</span>
+        <span>{{ task.duration }}分钟前发布</span>
+        <span>体力要求: {{ task.physicalLevelName }}</span>
       </div>
     </div>
 
@@ -25,7 +24,6 @@
           <span class="budget-label">服务报酬</span>
           <span class="budget-value">¥{{ task.budget }}</span>
         </div>
-        <div class="physical-tag">{{ task.physicalLevelName }}</div>
       </div>
 
       <div class="section">

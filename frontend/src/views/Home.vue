@@ -119,7 +119,7 @@
         >
           <div class="task-main">
             <span class="task-type" aria-label="任务类型">
-              <span v-if="task.subTypeIcon" :class="['sub-type-tag', getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
+              <span v-if="task.subTypeIcon" :class="[getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
               <span v-else>{{ task.typeIcon }} {{ task.typeName }}</span>
             </span>
             <h3 class="task-title">{{ task.title }}</h3>
@@ -855,6 +855,9 @@ onUnmounted(() => {
 
 .content-area {
   padding: 0;
+  .list,.task-list {
+    padding-bottom: calc(90px + env(safe-area-inset-bottom));
+  }
 }
 
 .loading, .empty {
@@ -1057,7 +1060,7 @@ onUnmounted(() => {
   background: var(--bg-primary);
   border: var(--border) !important;
   cursor: pointer;
-  min-width: 200px;
+  width: 100%;
   min-height: var(--touch-target-min);
 }
 

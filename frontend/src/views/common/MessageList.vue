@@ -1,31 +1,40 @@
 <template>
-  <div class="message-list">
+  <div class="message-list-page">
+    <h2 class="page-title">消息</h2>
     <div class="conversation-list">
-      <div v-for="msg in messages" :key="msg.id" class="conversation-item" @click="$router.push(`/common/chat/${msg.from_user_id === userId ? msg.to_user_id : msg.from_user_id}`)">
-        <img :src="msg.from_avatar || '/default-avatar.png'" class="avatar" />
+      <div
+        v-for="conv in conversations"
+        :key="conv.other_user_id"
+        class="conversation-item"
+        @click="$router.push(`/common/chat/${conv.other_user_id}`)"
+      >
+        <img
+          v-if="conv.other_avatar"
+          :src="conv.other_avatar"
+          class="avatar"
+          @error="onAvatarError($event, conv.other_nickname)"
+        />
+        <span v-else class="avatar avatar-placeholder">{{ (conv.other_nickname || '?').charAt(0) }}</span>
         <div class="content">
           <div class="header">
-            <span class="nickname">{{ msg.from_user_id === userId ? msg.to_nickname : msg.from_nickname }}</span>
-            <span class="time">{{ formatTime(msg.created_at) }}</span>
+            <span class="nickname">{{ conv.other_nickname }}</span>
+            <span class="time">{{ formatTime(conv.last_message_time) }}</span>
           </div>
-          <p class="preview">{{ msg.content }}</p>
+          <p class="preview">{{ conv.last_message }}</p>
         </div>
-        <el-badge :value="msg.unread" :hidden="!msg.unread" />
+        <span v-if="conv.unread_count > 0" class="unread-badge">{{ conv.unread_count > 99 ? '99+' : conv.unread_count }}</span>
       </div>
     </div>
-    <el-empty v-if="messages.length === 0 && !loading" description="暂无消息" />
-    <el-loading v-if="loading" />
+    <el-empty v-if="conversations.length === 0 && !loading" description="暂无消息" />
+    <div v-if="loading" class="loading">加载中...</div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useUserStore } from '@/stores/user'
 import request from '@/api/request'
 
-const userStore = useUserStore()
-const userId = ref(userStore.userInfo?.id)
-const messages = ref([])
+const conversations = ref([])
 const loading = ref(false)
 
 const formatTime = (time) => {
@@ -36,15 +45,28 @@ const formatTime = (time) => {
   if (diff < 60000) return '刚刚'
   if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
+  const today = new Date()
+  if (date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  }
   return `${date.getMonth() + 1}/${date.getDate()}`
 }
 
-const fetchMessages = async () => {
+const onAvatarError = (event, name) => {
+  const img = event.target
+  img.style.display = 'none'
+  const placeholder = document.createElement('span')
+  placeholder.className = 'avatar avatar-placeholder'
+  placeholder.textContent = (name || '?').charAt(0)
+  img.parentElement.appendChild(placeholder)
+}
+
+const fetchConversations = async () => {
   loading.value = true
   try {
     const res = await request.get('/message/list')
     if (res.code === 0) {
-      messages.value = res.data.messages || []
+      conversations.value = res.data.conversations || []
     }
   } catch (e) {
     console.error(e)
@@ -54,13 +76,20 @@ const fetchMessages = async () => {
 }
 
 onMounted(() => {
-  fetchMessages()
+  fetchConversations()
 })
 </script>
 
 <style scoped>
-.message-list {
+.message-list-page {
   padding: 0;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  padding: 16px;
+  margin: 0;
 }
 
 .conversation-list {
@@ -75,6 +104,11 @@ onMounted(() => {
   padding: 12px 16px;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.conversation-item:hover {
+  background: #f9f9f9;
 }
 
 .conversation-item:last-child {
@@ -90,11 +124,23 @@ onMounted(() => {
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatar-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  background: #c0c4cc;
 }
 
 .content {
   flex: 1;
   overflow: hidden;
+  min-width: 0;
 }
 
 .header {
@@ -104,13 +150,18 @@ onMounted(() => {
 }
 
 .nickname {
-  font-size: 14px;
-  font-weight: bold;
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .time {
   font-size: 12px;
   color: #999;
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .preview {
@@ -119,5 +170,28 @@ onMounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin: 0;
+}
+
+.unread-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #f56c6c;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #999;
 }
 </style>

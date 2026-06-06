@@ -12,6 +12,10 @@ if (!fs.existsSync(dbDir)) {
 const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
+  // 先启用 WAL 模式以支持并发读写
+  db.run('PRAGMA journal_mode=WAL');
+  db.run('PRAGMA busy_timeout=10000');
+
   const initSQL = fs.readFileSync(path.resolve(__dirname, 'init.sql'), 'utf8');
   db.exec(initSQL, (err) => {
     if (err) {
@@ -93,7 +97,7 @@ db.runSync = (sql, ...params) => {
   return new Promise((resolve, reject) => {
     db.run(sql, ...params, function(err) {
       if (err) reject(err);
-      else resolve({ lastInsertRowid: this.lastInsertRowid, changes: this.changes });
+      else resolve({ lastInsertRowid: this.lastID, changes: this.changes });
     });
   });
 };

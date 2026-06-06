@@ -1,6 +1,6 @@
 <template>
   <router-view />
-  <GlobalTabBar />
+  <GlobalTabBar v-if="!$route.meta.hideTabBar" />
 </template>
 
 <script setup>
@@ -107,8 +107,7 @@ body {
 }
 
 #app {
-  min-height: 100vh;
-  padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  height: 100vh;
 }
 
 h1, h2, h3, h4, h5, h6 {

@@ -62,6 +62,7 @@ const showPublishDialog = ref(false)
 const tabItems = [
   { name: 'find', label: '任务大厅', icon: '◇', path: '/' },
   { name: 'workers', label: '陪诊师', icon: '⬡', path: '/employer/workers' },
+  { name: 'messages', label: '消息', icon: '💬', path: '/common/messages', requiresAuth: true },
   { name: 'publish', label: '发布', icon: '＋', path: '/employer/publish', requiresAuth: true, isPublish: true },
   { name: 'profile', label: '我的', icon: '○', path: '/profile', requiresAuth: false }
 ]
@@ -69,6 +70,9 @@ const tabItems = [
 const isActive = (tab) => {
   if (tab.path === '/') {
     return route.path === '/' || route.path.startsWith('/task')
+  }
+  if (tab.name === 'messages') {
+    return route.path.startsWith('/common/messages') || route.path.startsWith('/common/chat')
   }
   return route.path.startsWith(tab.path)
 }
