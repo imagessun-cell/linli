@@ -5,14 +5,10 @@ const db = require('../db');
 const { getDistance } = require('./location');
 
 const TASK_TYPES = {
-  1: { name: '陪诊', icon: '🩺', hasSubTypes: true },
-  2: { name: '陪聊', icon: '💬', hasSubTypes: false },
-  3: { name: '保洁', icon: '🧹', hasSubTypes: false },
-  4: { name: '做饭', icon: '🍳', hasSubTypes: false },
-  5: { name: '接送', icon: '🚗', hasSubTypes: false },
-  6: { name: '看护', icon: '👴', hasSubTypes: false },
-  7: { name: '跑腿', icon: '📦', hasSubTypes: false },
-  8: { name: '助教', icon: '📚', hasSubTypes: false }
+  1: { name: '全程陪同', icon: '👣', hasSubTypes: false },
+  2: { name: '挂号取药', icon: '💊', hasSubTypes: false },
+  3: { name: '门诊陪护', icon: '🪑', hasSubTypes: false },
+  4: { name: '代为问诊', icon: '📝', hasSubTypes: false }
 };
 
 const ESCORT_SUB_TYPES = {

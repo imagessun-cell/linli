@@ -5,17 +5,16 @@
 
 -- 插入用户（服务者、用工方），头像使用本地中国人形象图片
 INSERT INTO t_user (id, phone, nickname, role, status, real_name, face_verified, avatar_url, created_at, updated_at) VALUES
-(1, '13800000001', '王阿姨', 1, 0, '王淑芬', 1, '/img/Avatar/KuaPai_AI_20260602114309.png', datetime('now'), datetime('now')),
-(2, '13800000002', '李叔叔', 1, 0, '李建国', 1, '/img/Avatar/KuaPai_AI_20260602113400.jpeg', datetime('now'), datetime('now')),
-(3, '13800000003', '张阿姨', 1, 0, '张秀英', 1, '/img/Avatar/KuaPai_AI_20260602113549.jpeg', datetime('now'), datetime('now')),
-(4, '13800000004', '刘叔叔', 1, 0, '刘德明', 1, '/img/Avatar/KuaPai_AI_20260602114344.png', datetime('now'), datetime('now')),
-(5, '13800000005', '陈阿姨', 1, 0, '陈美珍', 0, '/img/Avatar/KuaPai_AI_20260602113622.jpeg', datetime('now'), datetime('now')),
-
-(11, '13900000001', '赵女士', 2, 0, '赵丽华', 1, '/img/Avatar/KuaPai_AI_20260602114540.png', datetime('now'), datetime('now')),
-(12, '13900000002', '孙先生', 2, 0, '孙志远', 1, '/img/Avatar/KuaPai_AI_20260602114655.png', datetime('now'), datetime('now')),
-(13, '13900000003', '周小姐', 2, 0, '周敏', 1, '/img/Avatar/KuaPai_AI_20260602114745.png', datetime('now'), datetime('now')),
-(14, '13900000004', '吴先生', 2, 0, '吴国栋', 1, '/img/Avatar/KuaPai_AI_20260602114703.png', datetime('now'), datetime('now')),
-(15, '13900000005', '郑女士', 2, 0, '郑晓燕', 0, '/img/Avatar/KuaPai_AI_20260602114803.png', datetime('now'), datetime('now'));
+(1, '13800000001', '王阿姨', 1, 0, '王淑芬', 1, '/uploads/avatars/KuaPai_AI_20260602114309.png', datetime('now'), datetime('now')),
+(2, '13800000002', '李叔叔', 1, 0, '李建国', 1, '/uploads/avatars/KuaPai_AI_20260602113400.jpeg', datetime('now'), datetime('now')),
+(3, '13800000003', '张阿姨', 1, 0, '张秀英', 1, '/uploads/avatars/KuaPai_AI_20260602113549.jpeg', datetime('now'), datetime('now')),
+(4, '13800000004', '刘叔叔', 1, 0, '刘德明', 1, '/uploads/avatars/KuaPai_AI_20260602114344.png', datetime('now'), datetime('now')),
+(5, '13800000005', '陈阿姨', 1, 0, '陈美珍', 0, '/uploads/avatars/KuaPai_AI_20260602113622.jpeg', datetime('now'), datetime('now')),
+(11, '13900000001', '赵阿姨', 2, 0, '赵丽华', 1, '/uploads/avatars/KuaPai_AI_20260602114540.png', datetime('now'), datetime('now')),
+(12, '13900000002', '孙叔叔', 2, 0, '孙志远', 1, '/uploads/avatars/KuaPai_AI_20260602114655.png', datetime('now'), datetime('now')),
+(13, '13900000003', '周阿姨', 2, 0, '周敏', 1, '/uploads/avatars/KuaPai_AI_20260602114745.png', datetime('now'), datetime('now')),
+(14, '13900000004', '吴叔叔', 2, 0, '吴国栋', 1, '/uploads/avatars/KuaPai_AI_20260602114703.png', datetime('now'), datetime('now')),
+(15, '13900000005', '郑阿姨', 2, 0, '郑晓燕', 0, '/uploads/avatars/KuaPai_AI_20260602114803.png', datetime('now'), datetime('now'));
 
 -- 插入服务者扩展信息（年龄50-65，社区，技能标签）
 -- 技能标签已更新为陪诊子服务：["全程陪同","挂号取药","门诊陪护","代为问诊"]
@@ -35,16 +34,9 @@ INSERT INTO t_employer (user_id, credit_score, common_addresses) VALUES
 (15, 85, '["朝阳区常营街道"]');
 
 -- 插入任务（岗位），使用百度BD-09坐标（北京市各区域）
--- sub_type: 1=全程陪同, 2=挂号取药, 3=门诊陪护, 4=代为问诊 (仅对type=1有效)
+-- type: 1=全程陪同, 2=挂号取药, 3=门诊陪护, 4=代为问诊
 INSERT INTO t_task (employer_id, type, sub_type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, status, created_at, expires_at) VALUES
 (11, 1, 1, '2026-06-01 09:00:00', '2026-06-01 11:30:00', 150, '朝阳区国贸光华路1678号朝阳医院东院', 39.933, 116.564, 1, 95, 0, '需帮助取药', 0, datetime('now'), datetime('2026-06-10 23:59:59')),
-(12, 2, NULL, '2026-06-02 14:00:00', '2026-06-02 16:00:00', 120, '朝阳区劲松劲松路123号', 39.894, 116.497, 1, 45, 0, '会说上海话优先', 0, datetime('now'), datetime('2026-06-10 23:59:59')),
-(13, 3, NULL, '2026-06-03 10:00:00', '2026-06-03 12:00:00', 120, '朝阳区三里屯三里屯路108号', 39.940, 116.486, 2, 70, 0, '三室一厅', 0, datetime('now'), datetime('2026-06-10 23:59:59')),
-(14, 4, NULL, '2026-06-04 17:30:00', '2026-06-04 19:00:00', 90, '朝阳区望京望京街318号', 40.027, 116.555, 1, 50, 0, '清淡口味', 0, datetime('now'), datetime('2026-06-10 23:59:59')),
-(15, 5, NULL, '2026-06-05 08:00:00', '2026-06-05 08:40:00', 40, '朝阳区朝阳公园朝阳公园南路123号', 40.003, 116.517, 1, 30, 0, '儿童座椅需有', 0, datetime('now'), datetime('2026-06-10 23:59:59')),
-(11, 6, NULL, '2026-06-06 09:00:00', '2026-06-06 12:00:00', 180, '朝阳区国贸建国路800号', 39.920, 116.611, 2, 100, 0, '有护理经验', 0, datetime('now'), datetime('2026-06-10 23:59:59')),
-(12, 7, NULL, '2026-06-07 10:30:00', '2026-06-07 11:00:00', 30, '朝阳区劲松东直门外大街78号', 39.899, 116.477, 1, 25, 0, '帮取快递', 0, datetime('now'), datetime('2026-06-10 23:59:59')),
-(13, 8, NULL, '2026-06-08 15:00:00', '2026-06-08 17:00:00', 120, '朝阳区三里屯建国门外大街505号', 39.927, 116.486, 1, 55, 0, '教老人用智能手机', 0, datetime('now'), datetime('2026-06-10 23:59:59')),
 (14, 1, 2, '2026-06-09 13:00:00', '2026-06-09 15:30:00', 150, '朝阳区望京京密路168号民航总医院', 40.018, 116.556, 1, 40, 0, '只需代取报告', 0, datetime('now'), datetime('2026-06-10 23:59:59')),
 (11, 1, 3, '2026-06-10 09:30:00', '2026-06-10 11:30:00', 120, '朝阳区国贸建国路100号', 39.956, 116.555, 1, 65, 0, '老人能自行行走', 0, datetime('now'), datetime('2026-06-10 23:59:59')),
 (12, 1, 1, '2026-06-11 08:00:00', '2026-06-11 11:00:00', 180, '朝阳区劲松工体北路516号北京市第一中西医结合医院', 39.914, 116.484, 2, 120, 0, '老人需坐轮椅', 0, datetime('now'), datetime('2026-06-11 23:59:59')),
@@ -104,13 +96,13 @@ INSERT INTO t_course (title, video_url, duration_seconds, cover_url, sort_order,
 ('急救基础知识', 'https://example.com/video4.mp4', 2000, 'https://example.com/cover4.jpg', 4, 0);
 
 -- 更新现有用户头像（用于已有数据库）- 使用本地中国人形象图片
-UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114309.png' WHERE id = 1;
-UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602113400.jpeg' WHERE id = 2;
-UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602113549.jpeg' WHERE id = 3;
-UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114344.png' WHERE id = 4;
-UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602113622.jpeg' WHERE id = 5;
-UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114540.png' WHERE id = 11;
-UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114655.png' WHERE id = 12;
-UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114745.png' WHERE id = 13;
-UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114703.png' WHERE id = 14;
-UPDATE t_user SET avatar_url = '/img/Avatar/KuaPai_AI_20260602114803.png' WHERE id = 15;
+UPDATE t_user SET avatar_url = '/uploads/avatars/KuaPai_AI_20260602114309.png' WHERE id = 1;
+UPDATE t_user SET avatar_url = '/uploads/avatars/KuaPai_AI_20260602113400.jpeg' WHERE id = 2;
+UPDATE t_user SET avatar_url = '/uploads/avatars/KuaPai_AI_20260602113549.jpeg' WHERE id = 3;
+UPDATE t_user SET avatar_url = '/uploads/avatars/KuaPai_AI_20260602114344.png' WHERE id = 4;
+UPDATE t_user SET avatar_url = '/uploads/avatars/KuaPai_AI_20260602113622.jpeg' WHERE id = 5;
+UPDATE t_user SET avatar_url = '/uploads/avatars/KuaPai_AI_20260602114540.png' WHERE id = 11;
+UPDATE t_user SET avatar_url = '/uploads/avatars/KuaPai_AI_20260602114655.png' WHERE id = 12;
+UPDATE t_user SET avatar_url = '/uploads/avatars/KuaPai_AI_20260602114745.png' WHERE id = 13;
+UPDATE t_user SET avatar_url = '/uploads/avatars/KuaPai_AI_20260602114703.png' WHERE id = 14;
+UPDATE t_user SET avatar_url = '/uploads/avatars/KuaPai_AI_20260602114803.png' WHERE id = 15;

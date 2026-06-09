@@ -113,5 +113,44 @@ router.get('/distance', (req, res) => {
   res.json({ code: 0, message: 'OK', data: { distance: Math.round(distance) } });
 });
 
+// IP 定位（不依赖浏览器权限）
+router.get('/ip', async (req, res) => {
+  try {
+    const userIp = req.headers['x-forwarded-for'] || req.connection?.remoteAddress || req.ip || '';
+    const ip = userIp.split(',')[0].trim();
+    console.log('[location/ip] client IP:', ip);
+
+    const url = `https://api.map.baidu.com/location/ip?ak=${BAIDU_AK}&ip=${ip}&coor=bd09ll`;
+    https.get(url, (apiRes) => {
+      let data = '';
+      apiRes.on('data', chunk => data += chunk);
+      apiRes.on('end', () => {
+        try {
+          const result = JSON.parse(data);
+          console.log('[location/ip] baidu response:', result);
+          if (result.status === 0 && result.content && result.content.point) {
+            const bdLat = parseFloat(result.content.point.y);
+            const bdLng = parseFloat(result.content.point.x);
+            if (bdLat && bdLng) {
+              return res.json({
+                code: 0,
+                message: 'OK',
+                data: { lat: bdLat, lng: bdLng, address: result.content.address || '' }
+              });
+            }
+          }
+          res.json({ code: 0, message: 'fallback', data: { lat: 39.929, lng: 116.494 } });
+        } catch (e) {
+          res.json({ code: 0, message: 'parse error', data: { lat: 39.929, lng: 116.494 } });
+        }
+      });
+    }).on('error', () => {
+      res.json({ code: 0, message: 'http error', data: { lat: 39.929, lng: 116.494 } });
+    });
+  } catch (e) {
+    res.json({ code: 0, message: 'server error', data: { lat: 39.929, lng: 116.494 } });
+  }
+});
+
 module.exports = router;
 module.exports.getDistance = getDistance;

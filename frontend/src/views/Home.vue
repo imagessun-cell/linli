@@ -91,6 +91,10 @@
           @click="changeSort(sort.value)"
         >
           {{ sort.label }}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px; vertical-align: middle;">
+            <path v-if="sortBy === sort.value && sortAsc" d="M12 19V5M5 12l7-7 7 7"/>
+            <path v-else d="M12 5v14M5 12l7 7 7-7"/>
+          </svg>
         </button>
       </div>
       <div class="view-toggle" role="group" aria-label="视图切换">
@@ -148,20 +152,9 @@
             </span>
             <h3 class="task-title">{{ task.title }}</h3>
             <div class="task-meta">
-              <span>{{ formatDistance(task.distance) }}</span>
-              <span>{{ task.duration }}分钟</span>
-              <span>体力等级{{ task.employerRating }}</span>
-              <span class="poster-info">
-              <i v-if="task.employerAvatar" class="avatar-small">
-                <img :src="task.employerAvatar" :alt="task.employerName + '的头像'" @error="handleAvatarError($event, task.employerName)" />
-              </i>
-              <i v-else class="avatar-small avatar-placeholder">
-                {{ (task.employerName || '就').charAt(0) }}
-              </i>
-              <span class="employer-name">{{ task.employerNickname || '就诊人' }}</span>
-              </span>
-
-
+              <span>距您 {{ formatDistance(task.distance) }} 米</span>
+              <span>预计 {{ task.duration }} 分钟</span>
+              <span>{{ task.physicalLevelName || '轻度' }}体力</span>
             </div>
           </div>
           <div class="task-side">
@@ -184,7 +177,24 @@
       <div v-else class="map-container" role="region" aria-label="地图视图">
         <div id="baidu-map" class="map" aria-label="任务分布地图"></div>
 
-        <!-- 我的位置浮标：右下角，距 global-tab-bar 20px -->
+        <!-- 定位中脉冲动画 -->
+        <div v-if="locating" class="locating-pulse"></div>
+
+        <!-- 我的位置标记：脉冲动画点 -->
+        <div
+          v-show="!locating"
+          class="user-location-dot"
+          :class="{ 'has-accuracy': locationAccuracy > 0 }"
+          :style="userLocationStyle"
+          aria-label="我的位置"
+          role="img"
+        >
+          <div class="dot-inner"></div>
+          <div class="dot-ring"></div>
+          <div class="dot-ring delay"></div>
+        </div>
+
+        <!-- 定位按钮：右下角，距 global-tab-bar 20px -->
         <button
           :class="['map-locate-btn', { spinning: locating }]"
           @click="relocate"
@@ -197,10 +207,9 @@
             <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor"/>
             <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-dasharray="2 3"/>
           </svg>
-          <span class="map-locate-btn__label">{{ locating ? '定位中…' : '我的位置' }}</span>
         </button>
 
-        <div v-if="selectedTask" class="map-info-window" role="dialog" aria-labelledby="map-task-title">
+        <div v-if="selectedTask" class="map-info-window" role="dialog">
           <div class="info-header">
             <div v-if="selectedTask.employerAvatar" class="avatar-small">
               <img :src="selectedTask.employerAvatar" :alt="selectedTask.employerName + '的头像'" @error="handleMapAvatarError($event, selectedTask.employerName)" />
@@ -209,10 +218,10 @@
               {{ (selectedTask.employerName || '就').charAt(0) }}
             </div>
             <span class="employer-name">{{ selectedTask.employerName || '就诊人' }}</span>
+            <button class="map-info-close" @click="selectedTask = null" aria-label="关闭">×</button>
           </div>
-          <div id="map-task-title" class="info-type">
-            <span v-if="selectedTask.subTypeIcon" class="sub-type-tag">{{ selectedTask.subTypeIcon }} {{ selectedTask.subTypeName }}</span>
-            <span v-else-if="selectedTask.typeName === '陪诊'" class="sub-type-tag tag-escort">🪑 门诊陪护</span>
+          <div class="info-type">
+            <span v-if="selectedTask.subTypeIcon">{{ selectedTask.subTypeIcon }} {{ selectedTask.subTypeName }}</span>
             <span v-else>{{ selectedTask.typeIcon }} {{ selectedTask.typeName }}</span>
           </div>
           <div class="info-title">{{ selectedTask.title }}</div>
@@ -285,6 +294,7 @@ const showSuggestions = ref(false)
 const highlightIndex = ref(-1)
 const searchExpanded = ref(false)
 const sortBy = ref('distance')
+const sortAsc = ref(false)
 const viewMode = ref('list')
 const showFilters = ref(false)
 const selectedTypes = ref([])
@@ -316,7 +326,11 @@ const physicalLevels = [
 let map = null
 let markers = []
 let userMarker = null
+let mapMoveHandler = null
+let mapZoomHandler = null
 const locating = ref(false)
+const locationAccuracy = ref(0)
+const userLocationStyle = ref({ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' })
 
 const getUserLocation = () => {
   return new Promise((resolve) => {
@@ -340,13 +354,49 @@ const getUserLocation = () => {
         resolve()
       },
       (err) => {
-        console.warn('[Home.vue] geolocation failed:', err?.message)
-        ElMessage?.warning?.('未获取到定位权限，列表将按默认位置展示')
-        resolve()
+        console.warn('[Home.vue] geolocation failed:', err?.message, '→ 尝试IP定位')
+        // 浏览器定位失败，尝试通过IP获取位置（不依赖浏览器权限）
+        request.get('/location/ip').then(ipRes => {
+          console.log('[Home.vue] IP定位结果:', ipRes)
+          if (ipRes.code === 0 && ipRes.data) {
+            userLocation.value = { lat: ipRes.data.lat, lng: ipRes.data.lng }
+            if (map) {
+              map.centerAndZoom(new window.BMapGL.Point(ipRes.data.lng, ipRes.data.lat), 13)
+            }
+          } else {
+            userLocation.value = { lat: 39.929, lng: 116.494 }
+            if (map) {
+              map.centerAndZoom(new window.BMapGL.Point(116.494, 39.929), 14)
+            }
+          }
+        }).catch(() => {
+          userLocation.value = { lat: 39.929, lng: 116.494 }
+          if (map) {
+            map.centerAndZoom(new window.BMapGL.Point(116.494, 39.929), 14)
+          }
+        }).finally(() => resolve())
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     )
   })
+}
+
+// 更新用户位置标记的屏幕像素位置
+const updateUserLocationDot = () => {
+  if (!map) return
+  try {
+    const pixel = map.pointToOverlayPixel(new window.BMapGL.Point(userLocation.value.lng, userLocation.value.lat))
+    const mapContainer = document.getElementById('baidu-map')
+    if (!mapContainer) return
+    const containerRect = mapContainer.getBoundingClientRect()
+    userLocationStyle.value = {
+      left: `${pixel.x + containerRect.left}px`,
+      top: `${pixel.y + containerRect.top}px`,
+      transform: 'translate(-50%, -50%)'
+    }
+  } catch (e) {
+    console.warn('[Home.vue] updateUserLocationDot failed:', e)
+  }
 }
 
 // 重新定位：重新获取 GPS 并刷新任务
@@ -354,7 +404,10 @@ const relocate = async () => {
   locating.value = true
   try {
     await getUserLocation()
-    if (map) recenterMap()
+    if (map) {
+      recenterMap()
+      updateUserLocationDot()
+    }
     await loadTasks(true)
   } finally {
     locating.value = false
@@ -367,12 +420,7 @@ const recenterMap = () => {
   const { lat, lng } = userLocation.value
   const point = new BMapGL.Point(lng, lat)
   map.centerAndZoom(point, 13)
-  if (userMarker) {
-    userMarker.setPosition(point)
-  } else {
-    userMarker = new BMapGL.Marker(point)
-    map.addOverlay(userMarker)
-  }
+  updateUserLocationDot()
 }
 
 // 监听位置变化：自动重新加载任务列表
@@ -443,7 +491,12 @@ const loadMore = () => {
 }
 
 const changeSort = (sort) => {
-  sortBy.value = sort
+  if (sortBy.value === sort) {
+    sortAsc.value = !sortAsc.value
+  } else {
+    sortBy.value = sort
+    sortAsc.value = true
+  }
   loadTasks(true)
   if (viewMode.value === 'map') {
     nextTick(() => initMap())
@@ -624,6 +677,18 @@ const grabTask = async (taskId) => {
   }
 }
 
+// 根据 sort-bar 底部动态计算并设置地图容器高度
+const updateMapContainerSize = () => {
+  const mapEl = document.querySelector('.map-container')
+  if (!mapEl) return
+  const sortBar = document.querySelector('.sort-bar')
+  if (!sortBar) return
+  const rect = sortBar.getBoundingClientRect()
+  mapEl.style.top = `${rect.bottom}px`
+  // 通知百度地图尺寸变化
+  if (map) setTimeout(() => map.reset(), 0)
+}
+
 const initMap = () => {
   if (typeof BMapGL === 'undefined') {
     setTimeout(initMap, 500)
@@ -638,26 +703,45 @@ const initMap = () => {
   map.centerAndZoom(point, 13)
   map.enableScrollWheelZoom(true)
 
-  // 我自己的位置标记
-  if (userMarker) {
-    userMarker.setPosition(point)
-  } else {
-    userMarker = new BMapGL.Marker(point)
-    map.addOverlay(userMarker)
-  }
+  // 移除旧的事件监听
+  if (mapMoveHandler) { map.removeEventListener('moveend', mapMoveHandler); mapMoveHandler = null }
+  if (mapZoomHandler) { map.removeEventListener('zoomend', mapZoomHandler); mapZoomHandler = null }
+
+  // 地图移动或缩放时，更新用户位置点的像素坐标
+  mapMoveHandler = () => updateUserLocationDot()
+  mapZoomHandler = () => updateUserLocationDot()
+  map.addEventListener('moveend', mapMoveHandler)
+  map.addEventListener('zoomend', mapZoomHandler)
+
+  // 初始化用户位置标记
+  nextTick(() => updateUserLocationDot())
+
+  // 动态设置地图容器尺寸（适配 sort-bar 位置）
+  nextTick(() => updateMapContainerSize())
 
   markers.forEach(m => map.removeOverlay(m))
   markers = []
 
   tasks.value.forEach(task => {
-    const marker = new BMapGL.Marker(
-      new BMapGL.Point(task.longitude, task.latitude)
-    )
-    marker.addEventListener('click', () => {
+    const point = new BMapGL.Point(task.longitude, task.latitude)
+
+    // 圆形头像 + 白色描边 + 投影
+    const avatarHtml = task.employerAvatar
+      ? `<img src="${task.employerAvatar}" style="width:36px;height:36px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.25);object-fit:cover;display:block;" onerror="this.style.display='none'" />`
+      : `<div style="width:36px;height:36px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.25);background:#1677ff;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:600;">${(task.employerName || '就').charAt(0)}</div>`
+
+    const label = new BMapGL.Label(avatarHtml, {
+      position: point,
+      offset: new BMapGL.Size(-18, -18)
+    })
+    label.setStyle({ border: 'none', background: 'transparent', padding: '0' })
+    label.taskId = task.id
+
+    label.addEventListener('click', () => {
       selectedTask.value = task
     })
-    map.addOverlay(marker)
-    markers.push(marker)
+    map.addOverlay(label)
+    markers.push(label)
   })
 }
 
@@ -667,11 +751,28 @@ onMounted(async () => {
   console.log('[Home.vue] after getUserLocation, userLocation:', userLocation.value, 'radius:', radius.value, 'sortBy:', sortBy.value)
   await loadTasks(true)
   console.log('[Home.vue] after loadTasks, tasks length:', tasks.value.length, 'hasMore:', hasMore.value)
+  // 如果默认是地图视图，初始化地图和位置标记
+  if (viewMode.value === 'map') {
+    nextTick(() => {
+      initMap()
+      updateUserLocationDot()
+    })
+  }
+
+  // 窗口大小变化时重新计算地图尺寸
+  window.addEventListener('resize', updateMapContainerSize)
 })
 
 watch(viewMode, (newMode) => {
   if (newMode === 'map') {
-    nextTick(() => initMap())
+    nextTick(() => {
+      initMap()
+      updateMapContainerSize()
+      // 如果已有GPS定位，立即居中
+      if (userLocation.value.lat !== 39.929 || userLocation.value.lng !== 116.494) {
+        recenterMap()
+      }
+    })
   }
 })
 
@@ -679,6 +780,7 @@ onUnmounted(() => {
   if (map) {
     map = null
   }
+  window.removeEventListener('resize', updateMapContainerSize)
 })
 </script>
 
@@ -870,7 +972,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-sm) var(--spacing-sm);
+  padding: var(--spacing-sm) 24px;
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-secondary);
   position: sticky;
@@ -976,12 +1078,12 @@ onUnmounted(() => {
 }
 
 .avatar-small {
-  width: 22px ;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   flex-shrink: 0;
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-warm) 100%);
 }
@@ -1017,6 +1119,7 @@ onUnmounted(() => {
 .task-card {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   padding: var(--spacing-lg) var(--spacing-lg);
   border-bottom:1px solid rgba(44, 122, 158, 0.218);
   cursor: pointer;
@@ -1040,6 +1143,10 @@ onUnmounted(() => {
 .task-main {
   flex: 1;
   min-width: 0;
+  height: 120px;
+  width: 290px;
+  flex-direction: column;
+  margin: -8px 0;
 }
 
 .task-type {
@@ -1049,6 +1156,10 @@ onUnmounted(() => {
   margin-bottom: var(--spacing-xs);
   letter-spacing: 0.05em;
   display: block;
+  background: rgba(64, 158, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  width: 84px;
 }
 
 .sub-type-tag {
@@ -1064,9 +1175,10 @@ onUnmounted(() => {
 .task-title {
   font-size: var(--font-size-lg);
   font-weight: 600;
-  margin: 0 0 var(--spacing-sm);
+  margin: 10px 0 var(--spacing-sm);
   color: var(--text-primary);
   line-height: 1.4;
+  width: 300px;
 }
 
 .task-meta {
@@ -1075,12 +1187,33 @@ onUnmounted(() => {
   gap: var(--spacing-md);
   font-size: var(--font-size-sm);
   color: var(--text-muted);
+  line-height: 38px;
+  height: 32px;
+  margin: -6px 0;
+}
+
+.task-meta span:first-child {
+  text-align: left;
+  height: 32px;
+  display: flex;
+  line-height: 32px;
+}
+
+.task-meta span:nth-child(2) {
+  height: 32px;
+  text-align: left;
+  line-height: 32px;
+}
+
+.task-meta span:nth-child(3) {
+  height: 32px;
+  line-height: 32px;
 }
 
 .task-meta .poster-info {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 1px;
 }
 
 .task-side {
@@ -1091,6 +1224,9 @@ onUnmounted(() => {
   gap: var(--spacing-xs);
   flex-shrink: 0;
   margin-left: var(--spacing-md);
+  margin: -6px 0;
+  height: 88px;
+  width: 40px;
 }
 
 .task-budget {
@@ -1098,6 +1234,7 @@ onUnmounted(() => {
   font-weight: 800;
   color: var(--accent-warm);
   line-height: 1;
+  width: 37px;
 }
 
 .task-budget::before {
@@ -1161,8 +1298,11 @@ onUnmounted(() => {
 }
 
 .map-container {
-  position: relative;
-  height: calc(100vh - 264px);
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  bottom: var(--global-tab-bar-height); /* 距底部 tab-bar */
 }
 
 .map {
@@ -1176,7 +1316,7 @@ onUnmounted(() => {
 .map-locate-btn {
   position: absolute;
   right: var(--spacing-md);
-  bottom: calc(var(--global-tab-bar-height) + 20px);
+  top: 520px;
   z-index: 100;
   display: inline-flex;
   align-items: center;
@@ -1223,7 +1363,40 @@ onUnmounted(() => {
   border: var(--border);
   border-radius: var(--border-radius);
   padding: var(--spacing-lg);
+  padding-top: calc(var(--spacing-lg) + 4px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
+}
+
+.employer-name {
+  margin-left: 8px;
+}
+
+.map-info-close {
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 20px !important;
+  color: var(--text-muted) !important;
+  cursor: pointer;
+  margin-left: auto;
+  padding: 0 !important;
+  line-height: 1 !important;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-info-close:hover {
+  color: var(--text-primary);
 }
 
 .info-type {
@@ -1233,15 +1406,6 @@ onUnmounted(() => {
   letter-spacing: 0.1em;
   color: var(--text-muted);
   margin-bottom: var(--spacing-xs);
-}
-
-.info-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-light);
 }
 
 .info-title {
@@ -1411,5 +1575,82 @@ onUnmounted(() => {
 .drawer-footer button.primary:hover {
   background: var(--accent-hover) !important;
   border-color: var(--accent-hover) !important;
+}
+
+/* ── 用户位置脉冲动画 ── */
+.user-location-dot {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  /* 默认居中，由 JS 动态更新 left/top */
+}
+
+.dot-inner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: #1677ff;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(22, 119, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  transform: translate(-50%, -50%);
+  left: 0;
+  top: 0;
+  z-index: 3;
+}
+
+.dot-ring {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border: 2px solid #1677ff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  left: 0;
+  top: 0;
+  z-index: 2;
+  opacity: 0;
+  animation: locationPulse 2.4s ease-out infinite;
+}
+
+.dot-ring.delay {
+  animation-delay: 1.2s;
+}
+
+@keyframes locationPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* 定位中扫描动画 */
+.locating-pulse {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 80px;
+  height: 80px;
+  margin: -40px 0 0 -40px;
+  border: 2px solid #1677ff;
+  border-radius: 50%;
+  z-index: 1000;
+  pointer-events: none;
+  animation: scanPulse 1.5s ease-out infinite;
+}
+
+@keyframes scanPulse {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
 }
 </style>

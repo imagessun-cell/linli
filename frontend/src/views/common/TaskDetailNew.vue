@@ -8,7 +8,6 @@
     <div class="hero-section" v-if="task">
       <div class="hero-type">
         <span v-if="task.subTypeIcon" :class="['sub-type-tag', getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
-        <span v-else-if="task.typeName === '陪诊'" class="sub-type-tag tag-escort">🪑 门诊陪护</span>
         <span v-else class="hero-type-plain">{{ task.typeIcon }} {{ task.typeName }}</span>
       </div>
       <h1 class="hero-title">{{ task.title }}</h1>

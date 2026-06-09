@@ -36,7 +36,7 @@ const routes = [
   {
     path: '/worker/dashboard',
     name: 'WorkerDashboard',
-    component: () => import('@/views/worker/Dashboard.vue'),
+    component: () => import('@/views/worker/MyTasks.vue'),
     meta: { requiresAuth: true, role: 1 }
   },
   {
@@ -132,7 +132,7 @@ const routes = [
   {
     path: '/worker/task-hall',
     name: 'TaskHall',
-    component: () => import('@/views/worker/TaskHall.vue'),
+    component: () => import('@/views/worker/MyTasks.vue'),
     meta: { requiresAuth: true, role: 1 }
   },
   {
