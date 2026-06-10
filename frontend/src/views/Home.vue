@@ -91,7 +91,7 @@
           @click="changeSort(sort.value)"
         >
           {{ sort.label }}
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px; vertical-align: middle;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px; vertical-align: middle; position: relative; top: -1px;">
             <path v-if="sortBy === sort.value && sortAsc" d="M12 19V5M5 12l7-7 7 7"/>
             <path v-else d="M12 5v14M5 12l7 7 7-7"/>
           </svg>
@@ -150,10 +150,10 @@
               <span v-if="task.subTypeIcon" :class="[getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
               <span v-else>{{ task.typeIcon }} {{ task.typeName }}</span>
             </span>
-            <h3 class="task-title">{{ task.title }}</h3>
+            <h3 class="task-title">{{ task.employerCommunity }} → {{ task.targetHospital }}</h3>
             <div class="task-meta">
               <span>距您 {{ formatDistance(task.distance) }} 米</span>
-              <span>预计 {{ task.duration }} 分钟</span>
+              <span>预计{{ formatDuration(task.duration) }}</span>
               <span>{{ task.physicalLevelName || '轻度' }}体力</span>
             </div>
           </div>
@@ -447,7 +447,8 @@ const loadTasks = async (reset = false) => {
       radius: radius.value,
       page: page.value,
       pageSize: 10,
-      sortBy: sortBy.value
+      sortBy: sortBy.value,
+      order: sortAsc.value ? 'asc' : 'desc'
     }
 
     if (searchKeyword.value.trim()) {
@@ -653,6 +654,14 @@ const formatDistance = (distance) => {
   if (!distance) return '—'
   if (distance < 1000) return `${distance}m`
   return `${(distance / 1000).toFixed(1)}km`
+}
+
+const formatDuration = (minutes) => {
+  if (!minutes) return '—'
+  if (minutes < 60) return ` ${minutes}分钟 `
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m === 0 ? ` ${h}小时 ` : ` ${h}小时${m}分钟 `
 }
 
 const goToDetail = (id) => {
@@ -972,7 +981,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-sm) 24px;
+  padding: var(--spacing-sm) 16px;
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-secondary);
   position: sticky;
@@ -1120,11 +1129,12 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: var(--spacing-lg) var(--spacing-lg);
+  padding: var(--spacing-lg) 16px;
   border-bottom:1px solid rgba(44, 122, 158, 0.218);
   cursor: pointer;
   transition: all 0.2s var(--transition-soft);
   background: var(--bg-primary);
+  height: 128px;
 }
 
 .task-card:hover {
@@ -1178,7 +1188,13 @@ onUnmounted(() => {
   margin: 10px 0 var(--spacing-sm);
   color: var(--text-primary);
   line-height: 1.4;
-  width: 300px;
+  max-width: 100%;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .task-meta {
@@ -1225,7 +1241,7 @@ onUnmounted(() => {
   flex-shrink: 0;
   margin-left: var(--spacing-md);
   margin: -6px 0;
-  height: 88px;
+  height: 92px;
   width: 40px;
 }
 

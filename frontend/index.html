@@ -11,7 +11,8 @@
   <script src="https://api.map.baidu.com/api?v=3.0&type=webgl&ak=IxdZeE8nWq8yjdn1SnMwhtyzdWDVGvfQ&callback=initBaiduMap"></script>
   <script>
     function initBaiduMap() {
-      console.log('Baidu Map API loaded')
+      window.BMapGL = BMapGL
+      window.dispatchEvent(new Event('baidu-map-ready'))
     }
   </script>
 </body>

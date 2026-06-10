@@ -48,12 +48,13 @@ router.get('/types', (req, res) => {
 
 router.get('/nearby', async (req, res) => {
   try {
-    const { latitude, longitude, radius = 5000, page = 1, pageSize = 20, sortBy = 'distance', type, subType, physicalLevel, keyword } = req.query;
+    const { latitude, longitude, radius = 5000, page = 1, pageSize = 20, sortBy = 'distance', order = 'asc', type, subType, physicalLevel, keyword } = req.query;
 
     const rows = await db.allSync(`
       SELECT t.*,
              u.nickname as employer_nickname,
              u.avatar_url as employer_avatar,
+             u.community as employer_community,
              e.credit_score as employer_rating
       FROM t_task t
       JOIN t_user u ON t.employer_id = u.id
@@ -76,12 +77,13 @@ router.get('/nearby', async (req, res) => {
 
       tasks = tasks.filter(task => task.distance <= parseInt(radius));
 
+      const isAsc = order === 'asc'
       if (sortBy === 'distance') {
-        tasks.sort((a, b) => a.distance - b.distance);
+        tasks.sort((a, b) => isAsc ? a.distance - b.distance : b.distance - a.distance);
       } else if (sortBy === 'budget') {
-        tasks.sort((a, b) => b.budget - a.budget);
+        tasks.sort((a, b) => isAsc ? a.budget - b.budget : b.budget - a.budget);
       } else if (sortBy === 'physicalLevel') {
-        tasks.sort((a, b) => a.physical_level - b.physical_level);
+        tasks.sort((a, b) => isAsc ? a.physical_level - b.physical_level : b.physical_level - a.physical_level);
       }
     }
 
@@ -139,7 +141,9 @@ router.get('/nearby', async (req, res) => {
       isCharity: task.is_charity,
       employerNickname: task.employer_nickname,
       employerAvatar: task.employer_avatar,
+      employerCommunity: (task.employer_community || '').replace(/^[\u4e00-\u9fa5]{1,4}区/, ''),
       employerRating: task.employer_rating || 5.0,
+      targetHospital: task.target_hospital,
       status: task.status,
       createdAt: task.created_at
     }));
@@ -357,6 +361,9 @@ router.get('/public/:taskId', async (req, res) => {
       SELECT t.*,
              u.nickname as employer_nickname,
              u.avatar_url as employer_avatar,
+             u.community as employer_community,
+             u.community_lat,
+             u.community_lng,
              e.credit_score as employer_rating
       FROM t_task t
       JOIN t_user u ON t.employer_id = u.id
@@ -396,7 +403,11 @@ router.get('/public/:taskId', async (req, res) => {
         specialRequirements: task.special_requirements,
         employerNickname: task.employer_nickname,
         employerAvatar: task.employer_avatar,
+        employerCommunity: (task.employer_community || '').replace(/^[\u4e00-\u9fa5]{1,4}区/, ''),
+        employerCommunityLat: task.community_lat,
+        employerCommunityLng: task.community_lng,
         employerRating: task.employer_rating || 5.0,
+        targetHospital: task.target_hospital,
         employerId: task.employer_id,
         status: task.status,
         createdAt: task.created_at
@@ -435,7 +446,12 @@ router.put('/:taskId/cancel', authMiddleware, async (req, res) => {
     const { taskId } = req.params;
     const now = new Date().toISOString();
 
-    const task = await db.getSync('SELECT * FROM t_task WHERE id = ?', [taskId]);
+    const task = await db.getSync(`
+      SELECT t.*, u.community_lat, u.community_lng
+      FROM t_task t
+      LEFT JOIN t_user u ON t.employer_id = u.id
+      WHERE t.id = ?
+    `, [taskId]);
     if (!task) {
       return res.status(404).json({ code: 404, message: '任务不存在' });
     }
@@ -466,7 +482,12 @@ router.post('/:taskId/grab', authMiddleware, async (req, res) => {
     const { taskId } = req.params;
     const now = new Date().toISOString();
 
-    const task = await db.getSync('SELECT * FROM t_task WHERE id = ?', [taskId]);
+    const task = await db.getSync(`
+      SELECT t.*, u.community_lat, u.community_lng
+      FROM t_task t
+      LEFT JOIN t_user u ON t.employer_id = u.id
+      WHERE t.id = ?
+    `, [taskId]);
     if (!task) {
       return res.status(404).json({ code: 404, message: '任务不存在' });
     }

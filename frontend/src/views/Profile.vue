@@ -428,9 +428,9 @@ onMounted(async () => {
 }
 
 .action-btn:hover {
-  background: var(--bg-secondary) !important;
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
+  background: var(--bg-primary) !important;
+  border: var(--border-light) !important;
+  color: var(--text-primary) !important;
 }
 
 .logout-section {
