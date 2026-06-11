@@ -249,9 +249,9 @@ const goToApplyWorker = () => {
   margin-top: var(--spacing-md);
   font-size: var(--font-size-base);
   font-weight: 600;
-  background: #f5f7fa !important;
-  color: #1E2A3A !important;
-  border: 1.5px solid transparent !important;
+  background: #2c7a9e !important;
+  color: #FFFFFF !important;
+  border: 1.5px solid #2c7a9e !important;
   border-radius: var(--border-radius) !important;
   cursor: pointer;
   transition: all 0.2s var(--transition-soft);
@@ -259,9 +259,9 @@ const goToApplyWorker = () => {
 }
 
 .publish-cancel:hover {
-  background: #e8ecf2 !important;
-  color: #2c7a9e !important;
-  border-color: #2c7a9e !important;
+  background: #256a8a !important;
+  color: #FFFFFF !important;
+  border-color: #256a8a !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
