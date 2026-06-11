@@ -1170,6 +1170,7 @@ onUnmounted(() => {
   padding: 4px 8px;
   border-radius: 4px;
   width: 84px;
+  white-space: nowrap;
 }
 
 .sub-type-tag {

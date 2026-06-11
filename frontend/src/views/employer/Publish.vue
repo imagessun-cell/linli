@@ -883,12 +883,6 @@ const handlePublish = async () => {
   width: 100% !important;
 }
 
-:deep(.el-time-panel) {
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-}
-
 /* 父容器确保宽度继承 */
 .time-picker-container {
   width: 100%;
@@ -1071,7 +1065,7 @@ const handlePublish = async () => {
   background: linear-gradient(to top, #f5f7fa 0%, rgba(245, 247, 250, 0.85) 60%, transparent 100%);
   position: sticky;
   bottom: 70px;
-  z-index: 10;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1292,5 +1286,19 @@ const handlePublish = async () => {
   font-size: 15px;
   color: #1E2A3A;
   font-weight: 600;
+}
+</style>
+
+<style>
+.el-time-panel {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+.el-time-panel__footer{
+  height: auto;
+  .el-time-panel__btn{
+    padding: 2px 12px;
+  }
 }
 </style>
