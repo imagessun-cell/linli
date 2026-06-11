@@ -17,55 +17,14 @@
     </div>
 
     <div class="main-content" v-if="task">
-      <div class="budget-card">
-        <div class="budget-info">
-          <span class="budget-label">服务报酬</span>
-          <span class="budget-value">¥{{ task.budget }}</span>
-        </div>
-      </div>
-
       <div class="section">
         <h3 class="section-title">服务信息</h3>
         <div class="info-list">
-          <div class="info-row">
-            <span class="info-label">服务路线</span>
+          <div class="info-row info-row-budget">
+            <span class="info-icon">💰</span>
             <div class="info-content">
-              <span class="info-value">{{ task.employerCommunity }} → {{ task.targetHospital }}</span>
-            </div>
-          </div>
-          <div class="map-container-small">
-            <div id="task-detail-map" class="map-small"></div>
-          </div>
-          <div class="info-row">
-            <div class="info-content">
-              <span class="info-value">
-                我的位置
-                <span class="route-arrow-inline">→</span>
-                雇主家
-                <span class="route-distance-inline">：{{ formatDistance(myToEmployerKm) }}</span>
-              </span>
-              <a
-                class="route-nav-link"
-                :href="myToEmployerNavUrl"
-                target="_blank"
-                rel="noopener"
-              >[导航]</a>
-            </div>
-          </div>
-          <div class="info-row">
-            <div class="info-content">
-              <span class="info-value">
-                雇主家
-                <span class="route-arrow-inline">→</span>
-                医院
-                <span class="route-distance-inline">：{{ formatDistance(employerToHospitalKm) }}</span>
-              </span>
-              <a
-                class="route-nav-link"
-                :href="employerToHospitalNavUrl"
-                target="_blank"
-                rel="noopener"
-              >[导航]</a>
+              <span class="info-label">服务报酬</span>
+              <span class="info-value info-value-budget">¥{{ task.budget }}</span>
             </div>
           </div>
           <div class="info-row">
@@ -80,6 +39,54 @@
             <div class="info-content">
               <span class="info-label">预计时长</span>
               <span class="info-value">{{ formatDuration(task.duration) }}</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="info-icon">🏥</span>
+            <div class="info-content">
+              <span class="info-label">服务路线</span>
+              <span class="info-value">{{ task.employerCommunity }} → {{ task.targetHospital }}</span>
+            </div>
+          </div>
+          <div class="map-container-small">
+            <div id="task-detail-map" class="map-small"></div>
+          </div>
+          <div class="info-row">
+            <span class="info-icon">📍</span>
+            <div class="info-content">
+              <span class="info-label">
+                我的位置
+                <span class="route-arrow-inline">→</span>
+                雇主家
+              </span>
+              <div class="info-value-row">
+                <span class="info-value">{{ formatDistance(myToEmployerKm) }}</span>
+                <a
+                  class="route-nav-link"
+                  :href="myToEmployerNavUrl"
+                  target="_blank"
+                  rel="noopener"
+                >导航</a>
+              </div>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="info-icon">🏠</span>
+            <div class="info-content">
+              <span class="info-label">
+                雇主家
+                <span class="route-arrow-inline">→</span>
+                医院
+              </span>
+              <div class="info-value-row">
+                <span class="info-value">{{ formatDistance(employerToHospitalKm) }}</span>
+                <a
+                  class="route-nav-link"
+                  :href="employerToHospitalNavUrl"
+                  target="_blank"
+                  rel="noopener"
+                >导航</a>
+              </div>
             </div>
           </div>
         </div>
@@ -281,12 +288,18 @@ const employerToHospitalNavUrl = computed(() => {
 
 // 初始化详情页地图（DOMOverlay 自定义 marker，雇主家→医院公交路线）
 const initTaskMap = () => {
+  const mapContainer = document.getElementById('task-detail-map')
+  if (!mapContainer || !task.value) return
+  if (!task.value.latitude || !task.value.longitude) return
+
   const start = () => {
-    const mapContainer = document.getElementById('task-detail-map')
-    if (!mapContainer || !task.value) return
-    if (!task.value.latitude || !task.value.longitude) return
+    const BMapGL = window.BMapGL
+    if (!BMapGL || typeof BMapGL.Map !== 'function') {
+      console.warn('BMapGL 尚未就绪，1s 后重试')
+      setTimeout(start, 1000)
+      return
+    }
     try {
-      const BMapGL = window.BMapGL
       const map = new BMapGL.Map('task-detail-map')
       const hospitalPoint = new BMapGL.Point(task.value.longitude, task.value.latitude)
 
@@ -441,6 +454,10 @@ const handleGrab = async () => {
 
 onMounted(() => {
   loadTask()
+  // 监听百度地图脚本加载完成事件
+  window.addEventListener('baidu-map-ready', () => {
+    nextTick(() => initTaskMap())
+  })
 })
 </script>
 
@@ -460,20 +477,30 @@ onMounted(() => {
 }
 
 .back-btn {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  background: none;
-  border: 1px solid #000;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  background: #f5f7fa !important;
+  color: #1E2A3A !important;
+  border: 1.5px solid transparent !important;
+  border-radius: 12px !important;
   cursor: pointer;
+  transition: all 0.2s;
+  padding: 0 !important;
+  min-height: 40px !important;
 }
 
 .back-btn:hover {
-  background: #000;
-  color: #fff;
+  background: #e8ecf2 !important;
+  color: #2c7a9e !important;
+  border-color: #2c7a9e !important;
+}
+
+.back-btn:active {
+  background: #e8ecf2 !important;
 }
 
 .header-label {
@@ -563,34 +590,6 @@ onMounted(() => {
   padding: 0;
 }
 
-.budget-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24px 20px;
-  border-bottom: 1px solid #E0E0E0;
-}
-
-.budget-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.budget-label {
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #666;
-  margin-bottom: 4px;
-}
-
-.budget-value {
-  font-size: 32px;
-  font-weight: 900;
-  color: #FF3300;
-}
-
 .physical-tag {
   padding: 10px 18px;
   font-size: 14px;
@@ -632,12 +631,14 @@ onMounted(() => {
   font-size: 13px;
   color: #4f46e5;
   text-decoration: none;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: #fff;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #eef2ff;
   border: 1px solid #c7d2fe;
   white-space: nowrap;
   transition: all 0.2s;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .route-nav-link:hover {
@@ -655,13 +656,27 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
 }
 
-.info-content:has(> .route-nav-link) {
-  flex-direction: row;
+.info-value-row {
+  display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.info-value-row .info-value {
+  font-size: 16px;
+  color: rgb(26, 26, 26);
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+.info-row-budget {
+  padding-bottom: 0;
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .info-label {
@@ -687,6 +702,13 @@ onMounted(() => {
   line-height: 1.5;
 }
 
+.info-value-budget {
+  font-size: 24px;
+  font-weight: 900;
+  color: #eb0000;
+  line-height: 1.2;
+}
+
 .route-arrow-inline {
   color: rgb(26, 26, 26);
   font-weight: 700;
@@ -698,11 +720,11 @@ onMounted(() => {
 }
 
 .map-container-small {
-  margin: 16px 0 12px 30px;
+  margin: 16px 0 12px 32px;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  width: calc(100% - 30px);
+  width: calc(100% - 32px);
   height: 160px;
 }
 
@@ -859,37 +881,54 @@ onMounted(() => {
 }
 
 .contact-btn, .grab-btn {
-  flex: 1;
-  padding: 16px;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: #fff;
-  border: 2px solid #000;
+  flex: 1 !important;
+  padding: 16px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border: 1.5px solid transparent !important;
+  border-radius: 12px !important;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
+  min-height: 52px !important;
 }
 
-.contact-btn:hover:not(:disabled), .grab-btn:hover:not(:disabled) {
-  background: #0066FF;
-  border-color: #0066FF;
-  color: #fff;
+.contact-btn {
+  background: #f5f7fa !important;
+  color: #1E2A3A !important;
+  border-color: transparent !important;
+}
+
+.contact-btn:hover:not(:disabled) {
+  background: #e8ecf2 !important;
+  color: #2c7a9e !important;
+  border-color: #2c7a9e !important;
 }
 
 .grab-btn {
-  background: #2c7a9e;
-  color: #fff;
+  background: #2c7a9e !important;
+  color: #FFFFFF !important;
+  border-color: #2c7a9e !important;
 }
 
 .grab-btn:hover:not(:disabled) {
-  background: #FF3300;
-  border-color: #FF3300;
+  background: #216080 !important;
+  color: #FFFFFF !important;
+  border-color: #216080 !important;
+}
+
+.contact-btn:active:not(:disabled),
+.grab-btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .contact-btn:disabled, .grab-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4 !important;
   cursor: not-allowed;
+  background: #999 !important;
+  color: #fff !important;
+  border-color: transparent !important;
 }
 
 .loading-state, .error-state {

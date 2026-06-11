@@ -141,9 +141,9 @@ button, .el-button {
   font-family: var(--font-family);
   font-weight: 600;
   font-size: var(--font-size-base);
-  border: 1.5px solid var(--border-medium) !important;
+  border: 1.5px solid transparent !important;
   color: var(--text-primary) !important;
-  background: var(--bg-primary) !important;
+  background: #f5f7fa !important;
   transition: all 0.25s var(--transition-soft);
   min-height: var(--touch-target-min);
   padding: var(--spacing-sm) var(--spacing-lg);
@@ -153,9 +153,9 @@ button, .el-button {
 }
 
 button:hover, .el-button:hover {
-  background: var(--bg-secondary) !important;
-  border-color: var(--accent) !important;
-  color: var(--accent) !important;
+  background: #e8ecf2 !important;
+  border-color: #2c7a9e !important;
+  color: #2c7a9e !important;
 }
 
 button:focus-visible, .el-button:focus-visible {
@@ -164,14 +164,14 @@ button:focus-visible, .el-button:focus-visible {
 }
 
 button.primary, .el-button--primary, .el-button[type="primary"] {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
+  background: #2c7a9e !important;
+  border-color: #2c7a9e !important;
   color: #FFFFFF !important;
 }
 
 button.primary:hover, .el-button--primary:hover {
-  background: var(--accent-hover) !important;
-  border-color: var(--accent-hover) !important;
+  background: #216080 !important;
+  border-color: #216080 !important;
 }
 
 button.primary-warm, .el-button--primary-warm {

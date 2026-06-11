@@ -127,7 +127,7 @@
         </div>
       </el-form-item>
 
-      <el-form-item label="特殊协助">
+      <el-form-item label="特殊协助" class="form-item--tight-bottom">
         <el-checkbox-group v-model="form.special_assist">
           <el-checkbox value="轮椅">轮椅协助</el-checkbox>
           <el-checkbox value="担架">担架协助</el-checkbox>
@@ -139,16 +139,45 @@
         <el-input v-model="form.special_requirements" type="textarea" :rows="2" placeholder="其他特殊要求（选填）" />
       </el-form-item>
 
-      <div class="insurance-badge">
-        ✅ 已包含陪诊意外险
-      </div>
     </el-form>
 
     <div class="actions">
+      <div class="insurance-badge">
+        <span class="insurance-badge__text">50万陪诊意外险<span class="insurance-badge__free">平台免费赠送</span></span>
+        <span class="insurance-badge__detail" @click="showInsuranceDetail = true">
+          详情 <span class="arrow">›</span>
+        </span>
+      </div>
       <el-button type="primary" size="large" :loading="loading" @click="handlePublish">
         确认发布并支付
       </el-button>
     </div>
+
+    <el-dialog v-model="showInsuranceDetail" title="保险详情" width="90%" align-center>
+      <div class="insurance-detail-content">
+        <div class="detail-header">陪诊意外险保障计划</div>
+        <div class="detail-item">
+          <span class="detail-label">保障项目</span>
+          <span class="detail-value">意外身故/伤残</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">保障额度</span>
+          <span class="detail-value">50万元</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">保障期限</span>
+          <span class="detail-value">单次陪诊全程</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">受益人</span>
+          <span class="detail-value">被陪诊人</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">保费</span>
+          <span class="detail-value">平台赠送（免费）</span>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -169,6 +198,7 @@ const filteredHospitals = ref([])
 const showSuggestions = ref(false)
 const isSearching = ref(false)
 const highlightedIndex = ref(-1)
+const showInsuranceDetail = ref(false)
 let debounceTimer = null
 
 onMounted(async () => {
@@ -470,7 +500,7 @@ const handlePublish = async () => {
 <style scoped>
 .publish {
   padding: 20px 16px;
-  padding-bottom: 100px;
+  background-color: #ffffff;
 }
 
 .header {
@@ -587,43 +617,365 @@ const handlePublish = async () => {
   font-size: 16px !important;
   font-weight: 500;
   color: #303133;
-  padding-bottom: 10px !important;
-  height: auto;
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+  height: 44px !important;
+  margin-top: 1px !important;
+  margin-bottom: 1px !important;
   min-height: 24px;
 }
 
-:deep(.el-input__inner) {
+:deep(.form-item--tight-bottom .el-form-item__label) {
+  margin-bottom: 0 !important;
+}
+
+/* ===== Form 整体规范 ===== */
+:deep(.el-form) {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 20px !important;
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+:deep(.el-form-item:last-child) {
+  margin-bottom: 0 !important;
+}
+
+:deep(.el-form-item__content) {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  padding-left: 0 !important;
+  position: relative;
+}
+
+:deep(.el-form-item__error) {
+  padding-top: 4px;
+  font-size: 13px;
+  color: #f56c6c;
+  line-height: 1.4;
+  position: relative;
+  top: auto;
+  left: auto;
+}
+
+.sub-type-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+}
+
+.sub-type-section .section-title {
+  margin-bottom: 14px;
+}
+
+.sub-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+/* ===== 表单控件统一样式 ===== */
+:deep(.el-input__wrapper),
+:deep(.el-textarea__wrapper),
+:deep(.el-select__wrapper),
+:deep(.el-date-editor.el-input__wrapper) {
   height: 48px !important;
+  padding: 0 !important;
+  padding-left: 16px !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 1px #E2E6EC inset !important;
+  transition: box-shadow 0.2s;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+:deep(.el-textarea__wrapper) {
+  height: auto !important;
+  min-height: 80px !important;
+  align-items: flex-start !important;
+  padding: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid #E2E6EC !important;
+  box-shadow: 0 0 0 1px #E2E6EC inset !important;
+  border-radius: 12px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+:deep(.el-textarea__wrapper:hover) {
+  border-color: #2c7a9e !important;
+  box-shadow: 0 0 0 1px #2c7a9e inset !important;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-textarea__wrapper:hover),
+:deep(.el-select__wrapper:hover),
+:deep(.el-date-editor.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #2c7a9e inset !important;
+}
+
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-textarea__wrapper.is-focus),
+:deep(.el-select__wrapper.is-focused),
+:deep(.el-date-editor.el-input__wrapper.is-active) {
+  box-shadow: 0 0 0 1.5px #2c7a9e inset !important;
+}
+
+:deep(.el-input__inner),
+:deep(.el-input__inner[style*="padding-left"]) {
+  height: 100% !important;
+  line-height: 48px !important;
   font-size: 16px !important;
-  border-radius: 10px;
+  color: #1E2A3A !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  border-radius: 0 !important;
 }
 
 :deep(.el-textarea__inner) {
+  height: auto !important;
+  min-height: 80px !important;
   font-size: 16px !important;
-  border-radius: 10px;
-  padding: 14px 16px;
+  color: #1E2A3A !important;
+  background: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 0 0 1px #E2E6EC inset !important;
+  padding: 14px 16px !important;
+  line-height: 1.5 !important;
+  resize: vertical;
+  border-radius: 12px !important;
+  transition: box-shadow 0.2s;
 }
 
-:deep(.el-radio__label) {
+:deep(.el-textarea__inner:hover) {
+  box-shadow: 0 0 0 1px #2c7a9e inset !important;
+}
+
+:deep(.el-textarea__inner:focus) {
+  box-shadow: 0 0 0 1px #2c7a9e inset !important;
+  outline: none !important;
+}
+
+:deep(.el-input.is-disabled .el-input__wrapper),
+:deep(.el-textarea.is-disabled .el-textarea__wrapper),
+:deep(.el-select.is-disabled .el-select__wrapper) {
+  background: #f5f7fa !important;
+  box-shadow: 0 0 0 1px #dcdfe6 inset !important;
+  cursor: not-allowed;
+}
+
+:deep(.el-input__prefix),
+:deep(.el-input__suffix) {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  color: #909399;
+}
+
+:deep(.el-input__prefix .el-icon),
+:deep(.el-input__suffix .el-icon) {
+  font-size: 16px;
+}
+
+:deep(.el-input-group__prepend) {
+  background: #f5f7fa !important;
+  color: #1E2A3A !important;
+  border: none !important;
+  border-right: none !important;
+  border-radius: 12px 0 0 12px !important;
+  padding: 0 16px !important;
   font-size: 16px !important;
-  color: #303133;
-  padding-left: 6px;
+  font-weight: 600;
 }
 
-:deep(.el-radio__inner) {
-  width: 20px !important;
-  height: 20px !important;
+:deep(.el-input-group .el-input__wrapper) {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
 }
 
+/* ===== 时间选择器面板响应式 ===== */
+:deep(.el-time-panel) {
+  width: auto !important;
+  min-width: 120px;
+  max-width: 300px;
+}
+
+:deep(.el-time-spinner) {
+  width: auto !important;
+}
+
+:deep(.el-time-spinner__wrapper) {
+  width: auto !important;
+  min-width: 64px;
+}
+
+:deep(.el-time-panel__content) {
+  display: flex;
+  justify-content: center;
+}
+
+:deep(.el-picker-panel) {
+  max-width: calc(100vw - 32px) !important;
+  min-width: 0 !important;
+  width: auto !important;
+  box-sizing: border-box !important;
+}
+
+:deep(.el-picker-panel__body) {
+  flex-wrap: wrap !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+:deep(.el-picker-panel__body-wrapper) {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+:deep(.el-picker-panel__content) {
+  flex: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+:deep(.el-picker-panel__footer) {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+:deep(.el-popper) {
+  max-width: calc(100vw - 16px) !important;
+  width: auto !important;
+}
+
+:deep(.el-date-picker) {
+  max-width: calc(100vw - 32px) !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+:deep(.el-date-picker .el-picker-panel__body) {
+  flex-wrap: wrap !important;
+  flex-direction: column !important;
+}
+
+:deep(.el-date-picker .el-picker-panel__content) {
+  width: 100% !important;
+}
+
+:deep(.el-time-panel) {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* 父容器确保宽度继承 */
+.time-picker-container {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 16px;
+}
+
+/* picker 触发按钮（若是自定义按钮） */
+.time-trigger {
+  width: 100%;
+  display: block;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  font-size: 16px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 单选 / 多选控件 ===== */
+:deep(.el-radio-group) {
+  width: 300px;
+  padding-left: 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  min-height: 48px;
+  line-height: 48px;
+}
+
+:deep(.el-checkbox-group) {
+  width: 300px;
+  padding-left: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  min-height: 48px;
+  line-height: 48px;
+}
+
+:deep(.el-radio),
+:deep(.el-checkbox) {
+  margin-right: 24px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+}
+
+:deep(.el-radio__label),
 :deep(.el-checkbox__label) {
   font-size: 16px !important;
   color: #303133;
+  padding-left: 8px;
 }
 
+:deep(.el-radio__inner),
 :deep(.el-checkbox__inner) {
   width: 20px !important;
   height: 20px !important;
+  border: 1.5px solid #dcdfe6;
+  background: #ffffff;
+  transition: all 0.2s;
+}
+
+:deep(.el-radio__inner) {
+  border-radius: 50%;
+}
+
+:deep(.el-checkbox__inner) {
   border-radius: 4px;
+}
+
+:deep(.el-radio__input.is-checked .el-radio__inner),
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background: #2c7a9e !important;
+  border-color: #2c7a9e !important;
+}
+
+:deep(.el-radio__input.is-checked + .el-radio__label),
+:deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
+  color: #2c7a9e;
+  font-weight: 500;
 }
 
 .price-hint {
@@ -634,38 +986,95 @@ const handlePublish = async () => {
 }
 
 .insurance-badge {
-  text-align: center;
-  padding: 16px;
-  background: #f0f9eb;
-  color: #67c23a;
+  position: relative;
+  height: 52px;
+  padding: 0 16px 0 24px;
+  background: linear-gradient(135deg, #f0faf0 0%, #e8f5e9 100%);
+  color: #2e7d32;
   border-radius: 12px;
-  margin: 20px 0;
-  font-size: 16px;
-  font-weight: 500;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #c8e6c9;
 }
 
-.insurance-badge::before {
+.insurance-badge__text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.insurance-badge__free {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #66bb6a, #43a047);
+  padding: 2px 10px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.insurance-badge__text::before {
   content: '🛡️';
-  font-size: 20px;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.insurance-badge__detail {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #43a047;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.insurance-badge__detail:hover {
+  background: rgba(67, 160, 71, 0.1);
+}
+
+.insurance-badge__detail .arrow {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .duration-display {
-  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  height: 48px;
+  width: 300px;
+  padding: 0 16px;
+  font-size: 16px;
   font-weight: 600;
-  color: #409eff;
-  padding: 12px 0;
+  color: #2c7a9e;
+  background: #f5f7fa;
+  border-radius: 12px;
+  line-height: 1;
 }
 
 .actions {
-  margin-top: 24px;
-  padding: 16px 0;
-  background: linear-gradient(to top, #f5f7fa 0%, transparent 100%);
+  margin-top: 28px;
+  padding: 20px 0;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, #f5f7fa 0%, rgba(245, 247, 250, 0.85) 60%, transparent 100%);
   position: sticky;
   bottom: 70px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .actions .el-button {
@@ -673,7 +1082,7 @@ const handlePublish = async () => {
   height: 52px !important;
   font-size: 18px !important;
   font-weight: 600 !important;
-  border-radius: 26px !important;
+  border-radius: 12px !important;
   letter-spacing: 2px;
 }
 
@@ -844,5 +1253,44 @@ const handlePublish = async () => {
   font-size: 15px;
   color: #303133;
   font-weight: 500;
+}
+
+/* ===== 保险详情弹窗 ===== */
+:deep(.el-dialog__body) {
+  padding: 20px;
+}
+
+.insurance-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-header {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1E2A3A;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eef0f4;
+  margin-bottom: 4px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.detail-label {
+  font-size: 15px;
+  color: #666;
+  font-weight: 400;
+}
+
+.detail-value {
+  font-size: 15px;
+  color: #1E2A3A;
+  font-weight: 600;
 }
 </style>

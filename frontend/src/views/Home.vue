@@ -254,7 +254,7 @@
           </label>
         </div>
       </div>
-      <div class="filter-section">
+      <!-- <div class="filter-section">
         <h3>体力等级</h3>
         <div class="filter-chips">
           <label v-for="level in physicalLevels" :key="level.value" class="chip">
@@ -262,7 +262,7 @@
             <span :style="{ color: level.color }">{{ level.label }}</span>
           </label>
         </div>
-      </div>
+      </div> -->
       <div class="drawer-footer">
         <button @click="resetFilters">重置</button>
         <button class="primary" @click="applyFilters">确定</button>
