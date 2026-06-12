@@ -314,7 +314,8 @@ const taskTypes = [
   { label: '全程陪同', icon: '👣', value: 1 },
   { label: '挂号取药', icon: '💊', value: 2 },
   { label: '门诊陪护', icon: '🪑', value: 3 },
-  { label: '代为问诊', icon: '📝', value: 4 }
+  { label: '代为问诊', icon: '📝', value: 4 },
+  { label: '陪诊师培训', icon: '🎓', value: 5 }
 ]
 
 const physicalLevels = [
@@ -623,7 +624,8 @@ const getSubTypeClass = (subType) => {
     1: 'tag-accompany',
     2: 'tag-pharmacy',
     3: 'tag-escort',
-    4: 'tag-consult'
+    4: 'tag-consult',
+    5: 'tag-training'
   }
   return classMap[subType] || ''
 }
@@ -1183,6 +1185,10 @@ onUnmounted(() => {
   background: var(--accent);
 }
 
+.tag-training {
+  background: #67c23a;
+}
+
 .task-title {
   font-size: var(--font-size-lg);
   font-weight: 600;
@@ -1427,8 +1433,17 @@ onUnmounted(() => {
 
 .info-title {
   font-size: var(--font-size-lg);
-  font-weight: 700;
-  margin-bottom: var(--spacing-sm);
+  font-weight: 600;
+  margin: 10px 0 var(--spacing-sm);
+  color: var(--text-primary);
+  line-height: 1.4;
+  max-width: 100%;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .info-detail {

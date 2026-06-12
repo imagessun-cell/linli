@@ -197,7 +197,8 @@ const getSubTypeClass = (subType) => {
     1: 'tag-accompany',
     2: 'tag-pharmacy',
     3: 'tag-escort',
-    4: 'tag-consult'
+    4: 'tag-consult',
+    5: 'tag-training'
   }
   return classMap[subType] || ''
 }
@@ -569,6 +570,11 @@ onMounted(() => {
 .tag-consult {
   background: rgba(64, 158, 255, 0.1);
   color: var(--accent);
+}
+
+.tag-training {
+  background: rgba(103, 194, 58, 0.1);
+  color: #67c23a;
 }
 
 .hero-title {

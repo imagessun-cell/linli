@@ -15,7 +15,8 @@ const ESCORT_SUB_TYPES = {
   1: { name: '全程陪同', icon: '👣', desc: '从出发到返家，全程陪伴老人完成就诊所有环节', priceRange: '80-120元/半天' },
   2: { name: '挂号取药', icon: '💊', desc: '仅代为排队挂号、缴费、取药，无需全程陪诊', priceRange: '30-50元/次' },
   3: { name: '门诊陪护', icon: '🪑', desc: '在诊室外候诊、检查、缴费环节提供陪伴，不进入诊室', priceRange: '50-80元/次' },
-  4: { name: '代为问诊', icon: '📝', desc: '代替老人向医生描述病情、记录医嘱、取药，老人无需到场', priceRange: '60-100元/次' }
+  4: { name: '代为问诊', icon: '📝', desc: '代替老人向医生描述病情、记录医嘱、取药，老人无需到场', priceRange: '60-100元/次' },
+  5: { name: '陪诊师培训', icon: '🎓', desc: '为新陪诊师提供专业培训，涵盖服务流程、沟通技巧等', priceRange: '免费/公益' }
 };
 
 const PHYSICAL_LEVELS = {

@@ -1,5 +1,8 @@
 <template>
   <div class="publish">
+    <header class="detail-header">
+      <button class="back-btn" @click="$router.back()">✕</button>
+    </header>
     <div class="header">
       <h2>发布陪诊任务</h2>
       <p>选择子服务，精准匹配陪诊师</p>
@@ -107,7 +110,7 @@
       </el-form-item>
 
       <el-form-item label="服务时长">
-        <span class="duration-display">{{ duration }} 分钟</span>
+        <span class="duration-display">{{ durationText }}</span>
       </el-form-item>
 
       <el-form-item label="体力要求" prop="physical_level">
@@ -119,11 +122,12 @@
       </el-form-item>
 
       <el-form-item label="预算" prop="budget">
-        <el-input v-model.number="form.budget" type="number" placeholder="输入预算金额">
-          <template #prepend>¥</template>
-        </el-input>
-        <div class="price-hint" v-if="form.sub_type">
-          建议价：{{ currentSubType?.priceRange }}
+        <div class="budget-slider-input-wrap">
+          <el-slider v-model="form.budget" :min="0" :max="500" :step="5" show-input class="budget-slider-input" />
+          <span class="budget-unit">元</span>
+        </div>
+        <div class="price-hint" v-if="duration > 0">
+          建议价：{{ suggestedPrice }}元（10元/小时）
         </div>
       </el-form-item>
 
@@ -401,7 +405,8 @@ const escortSubTypes = [
   { id: 1, name: '全程陪同', icon: '👣', desc: '从出发到返家，全程陪伴完成就诊所有环节', priceRange: '80-120元/半天' },
   { id: 2, name: '挂号取药', icon: '💊', desc: '仅代为排队挂号、缴费、取药', priceRange: '30-50元/次' },
   { id: 3, name: '门诊陪护', icon: '🪑', desc: '诊室外候诊、检查、缴费环节提供陪伴', priceRange: '50-80元/次' },
-  { id: 4, name: '代为问诊', icon: '📝', desc: '代替向医生描述病情、记录医嘱、取药', priceRange: '60-100元/次' }
+  { id: 4, name: '代为问诊', icon: '📝', desc: '代替向医生描述病情、记录医嘱、取药', priceRange: '60-100元/次' },
+  { id: 5, name: '陪诊师培训', icon: '🎓', desc: '为新陪诊师提供专业培训，涵盖服务流程、沟通技巧等', priceRange: '免费/公益' }
 ]
 
 const form = reactive({
@@ -413,7 +418,7 @@ const form = reactive({
   start_time: '',
   end_time: '',
   physical_level: 1,
-  budget: '',
+  budget: null,
   special_requirements: '',
   special_assist: [],
   is_charity: false
@@ -425,9 +430,6 @@ const currentSubType = computed(() => {
 
 const selectSubType = (id) => {
   form.sub_type = id
-  if (currentSubType.value) {
-    ElMessage.info(`已选择「${currentSubType.value.name}」，建议报酬 ${currentSubType.value.priceRange}`)
-  }
 }
 
 const rules = {
@@ -435,7 +437,7 @@ const rules = {
   address: [{ required: true, message: '请输入医院名称', trigger: 'blur' }],
   start_time: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
   end_time: [{ required: true, message: '请选择结束时间', trigger: 'change' }],
-  budget: [{ required: true, message: '请输入预算', trigger: 'blur' }]
+  budget: [{ required: true, message: '请输入预算', trigger: 'change' }]
 }
 
 const duration = computed(() => {
@@ -443,6 +445,26 @@ const duration = computed(() => {
   const start = new Date(form.start_time).getTime()
   const end = new Date(form.end_time).getTime()
   return Math.round((end - start) / 60000)
+})
+
+const durationText = computed(() => {
+  const total = duration.value
+  if (total <= 0) return '未选择'
+  const days = Math.floor(total / 1440)
+  const hours = Math.floor((total % 1440) / 60)
+  const mins = total % 60
+  const parts = []
+  if (days > 0) parts.push(`${days} 天`)
+  if (hours > 0) parts.push(`${hours} 小时`)
+  if (mins > 0) parts.push(`${mins} 分钟`)
+  if (parts.length === 0) return '不足 1 分钟'
+  return `约 ${parts.join(' ')}`
+})
+
+const suggestedPrice = computed(() => {
+  const total = duration.value
+  if (total <= 0) return 0
+  return Math.round((total / 60) * 10)
 })
 
 const formatTime = (time) => {
@@ -501,6 +523,40 @@ const handlePublish = async () => {
 .publish {
   padding: 20px 16px;
   background-color: #ffffff;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.back-btn {
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  background: #f5f7fa !important;
+  color: #1E2A3A !important;
+  border: 1.5px solid transparent !important;
+  border-radius: 12px !important;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0 !important;
+  min-height: 40px !important;
+}
+
+.back-btn:hover {
+  background: #e8ecf2 !important;
+  color: #2c7a9e !important;
+  border-color: #2c7a9e !important;
+}
+
+.back-btn:active {
+  background: #e8ecf2 !important;
 }
 
 .header {
@@ -976,7 +1032,94 @@ const handlePublish = async () => {
   font-size: 14px;
   color: #909399;
   margin-top: 8px;
+  margin-left: 1px;
+  margin-right: 1px;
+  width: 295px;
   font-weight: 500;
+}
+
+/* ===== 预算步进器（滑块输入部分） ===== */
+.budget-slider-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.budget-slider-input {
+  width: 180px;
+}
+
+.budget-unit {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1E2A3A;
+  flex-shrink: 0;
+}
+
+/* 隐藏滑块轨道，只保留输入框部分 */
+:deep(.budget-slider-input .el-slider__runway) {
+  display: none !important;
+}
+
+:deep(.budget-slider-input .el-slider__input) {
+  width: 100%;
+  margin-left: 0;
+}
+
+:deep(.budget-slider-input .el-slider__input .el-input__wrapper) {
+  height: 48px !important;
+  padding: 0 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 1px #E2E6EC inset !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+:deep(.budget-slider-input .el-input-number__decrease),
+:deep(.budget-slider-input .el-input-number__increase) {
+  width: 36px !important;
+  height: 36px !important;
+  top: 6px !important;
+  background: #f5f7fa !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #1E2A3A !important;
+}
+
+:deep(.budget-slider-input .el-input-number__decrease) {
+  left: 6px !important;
+  right: auto !important;
+  border-radius: 8px !important;
+}
+
+:deep(.budget-slider-input .el-input-number__increase) {
+  right: 6px !important;
+  border-radius: 8px !important;
+}
+
+:deep(.budget-slider-input .el-input-number__decrease:hover),
+:deep(.budget-slider-input .el-input-number__increase:hover) {
+  background: #e8ecf2 !important;
+}
+
+:deep(.budget-slider-input .el-input__inner) {
+  height: 100% !important;
+  line-height: 48px !important;
+  font-size: 16px !important;
+  color: #1E2A3A !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 40px !important;
+  border-radius: 0 !important;
+  text-align: center !important;
 }
 
 .insurance-badge {
@@ -1059,7 +1202,7 @@ const handlePublish = async () => {
 }
 
 .actions {
-  margin-top: 28px;
+  margin-top: 64px;
   padding: 20px 0;
   padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(to top, #f5f7fa 0%, rgba(245, 247, 250, 0.85) 60%, transparent 100%);
@@ -1068,7 +1211,7 @@ const handlePublish = async () => {
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
 }
 
 .actions .el-button {

@@ -136,11 +136,12 @@ CREATE TABLE IF NOT EXISTS t_task_type (
 );
 
 INSERT OR IGNORE INTO t_task_type (id, name, icon, sort_order, has_sub_types) VALUES
--- 任务类型：1=全程陪同, 2=挂号取药, 3=门诊陪护, 4=代为问诊
+-- 任务类型：1=全程陪同, 2=挂号取药, 3=门诊陪护, 4=代为问诊, 5=陪诊师培训
 (1, '全程陪同', '👣', 1, 1),
 (2, '挂号取药', '💊', 2, 1),
 (3, '门诊陪护', '🪑', 3, 1),
-(4, '代为问诊', '📝', 4, 1);
+(4, '代为问诊', '📝', 4, 1),
+(5, '陪诊师培训', '🎓', 5, 1);
 
 CREATE TABLE IF NOT EXISTS t_learning_record (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
