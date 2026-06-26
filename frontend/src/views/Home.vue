@@ -2,7 +2,7 @@
   <div class="home-container">
     <section class="hero-panel">
       <div class="home-topbar">
-        <LinliLogo class="home-logo" variant="full" tone="brand" :size="36" />
+        <LinliLogo class="home-logo" variant="full" tone="brand" :size="40" />
         <div class="header-actions">
           <button class="header-icon-btn" @click="toggleSearch" aria-label="搜索任务">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
