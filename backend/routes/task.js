@@ -109,6 +109,7 @@ router.get('/nearby', async (req, res) => {
         return (task.address && task.address.toLowerCase().includes(kw)) ||
                (task.target_hospital && task.target_hospital.toLowerCase().includes(kw)) ||
                (task.special_requirements && task.special_requirements.toLowerCase().includes(kw)) ||
+               (task.sub_type && ESCORT_SUB_TYPES[task.sub_type] && ESCORT_SUB_TYPES[task.sub_type].name.includes(kw)) ||
                (TASK_TYPES[task.type] && TASK_TYPES[task.type].name.includes(kw));
       });
     }

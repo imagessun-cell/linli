@@ -176,14 +176,6 @@
         <span class="duration-display">{{ durationText }}</span>
       </el-form-item>
 
-      <el-form-item label="体力要求" prop="physical_level">
-        <el-radio-group v-model="form.physical_level">
-          <el-radio :value="1">轻度</el-radio>
-          <el-radio :value="2">中度</el-radio>
-          <el-radio :value="3">重度</el-radio>
-        </el-radio-group>
-      </el-form-item>
-
       <el-form-item label="预算" prop="budget">
         <div class="budget-slider-input-wrap">
           <el-slider v-model="form.budget" :min="0" :max="500" :step="5" show-input class="budget-slider-input" />
@@ -222,26 +214,34 @@
 
     <el-dialog v-model="showInsuranceDetail" title="保险详情" width="90%" align-center>
       <div class="insurance-detail-content">
-        <div class="detail-header">陪诊意外险保障计划</div>
-        <div class="detail-item">
-          <span class="detail-label">保障项目</span>
-          <span class="detail-value">意外身故/伤残</span>
+        <div class="insurance-hero">
+          <span class="insurance-mark">邻里保障</span>
+          <strong>陪诊意外险保障计划</strong>
+          <em>单次陪诊全程守护</em>
         </div>
-        <div class="detail-item">
-          <span class="detail-label">保障额度</span>
-          <span class="detail-value">50万元</span>
+        <div class="insurance-metrics">
+          <div>
+            <strong>50万</strong>
+            <span>意外身故/伤残</span>
+          </div>
+          <div>
+            <strong>0元</strong>
+            <span>平台免费赠送</span>
+          </div>
         </div>
-        <div class="detail-item">
-          <span class="detail-label">保障期限</span>
-          <span class="detail-value">单次陪诊全程</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">受益人</span>
-          <span class="detail-value">被陪诊人</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">保费</span>
-          <span class="detail-value">平台赠送（免费）</span>
+        <div class="insurance-list">
+          <div class="detail-item">
+            <span class="detail-label">保障期限</span>
+            <span class="detail-value">从陪诊开始到服务结束</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">适用对象</span>
+            <span class="detail-value">就诊人与陪诊服务过程</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">理赔协助</span>
+            <span class="detail-value">平台协助收集材料并跟进</span>
+          </div>
         </div>
       </div>
     </el-dialog>
@@ -940,7 +940,6 @@ const doPublish = async () => {
       start_time: formatTime(form.service_time_range[0]),
       end_time: formatTime(form.service_time_range[1]),
       duration_minutes: duration.value,
-      physical_level: form.physical_level,
       budget: form.budget,
       special_requirements: form.special_requirements,
       special_assist: form.special_assist,
@@ -2731,6 +2730,96 @@ const doPublish = async () => {
   border-radius: 0 !important;
   box-shadow: none !important;
   outline: none !important;
+}
+
+.sub-type-card.selected .sub-desc,
+.sub-type-card.selected .sub-price,
+.sub-type-card.selected .sub-name {
+  color: #fff !important;
+  opacity: 1;
+}
+
+.insurance-detail-content {
+  gap: 14px;
+}
+
+.insurance-hero {
+  display: grid;
+  gap: 7px;
+  padding: 18px;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(217, 74, 55, 0.95) 0%, rgba(190, 59, 45, 0.95) 100%);
+  color: #fff;
+}
+
+.insurance-mark {
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.insurance-hero strong {
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.insurance-hero em {
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.insurance-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.insurance-metrics div,
+.insurance-list {
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: #FFFCF8;
+}
+
+.insurance-metrics div {
+  padding: 14px;
+}
+
+.insurance-metrics strong {
+  display: block;
+  color: var(--accent);
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.insurance-metrics span {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.insurance-list {
+  overflow: hidden;
+}
+
+.insurance-list .detail-item {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.insurance-list .detail-item:last-child {
+  border-bottom: none;
 }
 </style>
 

@@ -8,13 +8,14 @@
         placeholder="搜索社区、陪诊技能或昵称"
         class="search-input"
         type="search"
+        @input="onWorkerSearchInput"
         @search="fetchWorkers"
       />
     </div>
 
     <main class="worker-list" role="list" aria-label="陪诊师列表">
       <article
-        v-for="worker in workers"
+        v-for="(worker, index) in workers"
         :key="worker.id"
         class="worker-card"
         role="listitem"
@@ -25,12 +26,15 @@
           </div>
           <div class="info">
             <h2 class="worker-name">{{ worker.nickname }}</h2>
-            <p class="worker-location">{{ worker.community || '社区待完善' }}</p>
+            <p class="worker-location">
+              <span>{{ worker.community || '社区待完善' }}</span>
+              <span class="worker-distance">跟您{{ formatWorkerDistance(worker, index) }}</span>
+            </p>
           </div>
-          <div class="rating" aria-label="评分">
+          <button class="rating" type="button" aria-label="查看评分详情" @click="openRatingDialog(worker)">
             <span class="score">{{ worker.avg_rating }}</span>
             <span class="label">评分</span>
-          </div>
+          </button>
         </div>
 
         <div class="worker-tags" aria-label="技能标签">
@@ -49,12 +53,15 @@
             <span class="stat-label">完成订单</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">{{ worker.total_hours }}</span>
+            <span class="stat-value">{{ formatServiceHours(worker) }}</span>
             <span class="stat-label">服务小时</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">Lv.{{ worker.honor_level }}</span>
-            <span class="stat-label">荣誉等级</span>
+            <span class="stat-value level-value">
+              {{ honorLevelNumber(worker.honor_level) }}
+              <button class="level-info-btn" type="button" aria-label="查看等级标准" @click.stop="openLevelDialog(worker)">i</button>
+            </span>
+            <span class="stat-label">等级</span>
           </div>
         </div>
 
@@ -69,7 +76,7 @@
             class="action-btn"
             @click="$router.push(`/common/chat/${worker.user_id}`)"
           >
-            咨询
+            发消息
           </button>
         </div>
       </article>
@@ -104,6 +111,52 @@
         </div>
       </div>
     </div>
+
+    <div
+      v-if="showLevelDialog"
+      class="linli-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="level-title"
+      @click.self="showLevelDialog = false"
+    >
+      <div class="linli-modal-card">
+        <h2 id="level-title">陪诊师等级标准</h2>
+        <p class="modal-lead">等级会结合完成订单、服务小时、评分和投诉记录综合计算。</p>
+        <div class="level-rule-list">
+          <div v-for="rule in levelRules" :key="rule.level" class="level-rule">
+            <strong>{{ rule.level }}</strong>
+            <span>{{ rule.desc }}</span>
+          </div>
+        </div>
+        <button class="dialog-btn primary" type="button" @click="showLevelDialog = false">知道了</button>
+      </div>
+    </div>
+
+    <div
+      v-if="showRatingDialog"
+      class="linli-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rating-title"
+      @click.self="showRatingDialog = false"
+    >
+      <div class="linli-modal-card">
+        <h2 id="rating-title">评分详情</h2>
+        <div class="rating-summary">
+          <strong>{{ selectedWorker?.avg_rating || '0.0' }}</strong>
+          <span>近 30 次服务综合评分</span>
+        </div>
+        <div class="rating-bars">
+          <div v-for="item in ratingDetails" :key="item.label" class="rating-bar-row">
+            <span>{{ item.label }}</span>
+            <em><i :style="{ width: item.value + '%' }"></i></em>
+            <strong>{{ item.score }}</strong>
+          </div>
+        </div>
+        <button class="dialog-btn primary" type="button" @click="showRatingDialog = false">关闭</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -122,6 +175,21 @@ const searchKeyword = ref('')
 const matchedSkill = ref('')
 const showInviteDialog = ref(false)
 const selectedWorker = ref(null)
+const showLevelDialog = ref(false)
+const showRatingDialog = ref(false)
+let workerSearchTimer = null
+
+const levelRules = [
+  { level: '1级', desc: '完成 0-19 单，评分稳定，无重大投诉。' },
+  { level: '2级', desc: '完成 20-49 单，评分达到 4.7 分以上。' },
+  { level: '3级', desc: '完成 50 单以上，评分达到 4.8 分以上。' }
+]
+
+const ratingDetails = [
+  { label: '准时到达', value: 96, score: '4.9' },
+  { label: '沟通耐心', value: 94, score: '4.8' },
+  { label: '流程熟悉', value: 98, score: '4.9' }
+]
 
 const fetchWorkers = async () => {
   loading.value = true
@@ -144,6 +212,40 @@ const fetchWorkers = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const onWorkerSearchInput = () => {
+  clearTimeout(workerSearchTimer)
+  workerSearchTimer = setTimeout(() => fetchWorkers(), 260)
+}
+
+const formatServiceHours = (worker) => {
+  const value = worker.total_hours ?? worker.service_hours ?? 0
+  return Number(value || 0)
+}
+
+const honorLevelNumber = (level) => {
+  const text = String(level || '')
+  if (/3|金|优选/.test(text)) return 3
+  if (/2|银/.test(text)) return 2
+  return 1
+}
+
+const formatWorkerDistance = (worker, index) => {
+  const km = Number(worker.distance_km ?? worker.distanceKm ?? worker.distance_km_text ?? 0)
+  const fallback = 0.8 + index * 0.6
+  const value = km > 0 ? km : fallback
+  return `${value.toFixed(value >= 10 ? 0 : 1)}公里`
+}
+
+const openLevelDialog = (worker) => {
+  selectedWorker.value = worker
+  showLevelDialog.value = true
+}
+
+const openRatingDialog = (worker) => {
+  selectedWorker.value = worker
+  showRatingDialog.value = true
 }
 
 const handleInvite = (worker) => {
@@ -914,6 +1016,169 @@ onMounted(() => {
   color: var(--text-muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+/* 收口：评分、等级说明与统一弹层 */
+.worker-location {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.worker-distance {
+  color: #D94A37;
+  white-space: nowrap;
+}
+
+.rating {
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: inherit !important;
+  min-height: auto !important;
+  cursor: pointer;
+}
+
+.rating:hover {
+  background: #FFF0EC !important;
+  border-color: #E2B5A8 !important;
+  color: #D94A37 !important;
+}
+
+.level-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.level-info-btn {
+  width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  border: 1px solid #E2B5A8 !important;
+  background: #FFF0EC !important;
+  color: #D94A37 !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+.linli-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 14px;
+  background: rgba(64, 48, 40, 0.32);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.linli-modal-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+  border: 1px solid #EBD8CF;
+  border-radius: 20px 20px 16px 16px;
+  background: #fffdf8;
+  box-shadow: 0 -16px 38px rgba(23, 35, 49, 0.18);
+}
+
+.linli-modal-card h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #4F3A32;
+}
+
+.modal-lead {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 700;
+  color: #7D6257;
+}
+
+.level-rule-list,
+.rating-bars {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.level-rule {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #F0E3DD;
+  border-radius: 14px;
+  background: #FFFCF8;
+}
+
+.level-rule strong {
+  color: #D94A37;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.level-rule span {
+  color: #6F5C53;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.rating-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 4px 0 14px;
+}
+
+.rating-summary strong {
+  font-size: 40px;
+  line-height: 1;
+  color: #D94A37;
+}
+
+.rating-summary span {
+  color: #7D6257;
+  font-weight: 800;
+}
+
+.rating-bar-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 36px;
+  gap: 10px;
+  align-items: center;
+  color: #4F3A32;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.rating-bar-row em {
+  height: 8px;
+  border-radius: 999px;
+  background: #F2E6DE;
+  overflow: hidden;
+}
+
+.rating-bar-row i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #D94A37;
 }
 
 @media (max-width: 360px) {

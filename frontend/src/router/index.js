@@ -32,7 +32,8 @@ const routes = [
   {
     path: '/task/:id',
     name: 'TaskDetail',
-    component: () => import('@/views/common/TaskDetailNew.vue')
+    component: () => import('@/views/common/TaskDetailNew.vue'),
+    meta: { hideTabBar: true }
   },
   {
     path: '/worker/dashboard',
@@ -50,7 +51,7 @@ const routes = [
     path: '/worker/my-tasks',
     name: 'WorkerMyTasks',
     component: () => import('@/views/worker/MyTasks.vue'),
-    meta: { requiresAuth: true, role: 1 }
+    meta: { requiresAuth: true, role: 1, hideTabBar: true }
   },
   {
     path: '/worker/wallet',
@@ -92,7 +93,7 @@ const routes = [
     path: '/employer/orders',
     name: 'EmployerOrders',
     component: () => import('@/views/employer/Orders.vue'),
-    meta: { requiresAuth: true, role: 2 }
+    meta: { requiresAuth: true, role: 2, hideTabBar: true }
   },
   {
     path: '/employer/profile',
@@ -122,7 +123,7 @@ const routes = [
     path: '/common/training',
     name: 'Training',
     component: () => import('@/views/common/Training.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, hideTabBar: true }
   },
   {
     path: '/common/community',

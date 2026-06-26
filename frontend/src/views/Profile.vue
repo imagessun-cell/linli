@@ -83,8 +83,14 @@
             </div>
             <div class="info-item">
               <dt class="label">实名认证</dt>
-              <dd class="value" :class="userInfo?.face_verified ? 'success' : 'warning'">
-                {{ userInfo?.face_verified ? '已认证' : '未认证' }}
+              <dd class="value">
+                <button
+                  type="button"
+                  :class="['verify-entry-btn', userInfo?.face_verified ? 'success' : 'warning']"
+                  @click="openRealnameDialog"
+                >
+                  {{ userInfo?.face_verified ? '已认证 · 重新认证' : '去认证' }}
+                </button>
               </dd>
             </div>
             <div class="info-item">
@@ -222,6 +228,37 @@
       </div>
     </el-dialog>
 
+    <el-dialog v-model="showRealnameDialog" title="实名认证" width="92%" align-center>
+      <div class="realname-dialog">
+        <label class="realname-field">
+          <span>真实姓名</span>
+          <input v-model="realnameForm.real_name" type="text" placeholder="请输入身份证姓名" />
+        </label>
+        <label class="realname-field">
+          <span>身份证号</span>
+          <input v-model="realnameForm.id_card" type="text" placeholder="请输入身份证号码" />
+        </label>
+        <div class="realname-upload-grid">
+          <input ref="realnameFrontInputRef" class="hidden-file-input" type="file" accept="image/*" @change="handleRealnameFileChange($event, 'front')" />
+          <input ref="realnameBackInputRef" class="hidden-file-input" type="file" accept="image/*" @change="handleRealnameFileChange($event, 'back')" />
+          <button class="realname-upload-card" type="button" @click="realnameFrontInputRef?.click()">
+            <span>人像面</span>
+            <strong>{{ realnameForm.id_card_front ? '已上传正面' : '上传身份证正面' }}</strong>
+            <em>{{ realnameForm.id_card_front || '照片仅用于认证审核' }}</em>
+          </button>
+          <button class="realname-upload-card" type="button" @click="realnameBackInputRef?.click()">
+            <span>国徽面</span>
+            <strong>{{ realnameForm.id_card_back ? '已上传反面' : '上传身份证反面' }}</strong>
+            <em>{{ realnameForm.id_card_back || '平台会保护隐私信息' }}</em>
+          </button>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showRealnameDialog = false">取消</el-button>
+        <el-button type="primary" :loading="realnameLoading" @click="submitRealname">提交认证</el-button>
+      </template>
+    </el-dialog>
+
     <footer v-if="isLoggedIn" class="logout-section">
       <router-link to="/admin" class="admin-link">⚙️ 管理后台</router-link>
       <button class="logout-btn" @click="handleLogout">退出登录</button>
@@ -249,9 +286,19 @@ const showRecharge = ref(false)
 const showWithdraw = ref(false)
 const showWalletDetail = ref(false)
 const showCreditDetail = ref(false)
+const showRealnameDialog = ref(false)
 const walletActionLoading = ref(false)
+const realnameLoading = ref(false)
 const rechargeForm = ref({ amount: '' })
 const withdrawForm = ref({ amount: '' })
+const realnameFrontInputRef = ref()
+const realnameBackInputRef = ref()
+const realnameForm = ref({
+  real_name: '',
+  id_card: '',
+  id_card_front: '',
+  id_card_back: ''
+})
 
 const txTypeNames = { 1: '服务收入', 2: '提现申请', 3: '积分兑换', 4: '钱包充值' }
 
@@ -389,6 +436,55 @@ const handleWithdraw = async () => {
     ElMessage.error(e.message || '提现失败')
   } finally {
     walletActionLoading.value = false
+  }
+}
+
+const openRealnameDialog = () => {
+  realnameForm.value = {
+    real_name: userInfo.value?.real_name || '',
+    id_card: '',
+    id_card_front: '',
+    id_card_back: ''
+  }
+  showRealnameDialog.value = true
+}
+
+const handleRealnameFileChange = (event, side) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  if (side === 'front') {
+    realnameForm.value.id_card_front = file.name || '身份证正面'
+  } else {
+    realnameForm.value.id_card_back = file.name || '身份证反面'
+  }
+  event.target.value = ''
+}
+
+const submitRealname = async () => {
+  const payload = realnameForm.value
+  if (!payload.real_name.trim() || !payload.id_card.trim()) {
+    ElMessage.warning('请填写真实姓名和身份证号')
+    return
+  }
+  if (!payload.id_card_front || !payload.id_card_back) {
+    ElMessage.warning('请上传身份证正反面')
+    return
+  }
+  realnameLoading.value = true
+  try {
+    const res = await request.post('/auth/realname', {
+      real_name: payload.real_name.trim(),
+      id_card: payload.id_card.trim()
+    })
+    if (res.code === 0) {
+      ElMessage.success('实名认证已提交')
+      showRealnameDialog.value = false
+      await userStore.fetchProfile()
+    }
+  } catch (e) {
+    ElMessage.error(e.message || '实名认证失败')
+  } finally {
+    realnameLoading.value = false
   }
 }
 
@@ -1334,7 +1430,7 @@ onMounted(async () => {
 }
 
 .entry-copy strong {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.25;
   font-weight: 800;
 }
@@ -1411,6 +1507,104 @@ onMounted(async () => {
   border-radius: 12px;
   border-color: var(--line);
   color: var(--accent);
+}
+
+.verify-entry-btn {
+  min-height: 34px !important;
+  padding: 6px 10px !important;
+  border-radius: 999px !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  white-space: nowrap;
+}
+
+.verify-entry-btn.success {
+  background: var(--accent-light) !important;
+  border-color: rgba(217, 74, 55, 0.18) !important;
+  color: var(--accent) !important;
+}
+
+.verify-entry-btn.warning {
+  background: #FBF0DA !important;
+  border-color: #EDDFC3 !important;
+  color: #805A25 !important;
+}
+
+.realname-dialog {
+  display: grid;
+  gap: 12px;
+}
+
+.realname-field {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.realname-field span {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.realname-field input {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid var(--line) !important;
+  border-radius: 14px !important;
+  background: #FFFCF8 !important;
+  box-shadow: none !important;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.realname-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.realname-upload-card {
+  min-height: 120px;
+  padding: 14px 12px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line) !important;
+  border-radius: 16px !important;
+  background: #FFFCF8 !important;
+  color: var(--text-primary) !important;
+  text-align: left;
+}
+
+.realname-upload-card span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.realname-upload-card strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.realname-upload-card em {
+  max-width: 100%;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  font-style: normal;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 380px) {

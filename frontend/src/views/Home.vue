@@ -131,7 +131,7 @@
         </div>
         <div v-else-if="tasks.length === 0" class="empty">
           <span class="empty-icon" aria-hidden="true">—</span>
-          <p>暂无附近岗位</p>
+          <p>暂无附近任务</p>
           <p class="tip">试试扩大搜索范围</p>
         </div>
         <div
@@ -161,10 +161,6 @@
               <div class="task-fact">
                 <span>时长</span>
                 <strong>{{ formatDuration(task.duration).trim() }}</strong>
-              </div>
-              <div class="task-fact">
-                <span>体力</span>
-                <strong>{{ task.physicalLevelName || '轻度' }}</strong>
               </div>
             </div>
           </div>
@@ -263,15 +259,6 @@
           </label>
         </div>
       </div>
-      <!-- <div class="filter-section">
-        <h3>体力等级</h3>
-        <div class="filter-chips">
-          <label v-for="level in physicalLevels" :key="level.value" class="chip">
-            <input type="checkbox" v-model="selectedLevels" :value="level.value" />
-            <span :style="{ color: level.color }">{{ level.label }}</span>
-          </label>
-        </div>
-      </div> -->
       <div class="drawer-footer">
         <button @click="resetFilters">重置</button>
         <button class="primary" @click="applyFilters">确定</button>
@@ -309,7 +296,6 @@ const sortAsc = ref(false)
 const viewMode = ref('list')
 const showFilters = ref(false)
 const selectedTypes = ref([])
-const selectedLevels = ref([])
 const radius = ref(5000000)
 const selectedTask = ref(null)
 // 默认位置：北京·朝阳区（BD09 坐标），GPS 获取失败时回退到此
@@ -317,22 +303,14 @@ const userLocation = ref({ lat: 39.929, lng: 116.494 })
 
 const sortOptions = [
   { label: '距离', value: 'distance' },
-  { label: '报酬', value: 'budget' },
-  { label: '体力', value: 'physicalLevel' }
+  { label: '报酬', value: 'budget' }
 ]
 
 const taskTypes = [
   { label: '全程陪同', icon: '👣', value: 1 },
   { label: '挂号取药', icon: '💊', value: 2 },
   { label: '门诊陪护', icon: '🪑', value: 3 },
-  { label: '代为问诊', icon: '📝', value: 4 },
-  { label: '陪诊师培训', icon: '🎓', value: 5 }
-]
-
-const physicalLevels = [
-  { label: '轻度', value: 1, color: '#B66A25' },
-  { label: '中度', value: 2, color: '#C98216' },
-  { label: '重度', value: 3, color: '#B84545' }
+  { label: '代为问诊', icon: '📝', value: 4 }
 ]
 
 let map = null
@@ -468,10 +446,7 @@ const loadTasks = async (reset = false) => {
     }
 
     if (selectedTypes.value.length > 0) {
-      params.type = selectedTypes.value.join(',')
-    }
-    if (selectedLevels.value.length > 0) {
-      params.physicalLevel = selectedLevels.value.join(',')
+      params.subType = selectedTypes.value.join(',')
     }
 
     console.log('[Home.vue] loadTasks params:', params)
@@ -523,7 +498,6 @@ const applyFilters = () => {
 
 const resetFilters = () => {
   selectedTypes.value = []
-  selectedLevels.value = []
   radius.value = 5000000
 }
 
@@ -588,6 +562,7 @@ const clearSearch = () => {
   searchKeyword.value = ''
   showSuggestions.value = false
   document.getElementById('search-input')?.focus()
+  loadTasks(true)
 }
 
 const moveHighlight = (delta) => {

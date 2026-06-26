@@ -36,7 +36,6 @@
             <span class="person-body"></span>
           </span>
           <span class="publish-option-label">我是就诊人</span>
-          <span class="publish-option-desc">我需要陪诊服务</span>
         </button>
         <button type="button" class="publish-option" @click="goToApplyWorker">
           <span class="publish-option-person publish-option-person--worker" aria-hidden="true">
@@ -50,7 +49,6 @@
             <span class="person-badge"></span>
           </span>
           <span class="publish-option-label">我是陪诊师</span>
-          <span class="publish-option-desc">我想提供陪诊服务</span>
         </button>
       </div>
       <button class="publish-cancel" @click="showPublishDialog = false">取消</button>

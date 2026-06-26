@@ -76,6 +76,23 @@
         </el-checkbox-group>
       </el-form-item>
 
+      <el-form-item label="实名认证" prop="id_card_front">
+        <div class="id-upload-grid">
+          <input ref="idFrontInputRef" class="hidden-file-input" type="file" accept="image/*" @change="handleIdFileChange($event, 'front')" />
+          <input ref="idBackInputRef" class="hidden-file-input" type="file" accept="image/*" @change="handleIdFileChange($event, 'back')" />
+          <button class="id-upload-card" type="button" @click="idFrontInputRef?.click()">
+            <span class="id-upload-icon">人像面</span>
+            <strong>{{ form.id_card_front ? '已上传' : '上传身份证正面' }}</strong>
+            <em>{{ form.id_card_front || '用于核验本人身份' }}</em>
+          </button>
+          <button class="id-upload-card" type="button" @click="idBackInputRef?.click()">
+            <span class="id-upload-icon">国徽面</span>
+            <strong>{{ form.id_card_back ? '已上传' : '上传身份证反面' }}</strong>
+            <em>{{ form.id_card_back || '仅用于平台认证' }}</em>
+          </button>
+        </div>
+      </el-form-item>
+
       <el-form-item label="联系人" prop="emergency_contact_name">
         <el-input v-model="form.emergency_contact_name" placeholder="联系人姓名" />
       </el-form-item>
@@ -107,6 +124,8 @@ const userStore = useUserStore()
 const formRef = ref()
 const loading = ref(false)
 const communityInputRef = ref()
+const idFrontInputRef = ref()
+const idBackInputRef = ref()
 
 // 社区自动补全
 const allCommunities = ref([])
@@ -181,6 +200,8 @@ const form = reactive({
   service_radius: 3,
   skills: [],
   service_periods: [],
+  id_card_front: '',
+  id_card_back: '',
   emergency_contact_name: '',
   emergency_contact_phone: ''
 })
@@ -197,6 +218,16 @@ const rules = {
   community: [{ required: true, message: '请输入所属社区', trigger: 'blur' }],
   skills: [{ type: 'array', required: true, min: 1, message: '请选择至少一个技能', trigger: 'change' }],
   service_periods: [{ type: 'array', required: true, min: 1, message: '请选择可服务时间段', trigger: 'change' }],
+  id_card_front: [{
+    validator: (_rule, _value, callback) => {
+      if (!form.id_card_front || !form.id_card_back) {
+        callback(new Error('请上传身份证正反面'))
+        return
+      }
+      callback()
+    },
+    trigger: 'change'
+  }],
   emergency_contact_name: [{ required: true, message: '请填写联系人', trigger: 'blur' }],
   emergency_contact_phone: [
     { required: true, message: '请填写联系电话', trigger: 'blur' },
@@ -204,12 +235,25 @@ const rules = {
   ]
 }
 
+const handleIdFileChange = (event, side) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  const name = file.name || (side === 'front' ? '身份证正面' : '身份证反面')
+  if (side === 'front') {
+    form.id_card_front = name
+  } else {
+    form.id_card_back = name
+  }
+  formRef.value?.validateField('id_card_front')
+  event.target.value = ''
+}
+
 const handleSubmit = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
     if (valid) {
-      if (form.age < 18 || form.age > 65) {
-        ElMessage.warning('年龄必须在18-65岁之间')
+      if (form.age < 50 || form.age > 65) {
+        ElMessage.warning('年龄必须在50-65岁之间')
         return
       }
       loading.value = true
@@ -239,6 +283,8 @@ onMounted(async () => {
     form.service_radius = Math.round((worker.service_radius || 3000) / 1000)
     form.skills = JSON.parse(worker.skills || '[]')
     form.service_periods = JSON.parse(worker.service_periods || '[]')
+    form.id_card_front = worker.id_card_front || ''
+    form.id_card_back = worker.id_card_back || ''
     form.emergency_contact_name = worker.emergency_contact_name || ''
     form.emergency_contact_phone = worker.emergency_contact_phone || ''
   }
@@ -1014,6 +1060,28 @@ onMounted(async () => {
   color: var(--accent) !important;
 }
 
+:deep(.el-checkbox-group:not(.period-group) .el-checkbox) {
+  min-height: 42px !important;
+  padding: 0 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: #FFFCF8;
+}
+
+:deep(.el-checkbox-group:not(.period-group) .el-checkbox.is-checked) {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+}
+
+:deep(.el-checkbox-group:not(.period-group) .el-checkbox.is-checked .el-checkbox__label) {
+  color: #fff !important;
+}
+
+:deep(.el-checkbox-group:not(.period-group) .el-checkbox.is-checked .el-checkbox__inner) {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border-color: rgba(255, 255, 255, 0.62) !important;
+}
+
 .budget-unit,
 :deep(.budget-slider-input .el-input-number__decrease),
 :deep(.budget-slider-input .el-input-number__increase) {
@@ -1073,5 +1141,66 @@ onMounted(async () => {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.id-upload-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.id-upload-card {
+  min-height: 128px;
+  padding: 14px 12px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 9px;
+  border: 1px solid var(--line) !important;
+  border-radius: 16px !important;
+  background: #FFFCF8 !important;
+  color: var(--text-primary) !important;
+  text-align: left;
+}
+
+.id-upload-card:hover {
+  border-color: var(--accent-soft) !important;
+  background: var(--accent-light) !important;
+}
+
+.id-upload-icon {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.id-upload-card strong {
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.id-upload-card em {
+  max-width: 100%;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  font-style: normal;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

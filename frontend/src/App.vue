@@ -698,6 +698,11 @@ label {
   color: #fff !important;
 }
 
+#app .message-item.mine .bubble .time,
+#app .chat-room .message-item.mine .bubble .time {
+  color: rgba(255, 255, 255, 0.86) !important;
+}
+
 #app .chat-room .input-area .el-input__wrapper {
   border: 1px solid var(--line) !important;
   border-radius: 16px !important;
@@ -951,6 +956,96 @@ label {
 #app .apply .el-input__wrapper::before,
 #app .apply .el-input__wrapper::after {
   display: none !important;
+}
+
+/* 全局弹层统一：浅底、细线、单层输入框 */
+.el-overlay {
+  background-color: rgba(64, 48, 40, 0.32) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.el-dialog {
+  width: min(92vw, 430px) !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--line-soft) !important;
+  background: var(--bg-panel) !important;
+  box-shadow: 0 18px 48px rgba(64, 48, 40, 0.18) !important;
+  overflow: hidden;
+}
+
+.el-dialog__header {
+  margin: 0 !important;
+  padding: 18px 18px 10px !important;
+}
+
+.el-dialog__title {
+  color: var(--text-primary) !important;
+  font-size: 21px !important;
+  line-height: 1.25 !important;
+  font-weight: 900 !important;
+}
+
+.el-dialog__headerbtn {
+  top: 12px !important;
+  right: 12px !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 12px !important;
+}
+
+.el-dialog__body {
+  padding: 10px 18px 16px !important;
+  color: var(--text-primary) !important;
+}
+
+.el-dialog__footer {
+  padding: 12px 18px calc(16px + env(safe-area-inset-bottom)) !important;
+  border-top: 1px solid var(--line-soft);
+  background: rgba(255, 253, 251, 0.92);
+}
+
+.el-dialog__footer .el-button {
+  min-height: 48px !important;
+  border-radius: 14px !important;
+  font-size: 16px !important;
+}
+
+.el-dialog .el-input__wrapper,
+.el-dialog .el-textarea__inner,
+.el-dialog input,
+.el-message-box .el-input__wrapper,
+.el-message-box input {
+  border: 1px solid var(--line) !important;
+  border-radius: 14px !important;
+  background: #FFFCF8 !important;
+  box-shadow: none !important;
+}
+
+.el-dialog .el-input__wrapper.is-focus,
+.el-dialog input:focus,
+.el-message-box .el-input__wrapper.is-focus,
+.el-message-box input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px rgba(217, 74, 55, 0.08) !important;
+}
+
+.el-dialog .el-input__inner,
+.el-dialog input.el-input__inner,
+.el-message-box .el-input__inner,
+.el-message-box input.el-input__inner {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.el-message-box {
+  width: min(92vw, 420px) !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--line-soft) !important;
+  background: var(--bg-panel) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

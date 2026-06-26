@@ -36,7 +36,7 @@
       <div class="user-info">
         <span>{{ maskName(order.employer_nickname) }}</span>
         <span style="font-size: 12px; color: #8A6C60;">{{ maskPhone(order.employer_phone) }}</span>
-        <el-button size="small" @click="$router.push(`/common/chat/${order.employer_id}`)">咨询</el-button>
+        <el-button size="small" @click="$router.push(`/common/chat/${order.employer_id}`)">发消息</el-button>
       </div>
     </div>
 
@@ -48,7 +48,7 @@
           <span style="font-size: 12px; color: #8A6C60;">{{ maskPhone(order.worker_phone) }}</span>
           <CertificationBadge v-if="workerCert" :level="workerCert.level" :totalOrders="workerCert.total_orders" :avgRating="workerCert.avg_rating" size="small" />
         </div>
-        <el-button size="small" @click="$router.push(`/common/chat/${order.worker_id}`)">咨询</el-button>
+        <el-button size="small" @click="$router.push(`/common/chat/${order.worker_id}`)">发消息</el-button>
       </div>
     </div>
 

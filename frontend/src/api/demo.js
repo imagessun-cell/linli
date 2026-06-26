@@ -82,6 +82,8 @@ let tasks = taskSeed.map((item, index) => {
   const end = iso(24 + index * 3 + duration / 60)
   return {
     id: index + 1,
+    employerId: 31 + index,
+    employer_id: 31 + index,
     type,
     typeName: '全程陪同',
     typeIcon: '👣',
@@ -125,10 +127,10 @@ let tasks = taskSeed.map((item, index) => {
 })
 
 const workers = [
-  { id: 1, user_id: 21, nickname: '张阿姨', age: 56, community: '花家地社区', skills: '["全程陪同","挂号取药"]', service_periods: '["weekday_morning","weekend"]', total_orders: 62, service_hours: 188, avg_rating: 4.9, honor_level: '金牌', avatar_url: avatars.workers[0], status: 1 },
-  { id: 2, user_id: 22, nickname: '刘师傅', age: 60, community: '望京西园', skills: '["门诊陪护","代为问诊"]', service_periods: '["weekday_afternoon","weekend"]', total_orders: 44, service_hours: 136, avg_rating: 4.8, honor_level: '银牌', avatar_url: avatars.workers[1], status: 1 },
-  { id: 3, user_id: 23, nickname: '陈阿姨', age: 54, community: '安贞西里', skills: '["全程陪同","门诊陪护"]', service_periods: '["weekday_morning","weekday_afternoon"]', total_orders: 38, service_hours: 121, avg_rating: 4.9, honor_level: '金牌', avatar_url: avatars.workers[2], status: 1 },
-  { id: 4, user_id: 24, nickname: '王叔叔', age: 59, community: '和平里社区', skills: '["挂号取药","代为问诊"]', service_periods: '["weekend"]', total_orders: 31, service_hours: 96, avg_rating: 4.7, honor_level: '邻里优选', avatar_url: avatars.workers[3], status: 1 }
+  { id: 1, user_id: 21, nickname: '张阿姨', age: 56, community: '花家地社区', skills: '["全程陪同","挂号取药"]', service_periods: '["weekday_morning","weekend"]', total_orders: 62, service_hours: 188, total_hours: 188, distance_km: 0.8, avg_rating: 4.9, honor_level: '金牌', avatar_url: avatars.workers[0], status: 1 },
+  { id: 2, user_id: 22, nickname: '刘师傅', age: 60, community: '望京西园', skills: '["门诊陪护","代为问诊"]', service_periods: '["weekday_afternoon","weekend"]', total_orders: 44, service_hours: 136, total_hours: 136, distance_km: 1.4, avg_rating: 4.8, honor_level: '银牌', avatar_url: avatars.workers[1], status: 1 },
+  { id: 3, user_id: 23, nickname: '陈阿姨', age: 54, community: '安贞西里', skills: '["全程陪同","门诊陪护"]', service_periods: '["weekday_morning","weekday_afternoon"]', total_orders: 38, service_hours: 121, total_hours: 121, distance_km: 2.1, avg_rating: 4.9, honor_level: '金牌', avatar_url: avatars.workers[2], status: 1 },
+  { id: 4, user_id: 24, nickname: '王叔叔', age: 59, community: '和平里社区', skills: '["挂号取药","代为问诊"]', service_periods: '["weekend"]', total_orders: 31, service_hours: 96, total_hours: 96, distance_km: 2.7, avg_rating: 4.7, honor_level: '邻里优选', avatar_url: avatars.workers[3], status: 1 }
 ]
 
 let conversations = [
@@ -179,6 +181,8 @@ const normalizeTask = (task) => ({
   physicalLevelName: task.physicalLevelName || (task.physical_level === 2 ? '中度' : '轻度'),
   employerNickname: task.employerNickname || task.employer_nickname,
   employerCommunity: task.employerCommunity || '邻里社区',
+  employerId: task.employerId || task.employer_id || demoUser.id,
+  employer_id: task.employer_id || task.employerId || demoUser.id,
   targetHospital: task.targetHospital || task.target_hospital,
   targetHospitalLat: task.targetHospitalLat || task.target_hospital_lat,
   targetHospitalLng: task.targetHospitalLng || task.target_hospital_lng,
@@ -200,11 +204,58 @@ const filterTasks = (config) => {
     const types = String(params.type).split(',').map(Number)
     list = list.filter((task) => types.includes(task.type))
   }
+  if (params.subType) {
+    const subTypes = String(params.subType).split(',').map(Number)
+    list = list.filter((task) => subTypes.includes(task.subType))
+  }
   if (params.physicalLevel) {
     const levels = String(params.physicalLevel).split(',').map(Number)
     list = list.filter((task) => levels.includes(task.physicalLevel))
   }
   return list
+}
+
+const filterWorkers = (config) => {
+  const params = paramsFrom(config)
+  const keyword = String(params.keyword || '').trim()
+  const skill = String(params.skills || '').trim()
+  let list = [...workers]
+  if (skill) {
+    list = list.filter((worker) => String(worker.skills || '').includes(skill))
+  }
+  if (keyword) {
+    list = list.filter((worker) => [worker.nickname, worker.community, worker.skills].some((text) => String(text || '').includes(keyword)))
+  }
+  return list
+}
+
+const getConversationMessages = (targetId) => {
+  return messages.filter((msg) => {
+    return (msg.from_user_id === demoUser.id && msg.to_user_id === targetId) ||
+      (msg.from_user_id === targetId && msg.to_user_id === demoUser.id)
+  })
+}
+
+const upsertConversation = (targetId, lastMessage) => {
+  let conv = conversations.find((item) => item.other_user_id === targetId)
+  if (!conv) {
+    const worker = workers.find((item) => item.user_id === targetId)
+    const taskOwner = tasks.find((item) => item.employerId === targetId || item.employer_id === targetId)
+    conv = {
+      other_user_id: targetId,
+      other_nickname: worker?.nickname || taskOwner?.employerNickname || '联系人',
+      other_avatar: worker?.avatar_url || taskOwner?.employerAvatar || avatars.currentUser,
+      last_message: '',
+      last_message_time: iso(0),
+      last_message_type: 1,
+      unread_count: 0
+    }
+    conversations.unshift(conv)
+  }
+  conv.last_message = lastMessage.content
+  conv.last_message_time = lastMessage.created_at
+  conv.last_message_type = lastMessage.type || 1
+  return conv
 }
 
 const createOrderFromTask = (task, workerId = 21) => {
@@ -262,7 +313,10 @@ export const createDemoRequest = () => ({
       const id = Number(url.split('/')[2])
       return ok(normalizeTask(tasks.find((task) => task.id === id) || tasks[0]))
     }
-    if (url === '/employer/workers') return ok({ workers, total: workers.length })
+    if (url === '/employer/workers') {
+      const list = filterWorkers(config)
+      return ok({ workers: list, total: list.length })
+    }
     if (url === '/employer/orders' || url === '/worker/orders') {
       const params = paramsFrom(config)
       const status = params.status
@@ -276,11 +330,19 @@ export const createDemoRequest = () => ({
     if (url === '/worker/wallet') return ok(wallet)
     if (url === '/worker/wallet/transactions') return ok(walletTransactions)
     if (url === '/message/list') return ok({ conversations })
-    if (url.startsWith('/message/conversation/')) return ok(messages)
+    if (url.startsWith('/message/conversation/')) {
+      const targetId = Number(url.split('/').pop())
+      const conv = conversations.find((item) => item.other_user_id === targetId)
+      if (conv) conv.unread_count = 0
+      return ok(getConversationMessages(targetId))
+    }
     if (url.startsWith('/user/profile/')) {
       const id = Number(url.split('/').pop())
       const worker = workers.find((item) => item.user_id === id)
-      return ok(worker ? { id: worker.user_id, nickname: worker.nickname, avatar_url: worker.avatar_url, age: worker.age, community: worker.community } : demoUser)
+      const taskOwner = tasks.find((item) => item.employerId === id || item.employer_id === id)
+      if (worker) return ok({ id: worker.user_id, nickname: worker.nickname, avatar_url: worker.avatar_url, age: worker.age, community: worker.community })
+      if (taskOwner) return ok({ id, nickname: taskOwner.employerNickname, avatar_url: taskOwner.employerAvatar, age: 68, community: taskOwner.employerCommunity })
+      return ok(demoUser)
     }
     if (url === '/community/posts') return ok({ posts })
     if (url === '/v1/agreement/check/publish') return ok({ signed: true })
@@ -311,12 +373,18 @@ export const createDemoRequest = () => ({
   },
   post(url, data = {}) {
     if (url === '/auth/login' || url === '/auth/register') return ok({ token: 'demo-token', user: demoUser })
-    if (url === '/auth/realname') return ok({})
+    if (url === '/auth/realname') {
+      demoUser.real_name = data.real_name || demoUser.real_name
+      demoUser.face_verified = 1
+      return ok({})
+    }
     if (url === '/employer/tasks') {
       const nextId = tasks.length + 1
       const subType = Number(data.sub_type || 1)
       const task = normalizeTask({
         id: nextId,
+        employerId: demoUser.id,
+        employer_id: demoUser.id,
         type: 1,
         sub_type: subType,
         subType,
@@ -356,6 +424,7 @@ export const createDemoRequest = () => ({
     if (url === '/message/send') {
       const message = { id: messages.length + 1, from_user_id: demoUser.id, to_user_id: Number(data.to_user_id), content: data.content, type: 1, created_at: iso(0), from_nickname: demoUser.nickname, from_avatar: demoUser.avatar_url }
       messages.push(message)
+      upsertConversation(Number(data.to_user_id), message)
       return ok(message)
     }
     if (url === '/community/posts') {

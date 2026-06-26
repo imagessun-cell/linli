@@ -2,7 +2,7 @@
   <div class="task-detail-page">
     <header class="detail-header">
       <button class="back-btn" @click="$router.back()">←</button>
-      <span class="header-label">岗位详情</span>
+      <span class="header-label">任务详情</span>
     </header>
 
     <div class="hero-section" v-if="task">
@@ -97,7 +97,7 @@
         <p class="special-requirements">{{ task.specialRequirements }}</p>
       </div>
 
-      <div class="section contact-section">
+      <div class="contact-dock">
         <h3 class="section-title">联系信息</h3>
         <div class="publisher-card">
           <LinliAvatar
@@ -114,7 +114,7 @@
         </div>
         <div class="contact-actions">
           <button class="contact-btn" @click="handleContact" :disabled="loading">
-            📞 联系就诊人
+            发消息
           </button>
           <button
             class="grab-btn"
@@ -440,7 +440,12 @@ const handleContact = () => {
     router.push('/login')
     return
   }
-  router.push(`/common/chat/${task.value.employerId}`)
+  const targetId = task.value?.employerId || task.value?.employer_id
+  if (!targetId) {
+    ElMessage.warning('暂未找到就诊人联系方式')
+    return
+  }
+  router.push(`/common/chat/${targetId}`)
 }
 
 const handleGrab = async () => {
@@ -961,11 +966,11 @@ onMounted(() => {
   color: #7D6257;
 }
 
-/* 适老化统一风格：岗位详情 */
+/* 适老化统一风格：任务详情 */
 .task-detail-page {
   background:
     linear-gradient(180deg, #FFF2E8 0%, #FFF9F2 38%, #FFF6EE 100%);
-  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  padding-bottom: calc(178px + env(safe-area-inset-bottom));
   color: #4F3A32;
 }
 
@@ -1125,10 +1130,31 @@ onMounted(() => {
   color: #4F3A32;
 }
 
+.contact-dock {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 60;
+  padding: 14px;
+  border: 1px solid #EBD8CF;
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 -8px 28px rgba(64, 48, 40, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.contact-dock .section-title {
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
 .publisher-card {
   padding: 14px;
   border-radius: 18px;
   background: #FFF9F2;
+  margin-bottom: 10px;
 }
 
 .publisher-avatar {
@@ -1183,8 +1209,14 @@ onMounted(() => {
     font-size: 26px;
   }
 
-  .contact-actions {
-    flex-direction: column;
+  .contact-dock {
+    left: 10px;
+    right: 10px;
+  }
+
+  .contact-btn,
+  .grab-btn {
+    font-size: 15px !important;
   }
 }
 </style>
