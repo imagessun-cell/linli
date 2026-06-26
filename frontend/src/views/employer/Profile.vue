@@ -2,7 +2,7 @@
   <div class="profile">
     <div class="avatar-section">
       <div class="avatar-wrapper" @click="changeAvatar">
-        <img :src="userInfo?.avatar_url || '/default-avatar.png'" class="avatar" />
+        <LinliAvatar :name="userInfo?.nickname || '就诊人'" :src="userInfo?.avatar_url" variant="patient" :size="96" />
         <span class="change-icon">✏️</span>
       </div>
       <p class="nickname">{{ userInfo?.nickname }}</p>
@@ -34,6 +34,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
+import LinliAvatar from '@/components/LinliAvatar.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -105,7 +106,7 @@ onMounted(async () => {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: #ddd;
+  background: #EBD8CF;
 }
 
 .change-icon {
@@ -123,7 +124,7 @@ onMounted(async () => {
 
 .phone {
   font-size: 14px;
-  color: #999;
+  color: #8A6C60;
   margin-top: 4px;
 }
 
@@ -136,7 +137,7 @@ onMounted(async () => {
 
 .info-section h3 {
   font-size: 14px;
-  color: #999;
+  color: #8A6C60;
   margin-bottom: 16px;
 }
 
@@ -152,11 +153,11 @@ onMounted(async () => {
 }
 
 .info-item .label {
-  color: #666;
+  color: #7D6257;
 }
 
 .info-item .value {
-  color: #333;
+  color: #4F3A32;
 }
 
 .actions {

@@ -2,7 +2,7 @@
   <div class="dashboard">
     <div class="header">
       <div class="user-info">
-        <img :src="userInfo?.avatar_url || '/default-avatar.png'" class="avatar" />
+        <LinliAvatar class="avatar" :name="userInfo?.nickname || '就诊人'" :src="userInfo?.avatar_url" variant="patient" :size="56" />
         <div class="info">
           <h3>{{ userInfo?.nickname || '就诊人' }}</h3>
           <p>信用积分: {{ employerInfo?.credit_score || 100 }}</p>
@@ -55,6 +55,7 @@
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import request from '@/api/request'
+import LinliAvatar from '@/components/LinliAvatar.vue'
 
 const userStore = useUserStore()
 const userInfo = ref(userStore.userInfo)
@@ -95,7 +96,7 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #E94F3D 0%, #F6A21A 100%);
   border-radius: 12px;
   color: white;
   margin-bottom: 20px;
@@ -111,7 +112,7 @@ onMounted(async () => {
   height: 50px;
   border-radius: 50%;
   margin-right: 12px;
-  background: #ddd;
+  background: #EBD8CF;
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   object-fit: cover;
@@ -151,7 +152,7 @@ onMounted(async () => {
 
 .action-item span:last-child {
   font-size: 12px;
-  color: #666;
+  color: #7D6257;
 }
 
 .section {
@@ -174,7 +175,7 @@ onMounted(async () => {
 
 .order-item {
   padding: 12px;
-  background: #f9f9f9;
+  background: #FFF9F2;
   border-radius: 8px;
   cursor: pointer;
 }
@@ -195,21 +196,21 @@ onMounted(async () => {
   border-radius: 4px;
 }
 
-.order-status.warning { background: #fff3e0; color: #ff9800; }
-.order-status.primary { background: #e3f2fd; color: #2196f3; }
-.order-status.success { background: #e8f5e9; color: #4caf50; }
-.order-status.danger { background: #ffebee; color: #f44336; }
-.order-status.info { background: #f5f5f5; color: #999; }
+.order-status.warning { background: #FFF3D8; color: #C98216; }
+.order-status.primary { background: #FFF0EC; color: #E94F3D; }
+.order-status.success { background: #FFF3D8; color: #B66A25; }
+.order-status.danger { background: #F9E7E3; color: #B84545; }
+.order-status.info { background: #FFF9F2; color: #8A6C60; }
 
 .order-meta {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  color: #666;
+  color: #7D6257;
 }
 
 .order-meta .amount {
-  color: #667eea;
+  color: #E94F3D;
   font-weight: bold;
 }
 </style>

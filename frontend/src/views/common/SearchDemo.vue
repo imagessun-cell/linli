@@ -222,11 +222,11 @@ onUnmounted(() => {
   max-width: 720px;
   margin: 0 auto;
   padding: 24px 16px 80px;
-  background: #fafafa;
+  background: #FFF9F2;
   min-height: 100vh;
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
-  color: #1a1a1a;
+  color: #4F3A32;
 }
 
 .sr-only {
@@ -245,7 +245,7 @@ onUnmounted(() => {
   font-size: 28px;
   font-weight: 700;
   margin: 0 0 24px;
-  color: #0a0a0a;
+  color: #4F3A32;
 }
 
 .search-bar {
@@ -270,23 +270,23 @@ onUnmounted(() => {
   min-height: 56px;
   font-size: 18px;
   padding: 14px 48px 14px 18px;
-  border: 2px solid #d8d8d8;
+  border: 2px solid #EBD8CF;
   border-radius: 12px;
   outline: none;
   background: #fff;
-  color: #1a1a1a;
+  color: #4F3A32;
   box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
   -webkit-appearance: none;
 }
 
 .search-input::placeholder {
-  color: #999;
+  color: #8A6C60;
 }
 
 .search-input:focus {
-  border-color: #0066cc;
-  box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.18);
+  border-color: #E94F3D;
+  box-shadow: 0 0 0 4px rgba(233, 79, 61, 0.16);
 }
 
 .clear-btn {
@@ -297,8 +297,8 @@ onUnmounted(() => {
   width: 32px;
   height: 32px;
   border: none;
-  background: #e8e8e8;
-  color: #555;
+  background: #EFE2DC;
+  color: #6D5146;
   border-radius: 50%;
   font-size: 22px;
   line-height: 1;
@@ -309,7 +309,7 @@ onUnmounted(() => {
 }
 
 .clear-btn:hover {
-  background: #d0d0d0;
+  background: #E2CFC6;
 }
 
 .search-btn {
@@ -319,7 +319,7 @@ onUnmounted(() => {
   font-size: 17px;
   font-weight: 700;
   color: #fff;
-  background: #0066cc;
+  background: #E94F3D;
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -327,11 +327,11 @@ onUnmounted(() => {
 }
 
 .search-btn:hover:not(:disabled) {
-  background: #0055aa;
+  background: #C94131;
 }
 
 .search-btn:disabled {
-  background: #b8c8d8;
+  background: #E2CFC6;
   cursor: not-allowed;
 }
 
@@ -341,7 +341,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   background: #fff;
-  border: 1px solid #e5e5e5;
+  border: 1px solid #EFE2DC;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   max-height: 400px;
@@ -359,14 +359,14 @@ onUnmounted(() => {
   min-height: 56px;
   padding: 12px 18px;
   font-size: 17px;
-  color: #1a1a1a;
+  color: #4F3A32;
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .suggest-item:hover,
 .suggest-item.active {
-  background: #e6f0ff;
+  background: #FFF0EC;
 }
 
 .suggest-icon {
@@ -385,14 +385,14 @@ onUnmounted(() => {
 
 .suggest-text :deep(mark) {
   background: transparent;
-  color: #0066cc;
+  color: #E94F3D;
   font-weight: 700;
 }
 
 .suggest-kind {
   font-size: 13px;
-  color: #666;
-  background: #f0f0f0;
+  color: #7D6257;
+  background: #F2E6DE;
   padding: 3px 10px;
   border-radius: 10px;
   flex-shrink: 0;
@@ -405,11 +405,11 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   background: #fff;
-  border: 1px solid #e5e5e5;
+  border: 1px solid #EFE2DC;
   border-radius: 12px;
   padding: 24px 18px;
   text-align: center;
-  color: #888;
+  color: #8A6C60;
   font-size: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   z-index: 100;
@@ -423,11 +423,11 @@ onUnmounted(() => {
   font-size: 20px;
   font-weight: 600;
   margin: 0 0 12px;
-  color: #1a1a1a;
+  color: #4F3A32;
 }
 
 .result-count {
-  color: #0066cc;
+  color: #E94F3D;
   font-weight: 700;
   font-size: 18px;
 }
@@ -438,7 +438,7 @@ onUnmounted(() => {
   gap: 8px;
   margin: 0 0 16px;
   font-size: 15px;
-  color: #555;
+  color: #6D5146;
 }
 
 .filter-chip {
@@ -446,15 +446,15 @@ onUnmounted(() => {
   padding: 4px 14px;
   font-size: 14px;
   font-weight: 700;
-  color: #0066cc;
-  background: #e6f0ff;
+  color: #E94F3D;
+  background: #FFF0EC;
   border-radius: 16px;
 }
 
 .filter-clear {
   border: none;
   background: transparent;
-  color: #0066cc;
+  color: #E94F3D;
   font-size: 14px;
   cursor: pointer;
   text-decoration: underline;
@@ -464,7 +464,7 @@ onUnmounted(() => {
 .result-empty {
   position: static;
   box-shadow: none;
-  border: 1px dashed #d0d0d0;
+  border: 1px dashed #E2CFC6;
 }
 
 .task-card {
@@ -494,7 +494,7 @@ onUnmounted(() => {
 .task-hospital {
   font-size: 19px;
   font-weight: 700;
-  color: #0a0a0a;
+  color: #4F3A32;
   margin: 0;
   flex: 1;
 }
@@ -502,14 +502,14 @@ onUnmounted(() => {
 .task-price {
   font-size: 24px;
   font-weight: 700;
-  color: #d83a00;
+  color: #E94F3D;
   flex-shrink: 0;
 }
 
 .task-dept,
 .task-caregiver {
   font-size: 16px;
-  color: #4a4a4a;
+  color: #6D5146;
   margin: 4px 0;
   line-height: 1.5;
 }
@@ -520,8 +520,8 @@ onUnmounted(() => {
   padding: 5px 14px;
   font-size: 14px;
   font-weight: 600;
-  color: #0066cc;
-  background: #e6f0ff;
+  color: #E94F3D;
+  background: #FFF0EC;
   border-radius: 20px;
 }
 </style>

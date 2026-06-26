@@ -1,36 +1,35 @@
 <template>
   <div class="home-container">
-    <header class="home-header">
-      <div class="header-brand">
-        <h1>LINLI</h1>
-        <h2 class="header-tagline">邻里守候，就诊无忧</h2>
+    <section class="hero-panel">
+      <div class="home-topbar">
+        <LinliLogo class="home-logo" variant="full" tone="brand" :size="36" />
+        <div class="header-actions">
+          <button class="header-icon-btn" @click="toggleSearch" aria-label="搜索任务">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </button>
+          <button class="header-icon-btn filter-header-btn" @click="showFilters = true" aria-label="打开筛选">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="8" y1="12" x2="20" y2="12" />
+              <line x1="12" y1="18" x2="20" y2="18" />
+              <circle cx="6" cy="6" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="10" cy="12" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="14" cy="18" r="1.5" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
+        </div>
       </div>
-      <div class="header-actions">
-        <button class="header-icon-btn" @click="toggleSearch" aria-label="搜索">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-        </button>
-        <button class="header-icon-btn filter-header-btn" @click="showFilters = true" aria-label="打开筛选">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" y1="6" x2="20" y2="6" />
-            <line x1="8" y1="12" x2="20" y2="12" />
-            <line x1="12" y1="18" x2="20" y2="18" />
-            <circle cx="6" cy="6" r="1.5" fill="currentColor" stroke="none" />
-            <circle cx="10" cy="12" r="1.5" fill="currentColor" stroke="none" />
-            <circle cx="14" cy="18" r="1.5" fill="currentColor" stroke="none" />
-          </svg>
-        </button>
-      </div>
-    </header>
+    </section>
 
-    <div class="search-bar" role="search" :class="{ expanded: searchExpanded }">
+    <div class="search-bar expanded" role="search">
       <div class="search-input-wrapper">
         <input
           id="search-input"
           v-model="searchKeyword"
-          placeholder="搜索地址或关键词"
+          placeholder="搜索医院、社区或服务类型"
           class="search-input"
           type="text"
           autocomplete="off"
@@ -146,25 +145,34 @@
           tabindex="0"
         >
           <div class="task-main">
-            <span class="task-type" aria-label="任务类型">
-              <span v-if="task.subTypeIcon" :class="[getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
-              <span v-else>{{ task.typeIcon }} {{ task.typeName }}</span>
-            </span>
-            <h3 class="task-title">{{ task.employerCommunity }} → {{ task.targetHospital }}</h3>
-            <div class="task-meta">
-              <span>距您 {{ formatDistance(task.distance) }} 米</span>
-              <span>预计{{ formatDuration(task.duration) }}</span>
-              <span>{{ task.physicalLevelName || '轻度' }}体力</span>
+            <div class="task-card-top">
+              <span class="task-type" aria-label="任务类型">
+                <span v-if="task.subTypeIcon" :class="[getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
+                <span v-else>{{ task.typeIcon }} {{ task.typeName }}</span>
+              </span>
+              <span class="task-date">{{ formatTaskDate(task.startTime) }}</span>
+            </div>
+            <h3 class="task-title">{{ task.address || task.employerCommunity || '就诊人地点' }} 到 {{ task.targetHospital || '目标医院' }}</h3>
+            <div class="task-facts" aria-label="任务关键信息">
+              <div class="task-fact">
+                <span>距离</span>
+                <strong>{{ formatDistance(task.distance) }}</strong>
+              </div>
+              <div class="task-fact">
+                <span>时长</span>
+                <strong>{{ formatDuration(task.duration).trim() }}</strong>
+              </div>
+              <div class="task-fact">
+                <span>体力</span>
+                <strong>{{ task.physicalLevelName || '轻度' }}</strong>
+              </div>
             </div>
           </div>
           <div class="task-side">
+            <span class="budget-label">报酬</span>
             <div class="task-budget" aria-label="报酬">{{ task.budget }}</div>
+            <span class="detail-hint">查看详情</span>
           </div>
-
-
-            <div class="task-header">
-                  </div>
-          
         </div>
 
         <div v-if="hasMore" class="load-more">
@@ -211,12 +219,13 @@
 
         <div v-if="selectedTask" class="map-info-window" role="dialog">
           <div class="info-header">
-            <div v-if="selectedTask.employerAvatar" class="avatar-small">
-              <img :src="selectedTask.employerAvatar" :alt="selectedTask.employerName + '的头像'" @error="handleMapAvatarError($event, selectedTask.employerName)" />
-            </div>
-            <div v-else class="avatar-small avatar-placeholder">
-              {{ (selectedTask.employerName || '就').charAt(0) }}
-            </div>
+            <LinliAvatar
+              class="avatar-small vector-avatar-small"
+              :name="selectedTask.employerName || '就诊人'"
+              :src="selectedTask.employerAvatar"
+              variant="patient"
+              :size="36"
+            />
             <span class="employer-name">{{ selectedTask.employerName || '就诊人' }}</span>
             <button class="map-info-close" @click="selectedTask = null" aria-label="关闭">×</button>
           </div>
@@ -277,6 +286,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import request from '@/api/request'
+import LinliLogo from '@/components/LinliLogo.vue'
+import LinliAvatar from '@/components/LinliAvatar.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -319,9 +330,9 @@ const taskTypes = [
 ]
 
 const physicalLevels = [
-  { label: '轻度', value: 1, color: '#52c41a' },
-  { label: '中度', value: 2, color: '#faad14' },
-  { label: '重度', value: 3, color: '#f5222d' }
+  { label: '轻度', value: 1, color: '#B66A25' },
+  { label: '中度', value: 2, color: '#C98216' },
+  { label: '重度', value: 3, color: '#B84545' }
 ]
 
 let map = null
@@ -447,7 +458,7 @@ const loadTasks = async (reset = false) => {
       longitude: userLocation.value.lng,
       radius: radius.value,
       page: page.value,
-      pageSize: 10,
+      pageSize: 14,
       sortBy: sortBy.value,
       order: sortAsc.value ? 'asc' : 'desc'
     }
@@ -630,26 +641,27 @@ const getSubTypeClass = (subType) => {
   return classMap[subType] || ''
 }
 
-const handleAvatarError = (event, name) => {
-  const img = event.target
-  img.style.display = 'none'
-  const wrapper = img.parentElement
-  wrapper.classList.add('avatar-error')
-  const placeholder = document.createElement('div')
-  placeholder.className = 'avatar-small avatar-placeholder'
-  placeholder.textContent = (name || '就').charAt(0)
-  wrapper.appendChild(placeholder)
-}
+const fallbackMapAvatarHtml = `
+  <span style="width:38px;height:38px;display:inline-flex;border-radius:50%;background:#fffdf8;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.24);overflow:hidden;">
+    <svg viewBox="0 0 80 80" style="width:100%;height:100%;display:block;">
+      <circle cx="40" cy="40" r="37" fill="#fff7ec" stroke="#ead8bd" stroke-width="2"></circle>
+      <path d="M26 50c2.6-7.2 7.2-10.7 14-10.7S51.4 42.8 54 50" fill="none" stroke="#4F3A32" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+      <path d="M28.5 29.8c2-6.2 6.1-9.2 11.5-9.2s9.5 3 11.5 9.2" fill="none" stroke="#4F3A32" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path>
+      <circle cx="40" cy="32" r="8.5" fill="none" stroke="#4F3A32" stroke-width="3.2"></circle>
+      <path d="M54 27c3.3 0 5.5 2.1 5.5 5.2 0 4.1-5.5 7.9-5.5 7.9s-5.5-3.8-5.5-7.9c0-3.1 2.2-5.2 5.5-5.2Z" fill="none" stroke="#E94F3D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  </span>
+`
 
-const handleMapAvatarError = (event, name) => {
-  const img = event.target
-  img.style.display = 'none'
-  const wrapper = img.parentElement
-  wrapper.classList.add('avatar-error')
-  const placeholder = document.createElement('div')
-  placeholder.className = 'avatar-small avatar-placeholder'
-  placeholder.textContent = (name || '就').charAt(0)
-  wrapper.appendChild(placeholder)
+const buildMapAvatarHtml = (task) => {
+  const avatar = (task?.employerAvatar || '').trim()
+  if (!avatar) return fallbackMapAvatarHtml
+  const src = avatar.startsWith('/') || /^(https?:)?\/\//.test(avatar) ? avatar : `/${avatar}`
+  return `
+    <span style="width:38px;height:38px;display:inline-flex;border-radius:50%;background:#fffdf8;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.24);overflow:hidden;">
+      <img src="${src.replace(/"/g, '&quot;')}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.remove()" />
+    </span>
+  `
 }
 
 const formatDistance = (distance) => {
@@ -660,10 +672,20 @@ const formatDistance = (distance) => {
 
 const formatDuration = (minutes) => {
   if (!minutes) return '—'
-  if (minutes < 60) return ` ${minutes}分钟 `
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  return m === 0 ? ` ${h}小时 ` : ` ${h}小时${m}分钟 `
+  if (minutes < 60) return `${minutes}分钟`
+  const hours = minutes / 60
+  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}小时`
+}
+
+const formatTaskDate = (time) => {
+  if (!time) return '时间待定'
+  const date = new Date(String(time).replace(' ', 'T'))
+  if (Number.isNaN(date.getTime())) return '时间待定'
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${month}月${day}日 ${hour}:${minute}`
 }
 
 const goToDetail = (id) => {
@@ -736,12 +758,7 @@ const initMap = () => {
   tasks.value.forEach(task => {
     const point = new BMapGL.Point(task.longitude, task.latitude)
 
-    // 圆形头像 + 白色描边 + 投影
-    const avatarHtml = task.employerAvatar
-      ? `<img src="${task.employerAvatar}" style="width:36px;height:36px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.25);object-fit:cover;display:block;" onerror="this.style.display='none'" />`
-      : `<div style="width:36px;height:36px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.25);background:#1677ff;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:600;">${(task.employerName || '就').charAt(0)}</div>`
-
-    const label = new BMapGL.Label(avatarHtml, {
+    const label = new BMapGL.Label(buildMapAvatarHtml(task), {
       position: point,
       offset: new BMapGL.Size(-18, -18)
     })
@@ -799,13 +816,14 @@ onUnmounted(() => {
 .home-container {
   min-height: 100vh;
   background: var(--bg-warm);
+  color: var(--text-primary);
 }
 
 .home-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-md) var(--spacing-md);
+  padding: 18px var(--spacing-md);
   background: var(--accent);
   border-bottom: none;
 }
@@ -820,15 +838,15 @@ onUnmounted(() => {
 .home-header h1 {
   font-size: var(--font-size-2xl);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: #fff;
   flex-shrink: 0;
 }
 
 .header-tagline {
-  font-size: var(--font-size-sm);
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.86);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -846,8 +864,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 46px;
+  height: 46px;
   border: none !important;
   background: rgba(255, 255, 255, 0.1) !important;
   color: #fff !important;
@@ -872,8 +890,8 @@ onUnmounted(() => {
 }
 
 .search-bar.expanded {
-  max-height: 160px;
-  padding: var(--spacing-sm) var(--spacing-md);
+  max-height: 180px;
+  padding: 12px var(--spacing-md);
   border-bottom: var(--border-light);
 }
 
@@ -884,7 +902,7 @@ onUnmounted(() => {
 
 .search-input {
   width: 100%;
-  padding: var(--spacing-sm) 36px var(--spacing-sm) var(--spacing-md);
+  padding: 12px 42px 12px var(--spacing-md);
   font-size: var(--font-size-base);
   border: var(--border-light);
   outline: none;
@@ -909,11 +927,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border: none !important;
-  background: #e0e0e0 !important;
-  color: #666 !important;
+  background: #E2CFC6 !important;
+  color: #7D6257 !important;
   cursor: pointer;
   border-radius: 50% !important;
   padding: 0 !important;
@@ -922,7 +940,7 @@ onUnmounted(() => {
 }
 
 .search-clear-btn:hover {
-  background: #d0d0d0 !important;
+  background: #E2CFC6 !important;
 }
 
 .suggestion-list {
@@ -944,7 +962,7 @@ onUnmounted(() => {
 
 .suggestion-section {
   padding: var(--spacing-xs) var(--spacing-md);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   color: var(--text-muted);
   background: var(--bg-secondary);
   list-style: none;
@@ -955,7 +973,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: 12px var(--spacing-md);
   min-height: var(--touch-target-min);
   cursor: pointer;
   font-size: var(--font-size-base);
@@ -983,7 +1001,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-sm) 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-secondary);
   position: sticky;
@@ -993,18 +1011,18 @@ onUnmounted(() => {
 
 .sort-tabs {
   display: flex;
-  gap: 2px;
+  gap: 6px;
 }
 
 .sort-tabs button {
-  padding: var(--spacing-xs) var(--spacing-md);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
+  padding: 8px 14px;
+  font-size: var(--font-size-base);
+  font-weight: 700;
   background: transparent;
   border: none !important;
   color: var(--text-muted) !important;
   cursor: pointer;
-  min-height: 32px;
+  min-height: 42px;
   position: relative;
   transition: all 0.2s var(--transition-soft);
   border-radius: var(--border-radius-sm) !important;
@@ -1018,12 +1036,12 @@ onUnmounted(() => {
 
 .view-toggle {
   display: flex;
-  gap: 2px;
+  gap: 6px;
 }
 
 .view-toggle button {
-  height: 32px;
-  width: 32px;
+  height: 42px;
+  width: 42px;
   font-size: var(--font-size-sm);
   background: transparent;
   border: none !important;
@@ -1077,13 +1095,13 @@ onUnmounted(() => {
 }
 
 .empty p {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-xl);
   margin: 0;
   color: var(--text-secondary);
 }
 
 .empty .tip {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   color: var(--text-muted);
   margin-top: var(--spacing-sm);
 }
@@ -1131,12 +1149,13 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: var(--spacing-lg) 16px;
-  border-bottom:1px solid rgba(44, 122, 158, 0.218);
+  padding: 20px 16px;
+  border-bottom: 1.5px solid rgba(233, 79, 61, 0.18);
   cursor: pointer;
   transition: all 0.2s var(--transition-soft);
   background: var(--bg-primary);
-  height: 128px;
+  min-height: 150px;
+  height: auto;
 }
 
 .task-card:hover {
@@ -1155,23 +1174,24 @@ onUnmounted(() => {
 .task-main {
   flex: 1;
   min-width: 0;
-  height: 120px;
-  width: 290px;
+  min-height: 108px;
+  width: auto;
   flex-direction: column;
-  margin: -8px 0;
+  margin: 0;
 }
 
 .task-type {
-  font-size: var(--font-size-xs);
-  font-weight: 500;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
   color: var(--accent);
   margin-bottom: var(--spacing-xs);
   letter-spacing: 0.05em;
   display: block;
-  background: rgba(64, 158, 255, 0.1);
-  padding: 4px 8px;
+  background: rgba(233, 79, 61, 0.10);
+  padding: 5px 10px;
   border-radius: 4px;
-  width: 84px;
+  width: fit-content;
+  max-width: 132px;
   white-space: nowrap;
 }
 
@@ -1186,13 +1206,13 @@ onUnmounted(() => {
 }
 
 .tag-training {
-  background: #67c23a;
+  background: #B66A25;
 }
 
 .task-title {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  margin: 10px 0 var(--spacing-sm);
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  margin: 12px 0 var(--spacing-sm);
   color: var(--text-primary);
   line-height: 1.4;
   max-width: 100%;
@@ -1207,30 +1227,30 @@ onUnmounted(() => {
 .task-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-md);
-  font-size: var(--font-size-sm);
-  color: var(--text-muted);
-  line-height: 38px;
-  height: 32px;
-  margin: -6px 0;
+  gap: 8px 12px;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  height: auto;
+  margin: 0;
 }
 
 .task-meta span:first-child {
   text-align: left;
-  height: 32px;
+  min-height: 28px;
   display: flex;
-  line-height: 32px;
+  line-height: 1.5;
 }
 
 .task-meta span:nth-child(2) {
-  height: 32px;
+  min-height: 28px;
   text-align: left;
-  line-height: 32px;
+  line-height: 1.5;
 }
 
 .task-meta span:nth-child(3) {
-  height: 32px;
-  line-height: 32px;
+  min-height: 28px;
+  line-height: 1.5;
 }
 
 .task-meta .poster-info {
@@ -1247,22 +1267,23 @@ onUnmounted(() => {
   gap: var(--spacing-xs);
   flex-shrink: 0;
   margin-left: var(--spacing-md);
-  margin: -6px 0;
-  height: 92px;
-  width: 40px;
+  margin-top: 2px;
+  min-height: 104px;
+  width: 64px;
 }
 
 .task-budget {
-  font-size: var(--font-size-2xl);
+  font-size: 28px;
   font-weight: 800;
   color: var(--accent-warm);
   line-height: 1;
-  width: 37px;
+  width: auto;
+  text-align: right;
 }
 
 .task-budget::before {
   content: '¥';
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   font-weight: 600;
 }
 
@@ -1364,7 +1385,7 @@ onUnmounted(() => {
 
 .map-locate-btn:disabled {
   opacity: 0.6;
-  cursor: wait;
+  cursor: default;
 }
 
 .map-locate-btn.spinning svg {
@@ -1495,15 +1516,15 @@ onUnmounted(() => {
 }
 
 .drawer-header h2 {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-2xl);
   font-weight: 700;
   margin: 0;
   color: var(--text-primary);
 }
 
 .close-btn {
-  width: 36px;
-  height: 36px;
+  width: 46px;
+  height: 46px;
   border: none !important;
   background: transparent !important;
   cursor: pointer;
@@ -1529,8 +1550,8 @@ onUnmounted(() => {
 }
 
 .filter-section h3 {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
   color: var(--text-secondary);
   margin: 0 0 var(--spacing-sm);
 }
@@ -1545,11 +1566,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--font-size-sm);
+  padding: 12px var(--spacing-md);
+  font-size: var(--font-size-base);
   border: 1.5px solid var(--border-light);
   cursor: pointer;
-  min-height: 36px;
+  min-height: 46px;
   border-radius: var(--border-radius-full) !important;
   background: var(--bg-primary);
   color: var(--text-secondary);
@@ -1588,7 +1609,7 @@ onUnmounted(() => {
   background: var(--bg-primary) !important;
   border: 1.5px solid var(--border-light) !important;
   cursor: pointer;
-  min-height: var(--touch-target-min);
+  min-height: 54px;
   border-radius: var(--border-radius) !important;
   transition: all 0.2s var(--transition-soft);
   color: var(--text-primary) !important;
@@ -1621,10 +1642,10 @@ onUnmounted(() => {
   position: absolute;
   width: 16px;
   height: 16px;
-  background: #1677ff;
+  background: #E94F3D;
   border: 3px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(22, 119, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 1px rgba(233, 79, 61, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
   transform: translate(-50%, -50%);
   left: 0;
   top: 0;
@@ -1635,7 +1656,7 @@ onUnmounted(() => {
   position: absolute;
   width: 32px;
   height: 32px;
-  border: 2px solid #1677ff;
+  border: 2px solid #E94F3D;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   left: 0;
@@ -1668,7 +1689,7 @@ onUnmounted(() => {
   width: 80px;
   height: 80px;
   margin: -40px 0 0 -40px;
-  border: 2px solid #1677ff;
+  border: 2px solid #E94F3D;
   border-radius: 50%;
   z-index: 1000;
   pointer-events: none;
@@ -1683,6 +1704,803 @@ onUnmounted(() => {
   100% {
     transform: scale(2.5);
     opacity: 0;
+  }
+}
+
+/* 新版 H5 首页：社区陪诊工作台 */
+.home-container {
+  background: #FFF7EF;
+}
+
+.hero-panel {
+  padding: 18px 16px 22px;
+  background: #D94A37;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.home-header {
+  padding: 0;
+  background: transparent;
+  border-bottom: none;
+}
+
+.header-brand {
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: #fff;
+  color: #D94A37;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.home-header h1 {
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #fff;
+}
+
+.header-tagline {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.header-icon-btn {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.role-switcher {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.role-card {
+  min-height: 96px;
+  padding: 12px;
+  border-radius: 10px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.24) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  text-align: left;
+}
+
+.role-card.active {
+  background: #fff !important;
+  color: #D94A37 !important;
+  border-color: #fff !important;
+}
+
+.role-kicker {
+  font-size: 13px;
+  font-weight: 800;
+  opacity: 0.82;
+}
+
+.role-card strong {
+  font-size: 21px;
+  line-height: 1.1;
+}
+
+.role-card span:last-child {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.hero-copy {
+  margin-top: 18px;
+}
+
+.status-pill {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.hero-copy h2 {
+  margin: 12px 0 8px;
+  font-size: 30px;
+  line-height: 1.24;
+  color: #fff;
+}
+
+.hero-copy p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.search-bar,
+.search-bar.expanded {
+  max-height: none;
+  padding: 14px 16px;
+  background: #FFF7EF;
+  border-bottom: none;
+}
+
+.search-input {
+  min-height: 56px;
+  font-size: 17px;
+  border: 1.5px solid #E0C7BA;
+  box-shadow: 0 3px 10px rgba(23, 35, 49, 0.06);
+}
+
+.suggestion-list {
+  border-color: #E0C7BA;
+  z-index: 1300;
+  border-radius: 16px;
+  box-shadow: 0 16px 36px rgba(23, 35, 49, 0.16);
+}
+
+.suggestion-item {
+  min-height: 52px;
+  font-size: 17px;
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 16px 14px;
+  background: #FFF7EF;
+}
+
+.summary-strip div {
+  min-height: 74px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #E9D4CA;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.summary-strip strong {
+  font-size: 22px;
+  line-height: 1;
+  color: #D94A37;
+}
+
+.summary-strip span {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7D6257;
+}
+
+.sort-bar {
+  top: 0;
+  padding: 12px 16px;
+  background: #FFF9F2;
+  border-top: 1px solid #EFE2DC;
+  border-bottom: 1px solid #EFE2DC;
+}
+
+.sort-tabs {
+  gap: 8px;
+}
+
+.sort-tabs button {
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #6D5146 !important;
+  background: #fff !important;
+  border: 1px solid #E9D4CA !important;
+}
+
+.sort-tabs button.active {
+  color: #fff !important;
+  background: #D94A37 !important;
+  border-color: #D94A37 !important;
+}
+
+.view-toggle {
+  gap: 8px;
+}
+
+.view-toggle button {
+  width: 44px;
+  height: 44px;
+  background: #fff !important;
+  border: 1px solid #E9D4CA !important;
+}
+
+.view-toggle button.active {
+  background: #FFF0EC !important;
+  color: #D94A37 !important;
+  border-color: #E2B5A8 !important;
+}
+
+.task-list {
+  padding: 0 0 calc(96px + env(safe-area-inset-bottom));
+}
+
+.task-card {
+  margin: 0 12px 12px;
+  min-height: 184px;
+  height: auto;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #E9D4CA;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(23, 35, 49, 0.06);
+  gap: 14px;
+}
+
+.task-main {
+  width: auto;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+}
+
+.task-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.task-type {
+  width: auto;
+  max-width: 132px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #D94A37;
+  background: #FFF0EC;
+}
+
+.task-date {
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #73522b;
+  background: #f6ead9;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.task-title {
+  margin: 12px 0 10px;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.35;
+  color: #4F3A32;
+  word-break: break-word;
+}
+
+.task-meta {
+  height: auto;
+  margin: 0;
+  gap: 8px;
+  line-height: 1.4;
+  font-size: 15px;
+  color: #6D5146;
+}
+
+.task-meta span,
+.task-meta span:first-child,
+.task-meta span:nth-child(2),
+.task-meta span:nth-child(3) {
+  min-height: 30px;
+  height: auto;
+  line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #FFF5EC;
+}
+
+.task-route {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #8A6C60;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.task-side {
+  width: 76px;
+  min-height: 146px;
+  height: auto;
+  margin: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.task-budget {
+  width: auto;
+  font-size: 30px;
+  line-height: 1.2;
+  color: #c06b3f;
+  text-align: right;
+}
+
+.task-budget::before {
+  font-size: 16px;
+}
+
+.detail-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #D94A37;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.load-more {
+  padding: 8px 16px 24px;
+}
+
+.load-more button {
+  min-height: 56px;
+  border-radius: 10px !important;
+  border-color: #D94A37 !important;
+  color: #D94A37 !important;
+}
+
+.filter-drawer {
+  max-width: 420px;
+}
+
+.drawer-header h2 {
+  font-size: 24px;
+}
+
+.chip {
+  min-height: 50px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+@media (max-width: 360px) {
+  .hero-copy h2 {
+    font-size: 26px;
+  }
+
+  .role-card strong {
+    font-size: 18px;
+  }
+
+  .summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .task-card {
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+}
+
+/* 任务大厅轻量适老版 */
+.home-container {
+  background:
+    linear-gradient(180deg, #FFF2E8 0%, #FFF9F2 38%, #FFF6EE 100%);
+}
+
+.hero-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 16px 16px 22px;
+  background:
+    linear-gradient(180deg, #FFFDF8 0%, #FFF6EE 100%);
+  border-bottom: 1px solid #F2E6DE;
+}
+
+.hero-panel::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 0;
+  height: 1px;
+  background: rgba(233, 79, 61, 0.08);
+}
+
+.home-header {
+  position: relative;
+  z-index: 1;
+}
+
+.home-topbar {
+  position: relative;
+  z-index: 1;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-logo {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.brand-mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(4, 35, 43, 0.18);
+}
+
+.home-header h1 {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.header-tagline {
+  margin-top: 3px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.header-actions {
+  gap: 8px;
+}
+
+.header-icon-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px !important;
+  background: #fff !important;
+  color: #E94F3D !important;
+  border-color: #EBD8CF !important;
+  box-shadow: 0 8px 20px rgba(79, 58, 50, 0.08);
+}
+
+.header-icon-btn:hover {
+  background: #FFF0EC !important;
+  border-color: #E94F3D !important;
+  color: #E94F3D !important;
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 1;
+  margin-top: 22px;
+  max-width: 620px;
+}
+
+.status-pill {
+  background: #f8e1bd;
+  color: #5f3b15;
+  font-size: 14px;
+  box-shadow: 0 8px 20px rgba(4, 35, 43, 0.12);
+}
+
+.hero-copy h2 {
+  margin: 12px 0 8px;
+  max-width: 9em;
+  font-size: 30px;
+  line-height: 1.22;
+  font-weight: 900;
+}
+
+.hero-copy p {
+  max-width: 25em;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.hero-stats {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.hero-stats div {
+  min-height: 66px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.hero-stats strong {
+  display: block;
+  font-size: 27px;
+  line-height: 1;
+  color: #fff;
+}
+
+.hero-stats span {
+  display: block;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.search-bar,
+.search-bar.expanded {
+  position: relative;
+  z-index: 120;
+  margin: -12px 14px 0;
+  padding: 0;
+  background: transparent;
+}
+
+.search-input {
+  min-height: 56px;
+  padding: 14px 48px 14px 18px;
+  border: 1px solid #EBD8CF;
+  border-radius: 16px;
+  font-size: 18px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(23, 35, 49, 0.12);
+}
+
+.search-clear-btn {
+  right: 10px;
+  width: 38px;
+  height: 38px;
+}
+
+.summary-strip {
+  display: none;
+}
+
+.sort-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 14px 12px 12px;
+  padding: 7px;
+  border: 1px solid #EFE2DC;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 22px rgba(23, 35, 49, 0.06);
+  backdrop-filter: blur(8px);
+}
+
+.sort-tabs {
+  flex: 1;
+}
+
+.sort-tabs button {
+  min-height: 46px;
+  padding: 8px 12px;
+  border: none !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+}
+
+.sort-tabs button.active {
+  color: #E94F3D !important;
+  background: #FFF0EC !important;
+}
+
+.view-toggle button {
+  width: 46px;
+  height: 46px;
+  border: none !important;
+  border-radius: 12px !important;
+}
+
+.task-list {
+  padding: 0 0 calc(104px + env(safe-area-inset-bottom));
+}
+
+.task-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0 14px 16px;
+  min-height: 0;
+  padding: 22px;
+  border: 1px solid #EBD8CF;
+  border-radius: 20px;
+  background: #fffdf8;
+  box-shadow: 0 12px 28px rgba(23, 35, 49, 0.08);
+}
+
+.task-card:focus-visible {
+  outline: 4px solid rgba(233, 79, 61, 0.28);
+  outline-offset: 2px;
+}
+
+.task-card-top {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.task-type,
+.task-date {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  font-size: 15px;
+}
+
+.task-type {
+  max-width: none;
+  background: #FFF0EC;
+  color: #E94F3D;
+}
+
+.task-date {
+  color: #654318;
+  background: #f8e1bd;
+}
+
+.task-title {
+  margin: 18px 0 18px;
+  font-size: 25px;
+  line-height: 1.36;
+  color: #162936;
+}
+
+.task-facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.task-fact {
+  min-height: 76px;
+  padding: 12px 10px;
+  border-radius: 16px;
+  background: #FFF9F2;
+  border: 1px solid #EFE2DC;
+}
+
+.task-fact span {
+  display: block;
+  margin-bottom: 7px;
+  color: #8A6C60;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.task-fact strong {
+  display: block;
+  color: #4F3A32;
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.task-side {
+  width: 100%;
+  min-height: 0;
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid #F2E6DE;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.budget-label {
+  color: #8A6C60;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.task-budget {
+  margin-right: auto;
+  margin-left: 8px;
+  font-size: 34px;
+  color: #b45f32;
+}
+
+.task-budget::before {
+  font-size: 18px;
+}
+
+.detail-hint {
+  min-width: 94px;
+  min-height: 46px;
+  border-radius: 14px;
+  background: #E94F3D;
+  font-size: 16px;
+}
+
+.load-more {
+  padding: 8px 16px 28px;
+}
+
+@media (max-width: 420px) {
+  .hero-panel {
+    padding-bottom: 22px;
+  }
+
+  .hero-copy h2 {
+    font-size: 28px;
+  }
+
+  .task-card {
+    padding: 20px;
+  }
+
+  .task-facts {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .task-fact {
+    min-height: 76px;
+    padding: 10px 8px;
+  }
+
+  .task-fact strong {
+    font-size: 16px;
+  }
+
+  .task-side {
+    align-items: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .hero-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .task-title {
+    font-size: 23px;
+  }
+
+  .sort-bar {
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+
+  .sort-tabs button {
+    padding-left: 8px;
+    padding-right: 8px;
   }
 }
 </style>

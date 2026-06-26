@@ -3,28 +3,56 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const db = require('../db');
 
+const getWorkerWallet = async (userId) => {
+  const worker = await db.getSync('SELECT * FROM t_worker WHERE user_id = ?', [userId]);
+  const wallet = await db.getSync(`
+    SELECT w.*
+    FROM t_wallet w
+    LEFT JOIN t_worker tw ON w.worker_id = tw.id
+    WHERE tw.user_id = ? OR w.worker_id = ?
+    ORDER BY CASE WHEN tw.user_id = ? THEN 0 ELSE 1 END
+    LIMIT 1
+  `, [userId, userId, userId]);
+
+  if (wallet) return wallet;
+
+  const walletWorkerId = worker?.id || userId;
+  await db.runSync('INSERT INTO t_wallet (worker_id) VALUES (?)', [walletWorkerId]);
+  return db.getSync('SELECT * FROM t_wallet WHERE worker_id = ?', [walletWorkerId]);
+};
+
 router.post('/apply', authMiddleware, async (req, res) => {
   try {
-    const { age, community, service_radius, skills, emergency_contact_name, emergency_contact_phone } = req.body;
+    const { age, community, service_radius, skills, emergency_contact_name, emergency_contact_phone, service_periods } = req.body;
 
     if (age < 50 || age > 65) {
       return res.status(400).json({ code: 400, message: '年龄必须在50-65岁之间' });
     }
+    if (!emergency_contact_name || !String(emergency_contact_name).trim()) {
+      return res.status(400).json({ code: 400, message: '请填写联系人' });
+    }
+    if (!emergency_contact_phone || !/^1\d{10}$/.test(String(emergency_contact_phone).trim())) {
+      return res.status(400).json({ code: 400, message: '请填写正确的联系电话' });
+    }
+    if (!Array.isArray(service_periods) || service_periods.length === 0) {
+      return res.status(400).json({ code: 400, message: '请选择可服务时间段' });
+    }
 
     const now = new Date().toISOString();
     const worker = await db.getSync('SELECT * FROM t_worker WHERE user_id = ?', [req.user.id]);
+    const servicePeriodsText = JSON.stringify(service_periods);
 
     if (worker) {
       await db.runSync(`
         UPDATE t_worker SET age = ?, community = ?, service_radius = ?, skills = ?,
-        emergency_contact_name = ?, emergency_contact_phone = ?, status = 0
+        emergency_contact_name = ?, emergency_contact_phone = ?, service_periods = ?, status = 0
         WHERE user_id = ?
-      `, [age, community, service_radius, JSON.stringify(skills), emergency_contact_name, emergency_contact_phone, req.user.id]);
+      `, [age, community, service_radius, JSON.stringify(skills), emergency_contact_name, emergency_contact_phone, servicePeriodsText, req.user.id]);
     } else {
       const workerResult = await db.runSync(`
-        INSERT INTO t_worker (user_id, age, community, service_radius, skills, emergency_contact_name, emergency_contact_phone, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-      `, [req.user.id, age, community, service_radius, JSON.stringify(skills), emergency_contact_name, emergency_contact_phone]);
+        INSERT INTO t_worker (user_id, age, community, service_radius, skills, emergency_contact_name, emergency_contact_phone, service_periods, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+      `, [req.user.id, age, community, service_radius, JSON.stringify(skills), emergency_contact_name, emergency_contact_phone, servicePeriodsText]);
 
       await db.runSync('INSERT INTO t_wallet (worker_id) VALUES (?)', [workerResult.lastInsertRowid]);
     }
@@ -115,6 +143,15 @@ router.post('/tasks/:taskId/accept', authMiddleware, async (req, res) => {
   try {
     const { taskId } = req.params;
 
+    // V1.4: 检查是否已签署接单方协议
+    const agreement = await db.getSync(
+      'SELECT * FROM t_service_agreement WHERE user_id = ? AND agreement_type = ?',
+      [req.user.id, 'accept']
+    );
+    if (!agreement) {
+      return res.status(400).json({ code: 400, message: '请先签署《陪诊服务免责协议》后再接单' });
+    }
+
     const task = await db.getSync('SELECT * FROM t_task WHERE id = ?', [taskId]);
     if (!task) {
       return res.status(404).json({ code: 404, message: '任务不存在' });
@@ -178,12 +215,13 @@ router.put('/orders/:orderId/complete', authMiddleware, async (req, res) => {
     await db.runSync('UPDATE t_order SET status = 3, finish_service_time = ? WHERE id = ?', [now, orderId]);
     await db.runSync('UPDATE t_task SET status = 3 WHERE id = ?', [order.task_id]);
 
-    await db.runSync('UPDATE t_wallet SET cash_balance = cash_balance + ? WHERE worker_id = ?', [order.worker_income, req.user.id]);
+    const wallet = await getWorkerWallet(req.user.id);
+    await db.runSync('UPDATE t_wallet SET cash_balance = cash_balance + ? WHERE id = ?', [order.worker_income, wallet.id]);
 
     await db.runSync(`
       INSERT INTO t_wallet_transaction (wallet_id, type, amount, order_id, status, created_at)
-      SELECT w.id, 1, ?, ?, 1, ? FROM t_wallet w WHERE w.worker_id = ?
-    `, [order.worker_income, orderId, now, req.user.id]);
+      VALUES (?, 1, ?, ?, 1, ?)
+    `, [wallet.id, order.worker_income, orderId, now]);
 
     res.json({ code: 0, message: '服务已完成，等待就诊人确认' });
   } catch (err) {
@@ -198,12 +236,46 @@ router.post('/orders/:orderId/emergency', authMiddleware, (req, res) => {
 
 router.get('/wallet', authMiddleware, async (req, res) => {
   try {
-    const wallet = await db.getSync('SELECT * FROM t_wallet WHERE worker_id = ?', [req.user.id]);
-    if (!wallet) {
-      await db.runSync('INSERT INTO t_wallet (worker_id) VALUES (?)', [req.user.id]);
-      return res.json({ code: 0, message: 'success', data: { cash_balance: 0, points_balance: 0, frozen_amount: 0 } });
-    }
+    const wallet = await getWorkerWallet(req.user.id);
     res.json({ code: 0, message: 'success', data: wallet });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+router.get('/wallet/transactions', authMiddleware, async (req, res) => {
+  try {
+    const wallet = await getWorkerWallet(req.user.id);
+    const transactions = await db.allSync(`
+      SELECT * FROM t_wallet_transaction
+      WHERE wallet_id = ?
+      ORDER BY datetime(created_at) DESC, id DESC
+      LIMIT 50
+    `, [wallet.id]);
+    res.json({ code: 0, message: 'success', data: transactions });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+router.post('/wallet/recharge', authMiddleware, async (req, res) => {
+  try {
+    const amount = Number(req.body.amount);
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ code: 400, message: '请输入正确的充值金额' });
+    }
+
+    const wallet = await getWorkerWallet(req.user.id);
+    const now = new Date().toISOString();
+    await db.runSync('UPDATE t_wallet SET cash_balance = cash_balance + ? WHERE id = ?', [amount, wallet.id]);
+    await db.runSync(`
+      INSERT INTO t_wallet_transaction (wallet_id, type, amount, status, created_at)
+      VALUES (?, 4, ?, 1, ?)
+    `, [wallet.id, amount, now]);
+
+    res.json({ code: 0, message: '充值成功' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ code: 500, message: '服务器错误' });
@@ -212,19 +284,22 @@ router.get('/wallet', authMiddleware, async (req, res) => {
 
 router.post('/wallet/withdraw', authMiddleware, async (req, res) => {
   try {
-    const { amount } = req.body;
-    const wallet = await db.getSync('SELECT * FROM t_wallet WHERE worker_id = ?', [req.user.id]);
+    const amount = Number(req.body.amount);
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ code: 400, message: '请输入正确的提现金额' });
+    }
+    const wallet = await getWorkerWallet(req.user.id);
     if (!wallet || wallet.cash_balance < amount) {
       return res.status(400).json({ code: 400, message: '余额不足' });
     }
 
     const now = new Date().toISOString();
-    await db.runSync('UPDATE t_wallet SET frozen_amount = frozen_amount + ? WHERE worker_id = ?', [amount, req.user.id]);
+    await db.runSync('UPDATE t_wallet SET cash_balance = cash_balance - ?, frozen_amount = frozen_amount + ? WHERE id = ?', [amount, amount, wallet.id]);
 
     await db.runSync(`
       INSERT INTO t_wallet_transaction (wallet_id, type, amount, status, created_at)
-      VALUES ((SELECT id FROM t_wallet WHERE worker_id = ?), 2, ?, 0, ?)
-    `, [req.user.id, amount, now]);
+      VALUES (?, 2, ?, 0, ?)
+    `, [wallet.id, amount, now]);
 
     res.json({ code: 0, message: '提现申请已提交' });
   } catch (err) {

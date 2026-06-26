@@ -13,16 +13,12 @@
           <span class="value">{{ task.address }}</span>
         </div>
         <div class="info-item">
-          <span class="label">开始时间</span>
-          <span class="value">{{ formatDateTime(task.start_time) }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">结束时间</span>
-          <span class="value">{{ formatDateTime(task.end_time) }}</span>
+          <span class="label">服务时间</span>
+          <span class="value">{{ formatServiceTime(task.start_time, task.end_time) }}</span>
         </div>
         <div class="info-item">
           <span class="label">服务时长</span>
-          <span class="value">{{ task.duration_minutes }}分钟</span>
+          <span class="value">{{ formatDuration(task.duration_minutes) }}</span>
         </div>
         <div class="info-item">
           <span class="label">体力要求</span>
@@ -41,7 +37,7 @@
     </div>
 
     <div class="section">
-      <h4>雇主信息</h4>
+      <h4>就诊人信息</h4>
       <div class="employer-info">
         <span>{{ task.employer_nickname || '匿名用户' }}</span>
         <span class="phone" v-if="task.employer_phone">{{ task.employer_phone }}</span>
@@ -76,6 +72,24 @@ const formatDateTime = (time) => {
   if (!time) return ''
   const date = new Date(time)
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+const formatServiceTime = (start, end) => {
+  if (!start) return ''
+  if (!end) return formatDateTime(start)
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  const endText = startDate.toDateString() === endDate.toDateString()
+    ? `${endDate.getHours()}:${String(endDate.getMinutes()).padStart(2, '0')}`
+    : formatDateTime(end)
+  return `${formatDateTime(start)} - ${endText}`
+}
+
+const formatDuration = (minutes) => {
+  if (!minutes) return ''
+  if (minutes < 60) return `${minutes}分钟`
+  const hours = minutes / 60
+  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}小时`
 }
 
 const handleAccept = async () => {
@@ -128,7 +142,7 @@ onMounted(async () => {
 
 .budget {
   font-size: 24px;
-  color: #667eea;
+  color: #E94F3D;
   font-weight: bold;
 }
 
@@ -141,7 +155,7 @@ onMounted(async () => {
 
 .section h4 {
   font-size: 14px;
-  color: #999;
+  color: #8A6C60;
   margin-bottom: 12px;
 }
 
@@ -158,22 +172,22 @@ onMounted(async () => {
 
 .info-item .label {
   font-size: 12px;
-  color: #999;
+  color: #8A6C60;
   margin-bottom: 4px;
 }
 
 .info-item .value {
   font-size: 14px;
-  color: #333;
+  color: #4F3A32;
 }
 
 .info-item .tag {
-  color: #f56c6c;
+  color: #B84545;
 }
 
 .section p {
   font-size: 14px;
-  color: #666;
+  color: #7D6257;
   line-height: 1.6;
 }
 
@@ -181,11 +195,11 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
-  color: #333;
+  color: #4F3A32;
 }
 
 .employer-info .phone {
-  color: #667eea;
+  color: #E94F3D;
 }
 
 .actions {

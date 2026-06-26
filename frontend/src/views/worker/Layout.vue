@@ -3,6 +3,7 @@
     <div class="main-content">
       <router-view />
     </div>
+    <SOSButton />
     <div class="tab-bar">
       <button
         v-for="(tab, index) in tabs"
@@ -20,6 +21,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import SOSButton from '@/components/v1_4/SOSButton.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -67,7 +69,7 @@ const onTabChange = (index) => {
   align-items: center;
   height: 64px;
   background: #FFFFFF;
-  border-top: 2px solid #000;
+  border-top: 1.5px solid #EBD8CF;
   z-index: 100;
 }
 
@@ -87,7 +89,7 @@ const onTabChange = (index) => {
 }
 
 .tab-item.active .tab-label {
-  color: #0066FF;
+  color: #E94F3D;
   font-weight: 700;
 }
 
@@ -101,6 +103,6 @@ const onTabChange = (index) => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #666;
+  color: #7D6257;
 }
 </style>

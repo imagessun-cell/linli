@@ -18,6 +18,7 @@ const paymentRoutes = require('./routes/payment');
 const uploadRoutes = require('./routes/upload');
 const adminRoutes = require('./routes/admin');
 const locationRoutes = require('./routes/location');
+const v1_4Routes = require('./routes/v1_4');
 
 const app = express();
 const server = http.createServer(app);
@@ -45,6 +46,7 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/location', locationRoutes);
+app.use('/api/v1', v1_4Routes);
 
 app.get('/api/health', (req, res) => {
   res.json({ code: 0, message: 'OK', timestamp: new Date().toISOString() });

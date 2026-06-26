@@ -43,7 +43,7 @@ watch(() => route.name, (name) => {
   align-items: center;
   padding: 12px 16px;
   background: white;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #F2E6DE;
   position: sticky;
   top: 0;
   z-index: 100;

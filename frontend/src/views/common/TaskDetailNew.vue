@@ -10,7 +10,7 @@
         <span v-if="task.subTypeIcon" :class="['sub-type-tag', getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
         <span v-else class="hero-type-plain">{{ task.typeIcon }} {{ task.typeName }}</span>
       </div>
-      <h1 class="hero-title">{{ task.employerCommunity }} → {{ task.targetHospital }}</h1>
+      <h1 class="hero-title">{{ task.address || task.employerCommunity || '就诊人地点' }} → {{ task.targetHospital || '目标医院' }}</h1>
       <div class="hero-meta">
         <span>{{ formatPublishTime(task.createdAt) }}</span>
       </div>
@@ -28,10 +28,10 @@
             </div>
           </div>
           <div class="info-row">
-            <span class="info-icon">🗓️</span>
+              <span class="info-icon">🗓️</span>
             <div class="info-content">
               <span class="info-label">服务时间</span>
-              <span class="info-value">{{ formatDateTime(task.startTime) }}</span>
+              <span class="info-value">{{ formatServiceTime(task.startTime, task.endTime) }}</span>
             </div>
           </div>
           <div class="info-row">
@@ -45,7 +45,7 @@
             <span class="info-icon">🏥</span>
             <div class="info-content">
               <span class="info-label">服务路线</span>
-              <span class="info-value">{{ task.employerCommunity }} → {{ task.targetHospital }}</span>
+              <span class="info-value">{{ task.address || task.employerCommunity || '就诊人地点' }} → {{ task.targetHospital || '目标医院' }}</span>
             </div>
           </div>
           <div class="map-container-small">
@@ -57,7 +57,7 @@
               <span class="info-label">
                 我的位置
                 <span class="route-arrow-inline">→</span>
-                雇主家
+                就诊人地点
               </span>
               <div class="info-value-row">
                 <span class="info-value">{{ formatDistance(myToEmployerKm) }}</span>
@@ -74,7 +74,7 @@
             <span class="info-icon">🏠</span>
             <div class="info-content">
               <span class="info-label">
-                雇主家
+                就诊人地点
                 <span class="route-arrow-inline">→</span>
                 医院
               </span>
@@ -100,7 +100,13 @@
       <div class="section contact-section">
         <h3 class="section-title">联系信息</h3>
         <div class="publisher-card">
-          <img :src="task.employerAvatar || '/default-avatar.png'" class="publisher-avatar" />
+          <LinliAvatar
+            class="publisher-avatar"
+            :name="task.employerNickname || '就诊人'"
+            :src="task.employerAvatar"
+            variant="patient"
+            :size="56"
+          />
           <div class="publisher-info">
             <span class="publisher-name">{{ task.employerNickname }}</span>
             <span class="publisher-rating">📍 {{ task.employerCommunity || '所在社区' }}</span>
@@ -108,7 +114,7 @@
         </div>
         <div class="contact-actions">
           <button class="contact-btn" @click="handleContact" :disabled="loading">
-            📞 联系雇主
+            📞 联系就诊人
           </button>
           <button
             class="grab-btn"
@@ -137,6 +143,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import request from '@/api/request'
 import { ElMessage } from 'element-plus'
+import LinliAvatar from '@/components/LinliAvatar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -157,13 +164,24 @@ const formatDateTime = (str) => {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+const formatServiceTime = (start, end) => {
+  if (!start) return ''
+  if (!end) return formatDateTime(start)
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  const sameDay = startDate.toDateString() === endDate.toDateString()
+  const startText = formatDateTime(start)
+  const endText = sameDay
+    ? `${endDate.getHours()}:${String(endDate.getMinutes()).padStart(2, '0')}`
+    : formatDateTime(end)
+  return `${startText} - ${endText}`
+}
+
 const formatDuration = (minutes) => {
   if (!minutes) return ''
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  if (h === 0) return `${m}分钟`
-  if (m === 0) return `${h}小时`
-  return `${h}小时${m}分钟`
+  if (minutes < 60) return `${minutes}分钟`
+  const hours = minutes / 60
+  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}小时`
 }
 
 const formatPublishTime = (timestamp) => {
@@ -203,7 +221,7 @@ const getSubTypeClass = (subType) => {
   return classMap[subType] || ''
 }
 
-// 我的位置坐标（实时更新，兜底为雇主家附近）
+// 我的位置坐标（实时更新，兜底为就诊人地点附近）
 const myLocation = ref(null)
 const updateMyLocation = () => {
   if (!navigator.geolocation) return
@@ -215,7 +233,7 @@ const updateMyLocation = () => {
       }
     },
     () => {
-      // 定位失败兜底：使用雇主家附近
+      // 定位失败兜底：使用就诊人地点附近
       if (task.value && task.value.employerCommunityLat) {
         myLocation.value = {
           lat: task.value.employerCommunityLat,
@@ -243,17 +261,17 @@ const calcKm = (lat1, lng1, lat2, lng2) => {
 const employerToHospitalKm = computed(() => {
   const t = task.value
   if (!t) return null
-  return calcKm(t.employerCommunityLat, t.employerCommunityLng, t.latitude, t.longitude)
+  return calcKm(t.latitude, t.longitude, t.targetHospitalLat, t.targetHospitalLng)
 })
 
 const myToEmployerKm = computed(() => {
   const t = task.value
   if (!t) return null
   const me = myLocation.value || {
-    lat: t.employerCommunityLat,
-    lng: t.employerCommunityLng
+    lat: t.latitude,
+    lng: t.longitude
   }
-  return calcKm(me.lat, me.lng, t.employerCommunityLat, t.employerCommunityLng)
+  return calcKm(me.lat, me.lng, t.latitude, t.longitude)
 })
 
 const formatDistance = (km) => {
@@ -275,19 +293,19 @@ const myToEmployerNavUrl = computed(() => {
   const t = task.value
   if (!t) return '#'
   const me = myLocation.value || {
-    lat: t.employerCommunityLat,
-    lng: t.employerCommunityLng
+    lat: t.latitude,
+    lng: t.longitude
   }
-  return buildNavUrl(me.lat, me.lng, t.employerCommunityLat, t.employerCommunityLng, t.employerCommunity)
+  return buildNavUrl(me.lat, me.lng, t.latitude, t.longitude, t.address || '就诊人地点')
 })
 
 const employerToHospitalNavUrl = computed(() => {
   const t = task.value
   if (!t) return '#'
-  return buildNavUrl(t.employerCommunityLat, t.employerCommunityLng, t.latitude, t.longitude, t.targetHospital)
+  return buildNavUrl(t.latitude, t.longitude, t.targetHospitalLat, t.targetHospitalLng, t.targetHospital)
 })
 
-// 初始化详情页地图（DOMOverlay 自定义 marker，雇主家→医院公交路线）
+// 初始化详情页地图（DOMOverlay 自定义 marker，就诊人地点→医院公交路线）
 const initTaskMap = () => {
   const mapContainer = document.getElementById('task-detail-map')
   if (!mapContainer || !task.value) return
@@ -302,19 +320,16 @@ const initTaskMap = () => {
     }
     try {
       const map = new BMapGL.Map('task-detail-map')
-      const hospitalPoint = new BMapGL.Point(task.value.longitude, task.value.latitude)
-
-      const employerLat = task.value.employerCommunityLat
-      const employerLng = task.value.employerCommunityLng
-      const hasEmployer = !!(employerLat && employerLng)
-      const employerPoint = hasEmployer
-        ? new BMapGL.Point(employerLng, employerLat)
+      const patientPoint = new BMapGL.Point(task.value.longitude, task.value.latitude)
+      const hasHospital = !!(task.value.targetHospitalLat && task.value.targetHospitalLng)
+      const hospitalPoint = hasHospital
+        ? new BMapGL.Point(task.value.targetHospitalLng, task.value.targetHospitalLat)
         : null
 
-      const myPoint = employerPoint
+      const myPoint = patientPoint
         ? new BMapGL.Point(
-            employerLng + (Math.random() - 0.5) * 0.006,
-            employerLat + (Math.random() - 0.5) * 0.006
+            task.value.longitude + (Math.random() - 0.5) * 0.006,
+            task.value.latitude + (Math.random() - 0.5) * 0.006
           )
         : new BMapGL.Point(
             task.value.longitude + 0.003,
@@ -344,21 +359,21 @@ const initTaskMap = () => {
       }
 
       const markers = [
-        { id: 1, point: myPoint, title: '我的位置', color: '#22c55e', emoji: '📍' },
-        hasEmployer && { id: 2, point: employerPoint, title: '雇主家', color: '#f59e0b', emoji: '🏠' },
-        { id: 3, point: hospitalPoint, title: '目标医院', color: '#ef4444', emoji: '🏥' }
+        { id: 1, point: myPoint, title: '我的位置', color: '#B66A25', emoji: '📍' },
+        { id: 2, point: patientPoint, title: '就诊人地点', color: '#F6A21A', emoji: '🏠' },
+        hasHospital && { id: 3, point: hospitalPoint, title: '目标医院', color: '#E94F3D', emoji: '🏥' }
       ].filter(Boolean)
 
       markers.forEach(m => buildMarker(m.id, m.point, m.title, m.color, m.emoji))
 
-      // 雇主家 → 医院 公交路线
-      if (hasEmployer) {
+      // 就诊人地点 → 医院 公交路线
+      if (hasHospital) {
         const transit = new BMapGL.TransitRoute(map, {
           renderOptions: { map: map, autoViewport: true }
         })
-        transit.search(employerPoint, hospitalPoint)
+        transit.search(patientPoint, hospitalPoint)
       } else {
-        map.centerAndZoom(hospitalPoint, 15)
+        map.centerAndZoom(patientPoint, 15)
       }
 
       // 调整视野
@@ -376,7 +391,7 @@ const initTaskMap = () => {
         )
         map.setBounds(bounds)
       } catch (e) {
-        map.centerAndZoom(hospitalPoint, 14)
+        map.centerAndZoom(patientPoint, 14)
       }
 
       map.enableScrollWheelZoom(false)
@@ -474,7 +489,7 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
-  border-bottom: 1px solid #000;
+  border-bottom: 1px solid #EBD8CF;
 }
 
 .back-btn {
@@ -484,8 +499,8 @@ onMounted(() => {
   align-items: center !important;
   justify-content: center !important;
   font-size: 18px !important;
-  background: #f5f7fa !important;
-  color: #1E2A3A !important;
+  background: #FFF9F2 !important;
+  color: #4F3A32 !important;
   border: 1.5px solid transparent !important;
   border-radius: 12px !important;
   cursor: pointer;
@@ -495,13 +510,13 @@ onMounted(() => {
 }
 
 .back-btn:hover {
-  background: #e8ecf2 !important;
-  color: #2c7a9e !important;
-  border-color: #2c7a9e !important;
+  background: #FFF0EC !important;
+  color: #E94F3D !important;
+  border-color: #E94F3D !important;
 }
 
 .back-btn:active {
-  background: #e8ecf2 !important;
+  background: #FFF0EC !important;
 }
 
 .header-label {
@@ -509,12 +524,12 @@ onMounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #666;
+  color: #7D6257;
 }
 
 .hero-section {
   padding: 32px 20px;
-  border-bottom: 1px solid #E0E0E0;
+  border-bottom: 1px solid #E2CFC6;
 }
 
 .hero-type {
@@ -539,7 +554,7 @@ onMounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #666;
+  color: #7D6257;
 }
 
 .sub-type-tag {
@@ -549,32 +564,32 @@ onMounted(() => {
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
-  background: rgba(64, 158, 255, 0.1);
+  background: rgba(233, 79, 61, 0.10);
 }
 
 .sub-type-tag.tag-escort {
-  background: rgba(64, 158, 255, 0.1);
+  background: rgba(233, 79, 61, 0.10);
   color: var(--accent);
 }
 
 .tag-accompany {
-  background: rgba(64, 158, 255, 0.1);
+  background: rgba(233, 79, 61, 0.10);
   color: var(--accent);
 }
 
 .tag-pharmacy {
-  background: rgba(64, 158, 255, 0.1);
+  background: rgba(233, 79, 61, 0.10);
   color: var(--accent);
 }
 
 .tag-consult {
-  background: rgba(64, 158, 255, 0.1);
+  background: rgba(233, 79, 61, 0.10);
   color: var(--accent);
 }
 
 .tag-training {
-  background: rgba(103, 194, 58, 0.1);
-  color: #67c23a;
+  background: rgba(246, 162, 26, 0.16);
+  color: #B66A25;
 }
 
 .hero-title {
@@ -582,14 +597,14 @@ onMounted(() => {
   font-weight: 900;
   letter-spacing: -0.02em;
   margin-bottom: 16px;
-  color: #1a1a1a;
+  color: #4F3A32;
 }
 
 .hero-meta {
   display: flex;
   gap: 20px;
   font-size: 16px;
-  color: #444;
+  color: #6D5146;
 }
 
 .main-content {
@@ -602,12 +617,12 @@ onMounted(() => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border: 2px solid #000;
+  border: 1.5px solid #EBD8CF;
 }
 
 .section {
   padding: 24px 20px;
-  border-bottom: 1px solid #E0E0E0;
+  border-bottom: 1px solid #E2CFC6;
 }
 
 .section-title {
@@ -615,7 +630,7 @@ onMounted(() => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #333;
+  color: #4F3A32;
   margin-bottom: 20px;
   height: 21px;
   line-height: 21px;
@@ -635,12 +650,12 @@ onMounted(() => {
 
 .route-nav-link {
   font-size: 13px;
-  color: #4f46e5;
+  color: #E94F3D;
   text-decoration: none;
   padding: 4px 12px;
   border-radius: 999px;
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
+  background: #FFF0EC;
+  border: 1px solid #F2B5A7;
   white-space: nowrap;
   transition: all 0.2s;
   font-weight: 500;
@@ -648,9 +663,9 @@ onMounted(() => {
 }
 
 .route-nav-link:hover {
-  background: #4f46e5;
+  background: #E94F3D;
   color: #fff;
-  border-color: #4f46e5;
+  border-color: #E94F3D;
 }
 
 .info-icon {
@@ -674,7 +689,7 @@ onMounted(() => {
 
 .info-value-row .info-value {
   font-size: 16px;
-  color: rgb(26, 26, 26);
+  color: #4F3A32;
   line-height: 1.5;
   font-weight: 600;
 }
@@ -690,7 +705,7 @@ onMounted(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgb(26, 26, 26);
+  color: #4F3A32;
   margin-bottom: 4px;
 }
 
@@ -704,25 +719,25 @@ onMounted(() => {
 
 .info-value {
   font-size: 16px;
-  color: rgb(26, 26, 26);
+  color: #4F3A32;
   line-height: 1.5;
 }
 
 .info-value-budget {
   font-size: 24px;
   font-weight: 900;
-  color: #eb0000;
+  color: #B84545;
   line-height: 1.2;
 }
 
 .route-arrow-inline {
-  color: rgb(26, 26, 26);
+  color: #4F3A32;
   font-weight: 700;
   margin: 0 2px;
 }
 
 .route-distance-inline {
-  color: rgb(26, 26, 26);
+  color: #4F3A32;
 }
 
 .map-container-small {
@@ -753,7 +768,7 @@ onMounted(() => {
   top: 50%;
   width: 12px;
   height: 12px;
-  background: #4285f4;
+  background: #E94F3D;
   border: 2px solid #fff;
   border-radius: 50%;
   transform: translate(-50%, -50%);
@@ -767,7 +782,7 @@ onMounted(() => {
   top: 50%;
   width: 20px;
   height: 20px;
-  background: rgba(66, 133, 244, 0.4);
+  background: rgba(233, 79, 61, 0.22);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   animation: my-location-pulse 1.8s ease-out infinite;
@@ -844,7 +859,7 @@ onMounted(() => {
   margin: 0;
   padding: 0;
   font-size: 16px;
-  color: #1a1a1a;
+  color: #4F3A32;
   line-height: 1.6;
   border: none;
 }
@@ -878,7 +893,7 @@ onMounted(() => {
 
 .publisher-rating {
   font-size: 13px;
-  color: #666;
+  color: #7D6257;
 }
 
 .contact-actions {
@@ -901,27 +916,27 @@ onMounted(() => {
 }
 
 .contact-btn {
-  background: #f5f7fa !important;
-  color: #1E2A3A !important;
+  background: #FFF9F2 !important;
+  color: #4F3A32 !important;
   border-color: transparent !important;
 }
 
 .contact-btn:hover:not(:disabled) {
-  background: #e8ecf2 !important;
-  color: #2c7a9e !important;
-  border-color: #2c7a9e !important;
+  background: #FFF0EC !important;
+  color: #E94F3D !important;
+  border-color: #E94F3D !important;
 }
 
 .grab-btn {
-  background: #2c7a9e !important;
+  background: #E94F3D !important;
   color: #FFFFFF !important;
-  border-color: #2c7a9e !important;
+  border-color: #E94F3D !important;
 }
 
 .grab-btn:hover:not(:disabled) {
-  background: #216080 !important;
+  background: #C94131 !important;
   color: #FFFFFF !important;
-  border-color: #216080 !important;
+  border-color: #C94131 !important;
 }
 
 .contact-btn:active:not(:disabled),
@@ -932,7 +947,7 @@ onMounted(() => {
 .contact-btn:disabled, .grab-btn:disabled {
   opacity: 0.4 !important;
   cursor: not-allowed;
-  background: #999 !important;
+  background: #8A6C60 !important;
   color: #fff !important;
   border-color: transparent !important;
 }
@@ -943,6 +958,233 @@ onMounted(() => {
   justify-content: center;
   min-height: 50vh;
   font-size: 14px;
-  color: #666;
+  color: #7D6257;
+}
+
+/* 适老化统一风格：岗位详情 */
+.task-detail-page {
+  background:
+    linear-gradient(180deg, #FFF2E8 0%, #FFF9F2 38%, #FFF6EE 100%);
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  color: #4F3A32;
+}
+
+.detail-header {
+  padding: 14px 16px;
+  border-bottom: none;
+  background: #E94F3D;
+  color: #fff;
+}
+
+.back-btn {
+  width: 46px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  font-size: 22px !important;
+}
+
+.header-label {
+  font-size: 18px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.hero-section {
+  margin: 0;
+  padding: 18px 16px 22px;
+  border-bottom: none;
+  background: #E94F3D;
+  color: #fff;
+}
+
+.sub-type-tag,
+.hero-type-plain {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #f8e1bd !important;
+  color: #5f3b15 !important;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.hero-title {
+  margin: 14px 0 10px;
+  font-size: 29px;
+  line-height: 1.28;
+  letter-spacing: 0;
+  color: #fff;
+}
+
+.hero-meta {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.main-content {
+  padding: 14px 0 0;
+}
+
+.section {
+  margin: 0 14px 14px;
+  padding: 18px;
+  border: 1px solid #EBD8CF;
+  border-radius: 20px;
+  background: #fffdf8;
+  box-shadow: 0 12px 28px rgba(23, 35, 49, 0.08);
+}
+
+.section-title {
+  height: auto;
+  margin: 0 0 14px;
+  font-size: 21px;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #4F3A32;
+}
+
+.info-list {
+  gap: 10px;
+}
+
+.info-row {
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #EFE2DC;
+  border-radius: 16px;
+  background: #FFF9F2;
+}
+
+.info-icon {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-top: 0;
+  border-radius: 12px;
+  background: #FFF0EC;
+  font-size: 20px;
+}
+
+.info-label {
+  margin-bottom: 6px;
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #8A6C60;
+}
+
+.info-value,
+.info-value-row .info-value {
+  font-size: 18px;
+  line-height: 1.45;
+  font-weight: 800;
+  color: #4F3A32;
+}
+
+.info-value-budget {
+  font-size: 34px;
+  color: #b45f32;
+}
+
+.map-container-small {
+  width: 100%;
+  height: 180px;
+  margin: 12px 0;
+  border-radius: 18px;
+  box-shadow: 0 10px 24px rgba(23, 35, 49, 0.1);
+}
+
+.route-nav-link {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-color: #E2B5A8;
+  background: #fff;
+  color: #E94F3D;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.special-requirements {
+  padding: 14px;
+  border-radius: 16px;
+  background: #FFF9F2;
+  font-size: 18px;
+  color: #4F3A32;
+}
+
+.publisher-card {
+  padding: 14px;
+  border-radius: 18px;
+  background: #FFF9F2;
+}
+
+.publisher-avatar {
+  width: 64px;
+  height: 64px;
+  border-color: #FFF0EC;
+}
+
+.publisher-name {
+  font-size: 20px;
+  color: #4F3A32;
+}
+
+.publisher-rating {
+  font-size: 15px;
+  color: #8A6C60;
+}
+
+.contact-actions {
+  gap: 10px;
+}
+
+.contact-btn,
+.grab-btn {
+  min-height: 58px !important;
+  padding: 14px !important;
+  border-radius: 16px !important;
+  font-size: 17px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.contact-btn {
+  background: #fff !important;
+  color: #E94F3D !important;
+  border-color: #E2B5A8 !important;
+}
+
+.grab-btn {
+  background: #E94F3D !important;
+  border-color: #E94F3D !important;
+}
+
+.loading-state,
+.error-state {
+  font-size: 18px;
+  color: #8A6C60;
+}
+
+@media (max-width: 380px) {
+  .hero-title {
+    font-size: 26px;
+  }
+
+  .contact-actions {
+    flex-direction: column;
+  }
 }
 </style>

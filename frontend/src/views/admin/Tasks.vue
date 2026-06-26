@@ -239,8 +239,8 @@ onMounted(fetchTasks)
   font-size: var(--font-size-xs);
   font-weight: 500;
 }
-.tag-pending { background: #fff3e0; color: #e65100; }
-.tag-ongoing { background: #e3f2fd; color: #1565c0; }
+.tag-pending { background: #FFF3D8; color: #B66A25; }
+.tag-ongoing { background: #FFF0EC; color: #E94F3D; }
 .tag-done { background: var(--success-light); color: var(--success); }
 .tag-cancelled { background: var(--danger-light); color: var(--danger); }
 

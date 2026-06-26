@@ -107,6 +107,7 @@ router.get('/nearby', async (req, res) => {
       const kw = keyword.trim().toLowerCase();
       tasks = tasks.filter(task => {
         return (task.address && task.address.toLowerCase().includes(kw)) ||
+               (task.target_hospital && task.target_hospital.toLowerCase().includes(kw)) ||
                (task.special_requirements && task.special_requirements.toLowerCase().includes(kw)) ||
                (TASK_TYPES[task.type] && TASK_TYPES[task.type].name.includes(kw));
       });
@@ -125,8 +126,8 @@ router.get('/nearby', async (req, res) => {
       subType: task.sub_type,
       subTypeName: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.name || null) : null,
       subTypeIcon: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.icon || '') : null,
-      title: task.sub_type
-        ? `${ESCORT_SUB_TYPES[task.sub_type]?.name || '陪诊'} - ${task.address}`
+      title: task.target_hospital
+        ? `${task.address} → ${task.target_hospital}`
         : `${task.address}`,
       startTime: task.start_time,
       endTime: task.end_time,
@@ -145,6 +146,8 @@ router.get('/nearby', async (req, res) => {
       employerCommunity: (task.employer_community || '').replace(/^[\u4e00-\u9fa5]{1,4}区/, ''),
       employerRating: task.employer_rating || 5.0,
       targetHospital: task.target_hospital,
+      targetHospitalLat: task.target_hospital_lat,
+      targetHospitalLng: task.target_hospital_lng,
       status: task.status,
       createdAt: task.created_at
     }));
@@ -176,14 +179,16 @@ router.get('/suggestions', async (req, res) => {
     }
     console.log('[suggestions] keyword=', JSON.stringify(keyword), 'SERVICE_KEYWORDS hit=', !!SERVICE_KEYWORDS[keyword]);
 
-    // 1) 从真实任务表中查（address）
+    // 1) 从真实任务表中查（就诊人地点 / 就诊医院）
     const like = `%${keyword}%`;
     const rows = await db.allSync(`
-      SELECT DISTINCT address, type, sub_type
+      SELECT DISTINCT address, target_hospital, type, sub_type
       FROM t_task
-      WHERE status = 0 AND expires_at > datetime('now') AND address LIKE ?
+      WHERE status = 0
+        AND expires_at > datetime('now')
+        AND (address LIKE ? OR target_hospital LIKE ?)
       LIMIT ?
-    `, [like, parseInt(limit) * 2]);
+    `, [like, like, parseInt(limit) * 2]);
 
     const suggestionMap = new Map();
 
@@ -199,6 +204,10 @@ router.get('/suggestions', async (req, res) => {
       const addr = row.address || '';
       if (addr.toLowerCase().includes(keyword.toLowerCase())) {
         pushIfNew({ text: addr, type: 'address', taskType: row.type });
+      }
+      const hospital = row.target_hospital || '';
+      if (hospital.toLowerCase().includes(keyword.toLowerCase())) {
+        pushIfNew({ text: hospital, type: 'address', taskType: row.type });
       }
       const parts = addr.split(/[市区县路街道号]/).filter(p => p.length >= 2);
       parts.forEach((part) => {
@@ -387,8 +396,8 @@ router.get('/public/:taskId', async (req, res) => {
         subType: task.sub_type,
         subTypeName: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.name || null) : null,
         subTypeIcon: task.sub_type ? (ESCORT_SUB_TYPES[task.sub_type]?.icon || '') : null,
-        title: task.sub_type
-          ? `${ESCORT_SUB_TYPES[task.sub_type]?.name || '陪诊'} - ${task.address}`
+        title: task.target_hospital
+          ? `${task.address} → ${task.target_hospital}`
           : `${task.address}`,
         startTime: task.start_time,
         endTime: task.end_time,
@@ -409,6 +418,8 @@ router.get('/public/:taskId', async (req, res) => {
         employerCommunityLng: task.community_lng,
         employerRating: task.employer_rating || 5.0,
         targetHospital: task.target_hospital,
+        targetHospitalLat: task.target_hospital_lat,
+        targetHospitalLng: task.target_hospital_lng,
         employerId: task.employer_id,
         status: task.status,
         createdAt: task.created_at

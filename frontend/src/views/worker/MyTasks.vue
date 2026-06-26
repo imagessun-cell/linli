@@ -1,5 +1,14 @@
 <template>
   <div class="my-tasks">
+    <section class="tasks-hero">
+      <div class="hero-top">
+        <button class="hero-back" type="button" aria-label="返回上一页" @click="$router.back()">‹</button>
+        <span>陪诊师工作台</span>
+      </div>
+      <h1>我的任务</h1>
+      <p>查看服务进度，按时开始和完成陪诊。</p>
+    </section>
+
     <el-tabs v-model="activeTab" @tab-change="fetchOrders">
       <el-tab-pane label="进行中" name="1" />
       <el-tab-pane label="待确认" name="3" />
@@ -100,7 +109,7 @@ const completeService = async (orderId) => {
   try {
     const res = await request.put(`/worker/orders/${orderId}/complete`)
     if (res.code === 0) {
-      ElMessage.success('已完成，等待雇主确认')
+      ElMessage.success('已完成，等待就诊人确认')
       fetchOrders()
     }
   } catch (e) {
@@ -115,83 +124,235 @@ onMounted(() => {
 
 <style scoped>
 .my-tasks {
-  padding: 16px;
+  min-height: 100vh;
+  padding: 0 14px calc(104px + env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, #FFF2E8 0%, #FFF9F2 38%, #FFF6EE 100%);
+  color: #4F3A32;
+}
+
+.tasks-hero {
+  margin: 0 -14px 14px;
+  padding: 18px 16px 22px;
+  background: #E94F3D;
+  color: #fff;
+}
+
+.hero-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hero-back {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.hero-back:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tasks-hero span {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f8e1bd;
+  color: #5f3b15;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.tasks-hero h1 {
+  margin: 12px 0 8px;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 900;
+  color: #fff;
+}
+
+.tasks-hero p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+:deep(.el-tabs) {
+  margin-bottom: 14px;
+}
+
+:deep(.el-tabs__header) {
+  margin: 0;
+  padding: 6px;
+  border: 1px solid #EBD8CF;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(23, 35, 49, 0.06);
+}
+
+:deep(.el-tabs__nav-wrap::after) {
+  display: none;
+}
+
+:deep(.el-tabs__nav) {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  float: none;
+}
+
+:deep(.el-tabs__active-bar) {
+  display: none;
+}
+
+:deep(.el-tabs__item) {
+  min-height: 46px;
+  padding: 0 8px !important;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7D6257;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+:deep(.el-tabs__item.is-active) {
+  background: #FFF0EC;
+  color: #E94F3D;
 }
 
 .order-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 14px;
+  margin-top: 0;
 }
 
 .order-card {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
+  background: #fffdf8;
+  border: 1px solid #EBD8CF;
+  border-radius: 20px;
+  padding: 18px;
   cursor: pointer;
+  box-shadow: 0 12px 28px rgba(23, 35, 49, 0.08);
 }
 
 .order-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .order-no {
-  font-size: 12px;
-  color: #999;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 800;
+  color: #8A6C60;
+  word-break: break-all;
 }
 
 .order-status {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 900;
+  padding: 5px 10px;
+  border-radius: 999px;
 }
 
-.order-status.warning { background: #fff3e0; color: #ff9800; }
-.order-status.primary { background: #e3f2fd; color: #2196f3; }
-.order-status.info { background: #f5f5f5; color: #999; }
-.order-status.success { background: #e8f5e9; color: #4caf50; }
-.order-status.danger { background: #ffebee; color: #f44336; }
+.order-status.warning { background: #f8e1bd; color: #654318; }
+.order-status.primary { background: #FFF0EC; color: #E94F3D; }
+.order-status.info { background: #FFF3EA; color: #7D6257; }
+.order-status.success { background: #FFF3D8; color: #B66A25; }
+.order-status.danger { background: #f7e2dc; color: #9c3f24; }
 
 .order-content h4 {
-  font-size: 16px;
-  margin-bottom: 4px;
+  margin: 0 0 10px;
+  font-size: 23px;
+  line-height: 1.3;
+  font-weight: 900;
+  color: #4F3A32;
 }
 
 .order-content p {
-  font-size: 13px;
-  color: #666;
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #7D6257;
 }
 
 .order-content .time {
-  font-size: 12px;
-  color: #999;
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #FFF9F2;
+  color: #E94F3D;
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .order-footer {
   display: flex;
   justify-content: space-between;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #F2E6DE;
 }
 
 .order-footer .amount {
-  font-size: 16px;
-  color: #667eea;
-  font-weight: bold;
+  font-size: 28px;
+  line-height: 1;
+  color: #b45f32;
+  font-weight: 900;
 }
 
 .order-footer .date {
-  font-size: 12px;
-  color: #999;
+  font-size: 15px;
+  font-weight: 800;
+  color: #8A6C60;
 }
 
 .order-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+:deep(.order-actions .el-button) {
+  flex: 1;
+  min-height: 50px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+@media (max-width: 360px) {
+  .order-footer,
+  .order-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 </style>

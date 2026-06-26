@@ -1,16 +1,11 @@
 <template>
   <div class="worker-square">
-    <header class="page-header">
-      <h1>陪诊师广场</h1>
-      <p class="subtitle">找到身边的可靠陪诊师</p>
-    </header>
-
     <div class="filter-bar" role="search">
       <label for="worker-search" class="sr-only">搜索陪诊师</label>
       <input
         id="worker-search"
         v-model="searchKeyword"
-        placeholder="搜索社区或服务类型"
+        placeholder="搜索社区、陪诊技能或昵称"
         class="search-input"
         type="search"
         @search="fetchWorkers"
@@ -26,20 +21,11 @@
       >
         <div class="worker-header">
           <div class="avatar-wrapper">
-            <img
-              v-if="worker.avatar_url"
-              :src="worker.avatar_url"
-              :alt="worker.nickname + '的头像'"
-              class="avatar"
-              @error="handleAvatarError($event, worker.nickname)"
-            />
-            <div v-else class="avatar-placeholder" :aria-label="worker.nickname + '的头像占位符'">
-              {{ worker.nickname.charAt(0) }}
-            </div>
+            <LinliAvatar :name="worker.nickname" :src="worker.avatar_url" variant="worker" :size="64" />
           </div>
           <div class="info">
             <h2 class="worker-name">{{ worker.nickname }}</h2>
-            <p class="worker-location">{{ worker.community }}</p>
+            <p class="worker-location">{{ worker.community || '社区待完善' }}</p>
           </div>
           <div class="rating" aria-label="评分">
             <span class="score">{{ worker.avg_rating }}</span>
@@ -60,15 +46,15 @@
         <div class="worker-stats">
           <div class="stat-item">
             <span class="stat-value">{{ worker.total_orders }}</span>
-            <span class="stat-label">订单</span>
+            <span class="stat-label">完成订单</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">{{ worker.total_hours }}</span>
-            <span class="stat-label">服务时长</span>
+            <span class="stat-label">服务小时</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">Lv.{{ worker.honor_level }}</span>
-            <span class="stat-label">等级</span>
+            <span class="stat-label">荣誉等级</span>
           </div>
         </div>
 
@@ -77,7 +63,7 @@
             class="action-btn primary"
             @click="handleInvite(worker)"
           >
-            邀请服务
+            邀请陪诊
           </button>
           <button
             class="action-btn"
@@ -123,32 +109,33 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import request from '@/api/request'
+import LinliAvatar from '@/components/LinliAvatar.vue'
 
 const router = useRouter()
+const route = useRoute()
 
 const workers = ref([])
 const loading = ref(false)
 const searchKeyword = ref('')
+const matchedSkill = ref('')
 const showInviteDialog = ref(false)
 const selectedWorker = ref(null)
-
-const handleAvatarError = (event, nickname) => {
-  const img = event.target
-  const wrapper = img.parentElement
-  img.style.display = 'none'
-  const placeholder = document.createElement('div')
-  placeholder.className = 'avatar-placeholder'
-  placeholder.setAttribute('aria-label', nickname + '的头像占位符')
-  placeholder.textContent = nickname.charAt(0)
-  wrapper.appendChild(placeholder)
-}
 
 const fetchWorkers = async () => {
   loading.value = true
   try {
-    const res = await request.get('/employer/workers', { skills: searchKeyword.value })
+    const params = {}
+    if (searchKeyword.value.trim()) {
+      const keyword = searchKeyword.value.trim()
+      if (matchedSkill.value && keyword === matchedSkill.value) {
+        params.skills = keyword
+      } else {
+        params.keyword = keyword
+      }
+    }
+    const res = await request.get('/employer/workers', { params })
     if (res.code === 0) {
       workers.value = res.data.workers || []
     }
@@ -170,6 +157,11 @@ const goToPublish = () => {
 }
 
 onMounted(() => {
+  const initialSkill = route.query.skill || route.query.service
+  if (initialSkill) {
+    matchedSkill.value = String(initialSkill)
+    searchKeyword.value = matchedSkill.value
+  }
   fetchWorkers()
 })
 </script>
@@ -510,5 +502,447 @@ onMounted(() => {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* 新版 H5：就诊人选择陪诊师 */
+.worker-square {
+  min-height: 100vh;
+  padding: 0 0 calc(96px + env(safe-area-inset-bottom));
+  background: #FFF7EF;
+  color: #4F3A32;
+}
+
+.worker-hero {
+  padding: 0;
+  background: #E94F3D;
+  color: #fff;
+}
+
+.hero-pill {
+  display: inline-flex;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.worker-hero h1 {
+  margin: 12px 0 7px;
+  font-size: 27px;
+  line-height: 1.26;
+  color: #fff;
+}
+
+.worker-hero p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.filter-bar {
+  margin: 0;
+  padding: 16px 16px 12px;
+  background: #FFF7EF;
+}
+
+.search-input {
+  min-height: 56px;
+  padding: 12px 16px;
+  font-size: 17px;
+  border: 1.5px solid #E0C7BA;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(23, 35, 49, 0.06);
+}
+
+.search-input:focus {
+  border-color: #D94A37;
+  box-shadow: 0 0 0 4px rgba(217, 74, 55, 0.14);
+}
+
+.worker-summary {
+  padding: 0 16px 16px;
+  background: #FFF7EF;
+}
+
+.brand-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  min-height: 0;
+  margin: 0 16px 16px;
+  padding: 15px;
+  border: 1px solid #E9D4CA;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, #ffffff 0%, #f8f0df 100%);
+  box-shadow: 0 10px 26px rgba(23, 35, 49, 0.08);
+}
+
+.summary-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.summary-mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: #D94A37;
+  color: #fff;
+}
+
+.summary-mark svg {
+  width: 38px;
+  height: 38px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.summary-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.summary-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.summary-title-row strong {
+  font-size: 20px;
+  line-height: 1.2;
+  color: #4F3A32;
+  word-break: keep-all;
+}
+
+.summary-title-row em {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #ead9ba;
+  color: #9a5b25;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.summary-copy > span {
+  display: block;
+  margin-top: 7px;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 800;
+  color: #7D6257;
+}
+
+.summary-points {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 6px;
+  padding-left: 58px;
+}
+
+.summary-points span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #FFF0EC;
+  color: #D94A37;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.worker-list {
+  gap: 12px;
+  padding: 0 12px;
+}
+
+.worker-card {
+  padding: 18px;
+  border: 1px solid #E9D4CA;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(23, 35, 49, 0.06);
+}
+
+.worker-header {
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.avatar-wrapper {
+  width: 64px;
+  height: 64px;
+  margin-right: 0;
+  border: none;
+  box-shadow: none;
+}
+
+.avatar-placeholder {
+  background: #FFF0EC;
+  color: #D94A37;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.worker-name {
+  margin: 2px 0 6px;
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #4F3A32;
+}
+
+.worker-location {
+  display: block;
+  min-height: 30px;
+  align-items: center;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 800;
+  color: #7D6257;
+}
+
+.rating {
+  min-width: 60px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: #f6ead9;
+}
+
+.rating .score {
+  font-size: 22px;
+  line-height: 1;
+  color: #b9673b;
+}
+
+.rating .label {
+  margin-top: 3px;
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  color: #73522b;
+}
+
+.worker-tags {
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.skill-tag {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #FFF0EC;
+  color: #D94A37;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.worker-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 12px 0;
+  border-top: 1px solid #EFE2DC;
+  border-bottom: 1px solid #EFE2DC;
+}
+
+.stat-item {
+  min-width: 0;
+  padding: 0 4px;
+}
+
+.stat-value {
+  font-size: 21px;
+  line-height: 1.1;
+  font-weight: 900;
+  color: #4F3A32;
+}
+
+.stat-label {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: #8A6C60;
+}
+
+.worker-actions {
+  gap: 10px;
+}
+
+.action-btn {
+  min-height: 56px;
+  padding: 12px 14px;
+  border: 1.5px solid #E9D4CA;
+  border-radius: 10px;
+  font-size: 17px;
+  font-weight: 900;
+  color: #D94A37;
+  background: #fff;
+}
+
+.action-btn.primary {
+  border-color: #D94A37 !important;
+  background: #D94A37 !important;
+  color: #fff !important;
+}
+
+.action-btn:hover {
+  border-color: #D94A37;
+  color: #D94A37;
+  background: #FFF0EC;
+}
+
+.action-btn.primary:hover {
+  background: #B73C2F !important;
+}
+
+.loading,
+.empty {
+  margin: 0 16px;
+  border: 1px solid #E9D4CA;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.empty p {
+  font-size: 21px;
+  font-weight: 800;
+  color: #4F3A32;
+}
+
+.empty .tip,
+.tip {
+  font-size: 16px;
+  font-weight: 600;
+  color: #8A6C60;
+}
+
+.invite-dialog {
+  background: rgba(23, 35, 49, 0.46);
+}
+
+.dialog-content {
+  max-width: 420px;
+  padding: 22px;
+  border-radius: 14px;
+}
+
+.dialog-title {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.dialog-text {
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.dialog-tips {
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.dialog-btn {
+  min-height: 56px;
+  border-radius: 10px;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.dialog-btn.primary {
+  background: #D94A37 !important;
+  border-color: #D94A37 !important;
+}
+
+/* 精修：统计数据用留白区分，不再使用底色和边框 */
+.worker-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin: 2px 0 18px;
+  padding: 4px 2px 16px;
+  border: none;
+}
+
+.worker-stats .stat-item {
+  min-width: 0;
+  padding: 0;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.worker-stats .stat-value {
+  font-size: 22px;
+  line-height: 1.05;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+.worker-stats .stat-label {
+  margin-top: 7px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 360px) {
+  .worker-hero h1 {
+    font-size: 26px;
+  }
+
+  .brand-strip {
+    padding: 14px;
+  }
+
+  .summary-title-row {
+    gap: 7px;
+  }
+
+  .summary-title-row strong {
+    font-size: 19px;
+  }
+
+  .summary-points {
+    padding-left: 0;
+  }
+
+  .worker-header {
+    flex-wrap: wrap;
+  }
+
+  .rating {
+    margin-left: 76px;
+  }
 }
 </style>

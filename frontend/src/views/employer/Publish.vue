@@ -3,11 +3,6 @@
     <header class="detail-header">
       <button class="back-btn" @click="$router.back()">✕</button>
     </header>
-    <div class="header">
-      <h2>发布陪诊任务</h2>
-      <p>选择子服务，精准匹配陪诊师</p>
-    </div>
-
     <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
       <div class="sub-type-section">
         <div class="section-title">选择服务类型 <span class="required">*</span></div>
@@ -18,14 +13,65 @@
             :class="['sub-type-card', { selected: form.sub_type === sub.id }]"
             @click="selectSubType(sub.id)"
           >
-            <span class="sub-icon">{{ sub.icon }}</span>
+            <span class="sub-icon" v-html="sub.icon"></span>
             <span class="sub-name">{{ sub.name }}</span>
             <span class="sub-price">{{ sub.priceRange }}</span>
             <span class="sub-desc">{{ sub.desc }}</span>
             <span v-if="form.sub_type === sub.id" class="check-mark">✓</span>
           </div>
         </div>
+        <div class="service-notice">
+          ⚠️ 本服务<strong>不包含任何医疗行为</strong>（代替就诊、代替用药、操作医疗设备、出具诊断意见等）
+        </div>
       </div>
+
+      <el-form-item label="就诊人地点" prop="patient_location">
+        <div class="location-input-wrapper">
+          <div class="location-field-shell">
+            <el-input
+              ref="patientLocationInputRef"
+              v-model="form.patient_location"
+              placeholder="请输入就诊人所在小区或详细地址"
+              @input="onPatientLocationInput"
+              @focus="onPatientLocationFocus"
+              @blur="onPatientLocationBlur"
+              @keydown.up.prevent="navigatePatientLocationSuggestion(-1)"
+              @keydown.down.prevent="navigatePatientLocationSuggestion(1)"
+              @keydown.enter.prevent="selectHighlightedPatientLocation"
+            />
+            <div v-if="showPatientLocationSuggestions" class="location-suggestions">
+              <div v-if="isSearchingPatientLocation" class="suggestion-loading">
+                <span>正在搜索...</span>
+              </div>
+              <div v-else-if="filteredPatientLocations.length === 0" class="suggestion-empty">
+                无匹配地点，可继续手动输入
+              </div>
+              <div
+                v-else
+                v-for="(location, index) in filteredPatientLocations"
+                :key="location.name"
+                :class="['suggestion-item', { highlighted: highlightedPatientLocationIndex === index }]"
+                @click="selectPatientLocation(location)"
+                @mouseenter="highlightedPatientLocationIndex = index"
+              >
+                <span class="suggestion-name">{{ location.name }}</span>
+                <span class="suggestion-district">{{ location.district }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="patientLocationStatus" class="location-status" :class="{ locating: isLocatingPatientLocation }">
+            {{ patientLocationStatus }}
+          </div>
+          <div class="patient-map-card" aria-label="就诊人地点地图">
+            <div class="patient-map-head">
+              <strong>地图确认位置</strong>
+              <span>{{ patientMapStatus }}</span>
+            </div>
+            <div id="patient-location-map" class="patient-map"></div>
+            <p class="patient-map-tip">输入地点后自动定位，也可以拖动地图或定位点微调地址。</p>
+          </div>
+        </div>
+      </el-form-item>
 
       <el-form-item label="就诊医院" prop="address">
         <div class="hospital-input-wrapper">
@@ -101,12 +147,29 @@
         <el-input v-model="form.patient_info" placeholder="如：张爷爷，78岁，行动不便（选填）" />
       </el-form-item>
 
-      <el-form-item label="期望时间" prop="start_time">
-        <el-date-picker v-model="form.start_time" type="datetime" placeholder="选择开始时间" style="width: 100%" />
-      </el-form-item>
-
-      <el-form-item label="结束时间" prop="end_time">
-        <el-date-picker v-model="form.end_time" type="datetime" placeholder="选择结束时间" style="width: 100%" />
+      <el-form-item label="服务时间段" prop="service_time_range" class="time-form-item time-range-form-item">
+        <div class="service-time-fields">
+          <div class="service-time-row">
+            <span class="service-time-label">开始</span>
+            <el-date-picker
+              v-model="serviceStartTime"
+              type="datetime"
+              placeholder="选择开始时间"
+              format="YYYY-MM-DD HH:mm"
+              class="service-time-picker"
+            />
+          </div>
+          <div class="service-time-row">
+            <span class="service-time-label">结束</span>
+            <el-date-picker
+              v-model="serviceEndTime"
+              type="datetime"
+              placeholder="选择结束时间"
+              format="YYYY-MM-DD HH:mm"
+              class="service-time-picker"
+            />
+          </div>
+        </div>
       </el-form-item>
 
       <el-form-item label="服务时长">
@@ -182,20 +245,39 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- V1.4 服务协议签署 -->
+    <ServiceAgreement
+      v-model="showAgreement"
+      agreementType="publish"
+      @signed="doPublish"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '@/api/request'
 import { ElMessage } from 'element-plus'
+import ServiceAgreement from '@/components/v1_4/ServiceAgreement.vue'
 
 const router = useRouter()
 
 const formRef = ref()
 const loading = ref(false)
 const hospitalInputRef = ref()
+const patientLocationInputRef = ref()
+const showAgreement = ref(false)
+
+const communities = ref([])
+const filteredPatientLocations = ref([])
+const showPatientLocationSuggestions = ref(false)
+const isSearchingPatientLocation = ref(false)
+const isLocatingPatientLocation = ref(false)
+const highlightedPatientLocationIndex = ref(-1)
+const patientLocationStatus = ref('')
+const patientMapStatus = ref('地图加载中')
 
 const hospitals = ref([])
 const filteredHospitals = ref([])
@@ -204,8 +286,17 @@ const isSearching = ref(false)
 const highlightedIndex = ref(-1)
 const showInsuranceDetail = ref(false)
 let debounceTimer = null
+let patientLocationDebounceTimer = null
+let patientLocationGeocodeTimer = null
+let patientMap = null
+let patientMarker = null
+let patientGeocoder = null
+let isSyncingPatientMap = false
+const defaultPatientPoint = { lng: 116.4074, lat: 39.9042 }
 
-onMounted(async () => {
+const loadHospitals = async () => {
+  if (hospitals.value.length > 0) return
+
   try {
     const res = await fetch('/data/hospitals.json')
     const data = await res.json()
@@ -213,6 +304,24 @@ onMounted(async () => {
   } catch (e) {
     console.error('加载医院数据失败:', e)
   }
+}
+
+const loadCommunities = async () => {
+  if (communities.value.length > 0) return
+
+  try {
+    const res = await fetch('/data/communities.json')
+    const data = await res.json()
+    communities.value = data.communities || []
+  } catch (e) {
+    console.error('加载社区数据失败:', e)
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([loadHospitals(), loadCommunities()])
+  await nextTick()
+  initPatientLocationMap()
 })
 
 const debounce = (fn, delay) => {
@@ -220,6 +329,266 @@ const debounce = (fn, delay) => {
     clearTimeout(debounceTimer)
     debounceTimer = setTimeout(() => fn(...args), delay)
   }
+}
+
+const searchPatientLocations = async (keyword) => {
+  if (!keyword || keyword.length === 0) {
+    filteredPatientLocations.value = []
+    showPatientLocationSuggestions.value = false
+    return
+  }
+
+  isSearchingPatientLocation.value = true
+  await loadCommunities()
+
+  const kw = keyword.toLowerCase()
+  const matched = communities.value.filter(c => {
+    return c.name.includes(keyword) ||
+      c.name.toLowerCase().includes(kw) ||
+      c.district.includes(keyword) ||
+      c.area.includes(keyword)
+  })
+
+  const startsWith = matched.filter(c => c.name.startsWith(keyword) || c.area.startsWith(keyword))
+  const contains = matched.filter(c => !startsWith.includes(c))
+
+  filteredPatientLocations.value = [...startsWith, ...contains].slice(0, 8)
+  isSearchingPatientLocation.value = false
+  showPatientLocationSuggestions.value = true
+  highlightedPatientLocationIndex.value = -1
+}
+
+const debouncedSearchPatientLocations = (keyword) => {
+  clearTimeout(patientLocationDebounceTimer)
+  patientLocationDebounceTimer = setTimeout(() => searchPatientLocations(keyword), 220)
+}
+
+const getPatientMapPoint = () => {
+  const BMapGL = window.BMapGL
+  if (!BMapGL) return null
+  const lng = Number(form.longitude || defaultPatientPoint.lng)
+  const lat = Number(form.latitude || defaultPatientPoint.lat)
+  return new BMapGL.Point(lng, lat)
+}
+
+const setPatientMapPoint = (lat, lng, status = '已同步地图位置') => {
+  if (!patientMap || !window.BMapGL || !lat || !lng) return
+  const point = new window.BMapGL.Point(Number(lng), Number(lat))
+  isSyncingPatientMap = true
+  if (patientMarker) {
+    patientMarker.setPosition(point)
+  }
+  patientMap.centerAndZoom(point, 16)
+  setTimeout(() => {
+    isSyncingPatientMap = false
+  }, 200)
+  patientMapStatus.value = status
+}
+
+const reversePatientPoint = (point) => {
+  return new Promise((resolve) => {
+    if (!patientGeocoder || !point) {
+      resolve('')
+      return
+    }
+    try {
+      patientGeocoder.getLocation(point, (result) => {
+        const address = result?.address ||
+          result?.content?.address ||
+          result?.surroundingPois?.[0]?.title ||
+          ''
+        resolve(address)
+      })
+    } catch (e) {
+      resolve('')
+    }
+  })
+}
+
+const syncPatientLocationFromPoint = async (point, shouldReverse = true) => {
+  if (!point) return
+  form.latitude = Number(point.lat)
+  form.longitude = Number(point.lng)
+  if (patientMarker) patientMarker.setPosition(point)
+  patientMapStatus.value = shouldReverse ? '正在同步地图位置...' : '已同步地图位置'
+  if (!shouldReverse) return
+
+  const address = await reversePatientPoint(point)
+  if (address) {
+    form.patient_location = address
+    patientLocationStatus.value = '已通过地图更新'
+  } else {
+    form.patient_location = `地图选点 ${Number(point.lat).toFixed(6)}, ${Number(point.lng).toFixed(6)}`
+    patientLocationStatus.value = '已记录地图坐标'
+  }
+  patientMapStatus.value = '已同步到输入框'
+}
+
+const initPatientLocationMap = () => {
+  const container = document.getElementById('patient-location-map')
+  if (!container) return
+
+  const start = () => {
+    const BMapGL = window.BMapGL
+    if (!BMapGL || typeof BMapGL.Map !== 'function') {
+      patientMapStatus.value = '地图暂未加载，可先输入地点'
+      return
+    }
+    if (patientMap) return
+
+    try {
+      patientMap = new BMapGL.Map('patient-location-map')
+      patientGeocoder = typeof BMapGL.Geocoder === 'function' ? new BMapGL.Geocoder() : null
+      const point = getPatientMapPoint()
+      patientMap.centerAndZoom(point, form.latitude && form.longitude ? 16 : 12)
+      patientMap.enableScrollWheelZoom(false)
+
+      patientMarker = new BMapGL.Marker(point)
+      patientMap.addOverlay(patientMarker)
+      if (typeof patientMarker.enableDragging === 'function') {
+        patientMarker.enableDragging()
+      }
+      patientMarker.addEventListener('dragend', (event) => {
+        const point = event?.latLng || event?.point || patientMarker.getPosition()
+        syncPatientLocationFromPoint(point, true)
+      })
+
+      patientMap.addEventListener('dragend', () => {
+        if (isSyncingPatientMap) return
+        const center = patientMap.getCenter()
+        syncPatientLocationFromPoint(center, true)
+      })
+
+      patientMapStatus.value = '可拖动地图调整位置'
+    } catch (e) {
+      patientMapStatus.value = '地图初始化失败，可先输入地点'
+    }
+  }
+
+  if (window.BMapGL) {
+    start()
+  } else {
+    window.addEventListener('baidu-map-ready', start, { once: true })
+    setTimeout(() => {
+      if (!patientMap) patientMapStatus.value = '地图暂未加载，可先输入地点'
+    }, 5000)
+  }
+}
+
+const geocodePatientLocation = async (address, silent = false) => {
+  const location = String(address || '').trim()
+  if (!location) {
+    form.latitude = null
+    form.longitude = null
+    patientLocationStatus.value = ''
+    return false
+  }
+
+  isLocatingPatientLocation.value = true
+  patientLocationStatus.value = '正在定位...'
+
+  try {
+    const res = await request.get('/location/geocode', {
+      params: { address: location }
+    })
+    if (res.code === 0 && res.data?.lat && res.data?.lng) {
+      form.latitude = res.data.lat
+      form.longitude = res.data.lng
+      patientLocationStatus.value = '已定位'
+      setPatientMapPoint(res.data.lat, res.data.lng, '已按输入地点定位')
+      return true
+    }
+    throw new Error(res.message || '定位失败')
+  } catch (e) {
+    form.latitude = null
+    form.longitude = null
+    patientLocationStatus.value = silent ? '' : '定位失败，请补充更详细地址'
+    return false
+  } finally {
+    isLocatingPatientLocation.value = false
+  }
+}
+
+const geocodeTargetHospital = async (address) => {
+  const hospital = String(address || '').trim()
+  if (!hospital) {
+    form.target_hospital_lat = null
+    form.target_hospital_lng = null
+    return false
+  }
+
+  try {
+    const res = await request.get('/location/geocode', {
+      params: { address: hospital }
+    })
+    if (res.code === 0 && res.data?.lat && res.data?.lng) {
+      form.target_hospital_lat = res.data.lat
+      form.target_hospital_lng = res.data.lng
+      return true
+    }
+  } catch (e) {
+    form.target_hospital_lat = null
+    form.target_hospital_lng = null
+  }
+  return false
+}
+
+const debouncedGeocodePatientLocation = (address) => {
+  clearTimeout(patientLocationGeocodeTimer)
+  patientLocationGeocodeTimer = setTimeout(() => geocodePatientLocation(address, true), 800)
+}
+
+const onPatientLocationInput = (val) => {
+  form.patient_location = val
+  form.latitude = null
+  form.longitude = null
+  patientLocationStatus.value = ''
+  highlightedPatientLocationIndex.value = -1
+
+  if (val.length === 0) {
+    showPatientLocationSuggestions.value = false
+    filteredPatientLocations.value = []
+    return
+  }
+
+  debouncedSearchPatientLocations(val)
+  debouncedGeocodePatientLocation(val)
+}
+
+const onPatientLocationFocus = () => {
+  if (form.patient_location.length > 0 && filteredPatientLocations.value.length > 0) {
+    showPatientLocationSuggestions.value = true
+  }
+}
+
+const onPatientLocationBlur = () => {
+  setTimeout(() => {
+    showPatientLocationSuggestions.value = false
+    if (form.patient_location && (!form.latitude || !form.longitude)) {
+      geocodePatientLocation(form.patient_location, true)
+    }
+  }, 200)
+}
+
+const navigatePatientLocationSuggestion = (direction) => {
+  if (filteredPatientLocations.value.length === 0) return
+  const newIndex = highlightedPatientLocationIndex.value + direction
+  if (newIndex >= -1 && newIndex < filteredPatientLocations.value.length) {
+    highlightedPatientLocationIndex.value = newIndex
+  }
+}
+
+const selectHighlightedPatientLocation = () => {
+  if (highlightedPatientLocationIndex.value >= 0 && highlightedPatientLocationIndex.value < filteredPatientLocations.value.length) {
+    selectPatientLocation(filteredPatientLocations.value[highlightedPatientLocationIndex.value])
+  }
+}
+
+const selectPatientLocation = (location) => {
+  form.patient_location = location.name
+  showPatientLocationSuggestions.value = false
+  highlightedPatientLocationIndex.value = -1
+  geocodePatientLocation(location.name)
 }
 
 const searchHospitals = (keyword) => {
@@ -261,6 +630,8 @@ const debouncedSearch = debounce(searchHospitals, 300)
 
 const onHospitalInput = (val) => {
   form.address = val
+  form.target_hospital_lat = null
+  form.target_hospital_lng = null
   highlightedIndex.value = -1
   if (val.length === 0) {
     showSuggestions.value = false
@@ -301,6 +672,7 @@ const selectHospital = (hospital) => {
   form.address = hospital.name
   showSuggestions.value = false
   highlightedIndex.value = -1
+  geocodeTargetHospital(hospital.name)
 }
 
 const deptInputRef = ref()
@@ -391,30 +763,53 @@ const selectDept = (dept) => {
 }
 
 onMounted(async () => {
-  try {
-    const res = await fetch('/data/hospitals.json')
-    const data = await res.json()
-    hospitals.value = data.hospitals || []
-  } catch (e) {
-    console.error('加载医院数据失败:', e)
-  }
+  await loadHospitals()
   loadDepartments()
 })
 
 const escortSubTypes = [
-  { id: 1, name: '全程陪同', icon: '👣', desc: '从出发到返家，全程陪伴完成就诊所有环节', priceRange: '80-120元/半天' },
-  { id: 2, name: '挂号取药', icon: '💊', desc: '仅代为排队挂号、缴费、取药', priceRange: '30-50元/次' },
-  { id: 3, name: '门诊陪护', icon: '🪑', desc: '诊室外候诊、检查、缴费环节提供陪伴', priceRange: '50-80元/次' },
-  { id: 4, name: '代为问诊', icon: '📝', desc: '代替向医生描述病情、记录医嘱、取药', priceRange: '60-100元/次' },
-  { id: 5, name: '陪诊师培训', icon: '🎓', desc: '为新陪诊师提供专业培训，涵盖服务流程、沟通技巧等', priceRange: '免费/公益' }
+  {
+    id: 1,
+    name: '全程陪同',
+    icon: '<svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M16 31c2.2-5.4 5-8 8.5-8s6.3 2.6 8.5 8" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/><circle cx="24.5" cy="16" r="6" stroke="currentColor" stroke-width="3.4"/><path d="M11 36h26" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/><path d="M14 39h4M30 39h4" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg>',
+    desc: '从出发到返家，全程陪伴完成就诊所有环节',
+    priceRange: '80-120元/半天'
+  },
+  {
+    id: 2,
+    name: '挂号取药',
+    icon: '<svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="13" y="11" width="22" height="28" rx="6" stroke="currentColor" stroke-width="3.4"/><path d="M19 20h10M19 27h8" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/><path d="M32 32c3.3 0 5.8 2.5 5.8 5.8M32 32c0 3.3 2.5 5.8 5.8 5.8" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg>',
+    desc: '仅代为排队挂号、缴费、取药',
+    priceRange: '30-50元/次'
+  },
+  {
+    id: 3,
+    name: '门诊陪护',
+    icon: '<svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M15 16c0-4.2 3.3-7.5 7.5-7.5S30 11.8 30 16v4H15v-4Z" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round"/><path d="M13 22h20v13H13V22Z" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round"/><path d="M10 39h26M17 35v4M29 35v4" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg>',
+    desc: '诊室外候诊、检查、缴费环节提供陪伴',
+    priceRange: '50-80元/次'
+  },
+  {
+    id: 4,
+    name: '代为问诊',
+    icon: '<svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M12 13h24v20H22l-7 6v-6h-3V13Z" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round"/><path d="M20 22h8M20 28h5" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg>',
+    desc: '代替向医生描述病情、记录医嘱、取药',
+    priceRange: '60-100元/次'
+  }
 ]
 
 const form = reactive({
   type: 1,
   sub_type: null,
+  patient_location: '',
+  latitude: null,
+  longitude: null,
   address: '',
+  target_hospital_lat: null,
+  target_hospital_lng: null,
   department: '',
   patient_info: '',
+  service_time_range: [],
   start_time: '',
   end_time: '',
   physical_level: 1,
@@ -434,31 +829,53 @@ const selectSubType = (id) => {
 
 const rules = {
   sub_type: [{ required: true, message: '请选择服务类型', trigger: 'change' }],
+  patient_location: [{ required: true, message: '请输入就诊人地点', trigger: 'blur' }],
   address: [{ required: true, message: '请输入医院名称', trigger: 'blur' }],
-  start_time: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
-  end_time: [{ required: true, message: '请选择结束时间', trigger: 'change' }],
+  service_time_range: [{
+    validator: (_rule, value, callback) => {
+      if (!Array.isArray(value) || !value[0] || !value[1]) {
+        callback(new Error('请选择完整服务时间段'))
+        return
+      }
+      callback()
+    },
+    trigger: 'change'
+  }],
   budget: [{ required: true, message: '请输入预算', trigger: 'change' }]
 }
 
+const setServiceTimePart = (index, value) => {
+  const next = [
+    form.service_time_range?.[0] || null,
+    form.service_time_range?.[1] || null
+  ]
+  next[index] = value || null
+  form.service_time_range = next
+}
+
+const serviceStartTime = computed({
+  get: () => form.service_time_range?.[0] || null,
+  set: (value) => setServiceTimePart(0, value)
+})
+
+const serviceEndTime = computed({
+  get: () => form.service_time_range?.[1] || null,
+  set: (value) => setServiceTimePart(1, value)
+})
+
 const duration = computed(() => {
-  if (!form.start_time || !form.end_time) return 0
-  const start = new Date(form.start_time).getTime()
-  const end = new Date(form.end_time).getTime()
+  if (!form.service_time_range || form.service_time_range.length !== 2) return 0
+  const start = new Date(form.service_time_range[0]).getTime()
+  const end = new Date(form.service_time_range[1]).getTime()
   return Math.round((end - start) / 60000)
 })
 
 const durationText = computed(() => {
   const total = duration.value
   if (total <= 0) return '未选择'
-  const days = Math.floor(total / 1440)
-  const hours = Math.floor((total % 1440) / 60)
-  const mins = total % 60
-  const parts = []
-  if (days > 0) parts.push(`${days} 天`)
-  if (hours > 0) parts.push(`${hours} 小时`)
-  if (mins > 0) parts.push(`${mins} 分钟`)
-  if (parts.length === 0) return '不足 1 分钟'
-  return `约 ${parts.join(' ')}`
+  if (total < 60) return `${total}分钟`
+  const hours = total / 60
+  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}小时`
 })
 
 const suggestedPrice = computed(() => {
@@ -472,50 +889,79 @@ const formatTime = (time) => {
   return new Date(time).toISOString()
 }
 
-watch(() => form.special_assist, (val) => {
-  if (val.length > 0) {
-    form.special_requirements = form.special_requirements
-      ? form.special_requirements + ' | 需要：' + val.join('、')
-      : '需要：' + val.join('、')
-  }
-})
-
 const handlePublish = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
     if (valid) {
       if (duration.value <= 0) {
-        ElMessage.warning('结束时间必须晚于开始时间')
+        ElMessage.warning('服务时间段的结束时间必须晚于开始时间')
         return
       }
-      loading.value = true
+      if (!form.latitude || !form.longitude) {
+        const located = await geocodePatientLocation(form.patient_location)
+        if (!located) {
+          ElMessage.warning('请补充更详细的就诊人地点，方便陪诊师定位')
+          return
+        }
+      }
+      if (!form.target_hospital_lat || !form.target_hospital_lng) {
+        await geocodeTargetHospital(form.address)
+      }
+      // V1.4: 先检查是否已签署协议
       try {
-        const res = await request.post('/employer/tasks', {
-          type: 1,
-          sub_type: form.sub_type,
-          address: form.address,
-          department: form.department,
-          patient_info: form.patient_info,
-          start_time: formatTime(form.start_time),
-          end_time: formatTime(form.end_time),
-          duration_minutes: duration.value,
-          physical_level: form.physical_level,
-          budget: form.budget,
-          special_requirements: form.special_requirements,
-          is_charity: form.is_charity
-        })
-        if (res.code === 0) {
-          ElMessage.success('任务发布成功')
-          router.push('/employer/orders')
+        const checkRes = await request.get('/v1/agreement/check/publish')
+        if (checkRes.code === 0 && checkRes.data.signed) {
+          doPublish()
+        } else {
+          showAgreement.value = true
         }
       } catch (e) {
-        console.error('发布失败:', e);
-        ElMessage.error(e.response?.data?.message || e.message || '发布失败，请重试')
-      } finally {
-        loading.value = false
+        showAgreement.value = true
       }
     }
   })
+}
+
+const doPublish = async () => {
+  loading.value = true
+  try {
+    const res = await request.post('/employer/tasks', {
+      type: 1,
+      sub_type: form.sub_type,
+      address: form.patient_location,
+      latitude: form.latitude,
+      longitude: form.longitude,
+      target_hospital: form.address,
+      target_hospital_lat: form.target_hospital_lat,
+      target_hospital_lng: form.target_hospital_lng,
+      department: form.department,
+      patient_info: form.patient_info,
+      start_time: formatTime(form.service_time_range[0]),
+      end_time: formatTime(form.service_time_range[1]),
+      duration_minutes: duration.value,
+      physical_level: form.physical_level,
+      budget: form.budget,
+      special_requirements: form.special_requirements,
+      special_assist: form.special_assist,
+      is_charity: form.is_charity
+    })
+    if (res.code === 0) {
+      ElMessage.success('任务发布成功，已进入任务大厅')
+      router.push({
+        path: '/',
+        query: {
+          publishedTaskId: res.data?.task_id || '',
+          service: currentSubType.value?.name || '',
+          targetHospital: form.address
+        }
+      })
+    }
+  } catch (e) {
+    console.error('发布失败:', e);
+    ElMessage.error(e.response?.data?.message || e.message || '发布失败，请重试')
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -539,8 +985,8 @@ const handlePublish = async () => {
   align-items: center !important;
   justify-content: center !important;
   font-size: 18px !important;
-  background: #f5f7fa !important;
-  color: #1E2A3A !important;
+  background: #FFF9F2 !important;
+  color: #4F3A32 !important;
   border: 1.5px solid transparent !important;
   border-radius: 12px !important;
   cursor: pointer;
@@ -550,13 +996,13 @@ const handlePublish = async () => {
 }
 
 .back-btn:hover {
-  background: #e8ecf2 !important;
-  color: #2c7a9e !important;
-  border-color: #2c7a9e !important;
+  background: #FFF0EC !important;
+  color: #E94F3D !important;
+  border-color: #E94F3D !important;
 }
 
 .back-btn:active {
-  background: #e8ecf2 !important;
+  background: #FFF0EC !important;
 }
 
 .header {
@@ -569,11 +1015,11 @@ const handlePublish = async () => {
   font-size: 26px;
   margin-bottom: 10px;
   font-weight: 600;
-  color: #303133;
+  color: #4F3A32;
 }
 
 .header p {
-  color: #606266;
+  color: #6D5146;
   font-size: 16px;
 }
 
@@ -581,9 +1027,23 @@ const handlePublish = async () => {
   margin-bottom: 24px;
 }
 
+.service-notice {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fff7e6;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #C98216;
+  line-height: 1.5;
+}
+
+.service-notice strong {
+  color: #d46b08;
+}
+
 .section-title {
   font-size: 17px;
-  color: #303133;
+  color: #4F3A32;
   margin-bottom: 16px;
   font-weight: 600;
   display: flex;
@@ -592,7 +1052,7 @@ const handlePublish = async () => {
 }
 
 .section-title .required {
-  color: #f56c6c;
+  color: #B84545;
   font-size: 18px;
 }
 
@@ -605,7 +1065,7 @@ const handlePublish = async () => {
 .sub-type-card {
   position: relative;
   padding: 20px 16px;
-  border: 2px solid #dcdfe6;
+  border: 2px solid #EBD8CF;
   border-radius: 16px;
   cursor: pointer;
   transition: all 0.3s;
@@ -617,18 +1077,32 @@ const handlePublish = async () => {
 }
 
 .sub-type-card:hover {
-  border-color: #409eff;
+  border-color: #E94F3D;
 }
 
 .sub-type-card.selected {
-  border-color: #409eff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #E94F3D;
+  background: linear-gradient(135deg, #E94F3D 0%, #F6A21A 100%);
   color: white;
 }
 
 .sub-icon {
-  font-size: 32px;
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: #FFF0EC;
+  color: #E94F3D;
   line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(233, 79, 61, 0.12);
+}
+
+.sub-icon :deep(svg) {
+  width: 32px;
+  height: 32px;
+  display: block;
 }
 
 .sub-name {
@@ -655,7 +1129,7 @@ const handlePublish = async () => {
   width: 26px;
   height: 26px;
   background: white;
-  color: #409eff;
+  color: #E94F3D;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -672,7 +1146,7 @@ const handlePublish = async () => {
 :deep(.el-form-item__label) {
   font-size: 16px !important;
   font-weight: 500;
-  color: #303133;
+  color: #4F3A32;
   padding-top: 9px !important;
   padding-bottom: 9px !important;
   height: 44px !important;
@@ -717,7 +1191,7 @@ const handlePublish = async () => {
 :deep(.el-form-item__error) {
   padding-top: 4px;
   font-size: 13px;
-  color: #f56c6c;
+  color: #B84545;
   line-height: 1.4;
   position: relative;
   top: auto;
@@ -749,7 +1223,7 @@ const handlePublish = async () => {
   padding-left: 16px !important;
   border-radius: 12px !important;
   background: #ffffff !important;
-  box-shadow: 0 0 0 1px #E2E6EC inset !important;
+  box-shadow: 0 0 0 1px #E8D8CF inset !important;
   transition: box-shadow 0.2s;
   box-sizing: border-box !important;
   display: flex !important;
@@ -762,8 +1236,8 @@ const handlePublish = async () => {
   align-items: flex-start !important;
   padding: 0 !important;
   background: #ffffff !important;
-  border: 1px solid #E2E6EC !important;
-  box-shadow: 0 0 0 1px #E2E6EC inset !important;
+  border: 1px solid #E8D8CF !important;
+  box-shadow: 0 0 0 1px #E8D8CF inset !important;
   border-radius: 12px !important;
   box-sizing: border-box !important;
   display: flex !important;
@@ -771,22 +1245,22 @@ const handlePublish = async () => {
 }
 
 :deep(.el-textarea__wrapper:hover) {
-  border-color: #2c7a9e !important;
-  box-shadow: 0 0 0 1px #2c7a9e inset !important;
+  border-color: #E94F3D !important;
+  box-shadow: 0 0 0 1px #E94F3D inset !important;
 }
 
 :deep(.el-input__wrapper:hover),
 :deep(.el-textarea__wrapper:hover),
 :deep(.el-select__wrapper:hover),
 :deep(.el-date-editor.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #2c7a9e inset !important;
+  box-shadow: 0 0 0 1px #E94F3D inset !important;
 }
 
 :deep(.el-input__wrapper.is-focus),
 :deep(.el-textarea__wrapper.is-focus),
 :deep(.el-select__wrapper.is-focused),
 :deep(.el-date-editor.el-input__wrapper.is-active) {
-  box-shadow: 0 0 0 1.5px #2c7a9e inset !important;
+  box-shadow: 0 0 0 1.5px #E94F3D inset !important;
 }
 
 :deep(.el-input__inner),
@@ -794,7 +1268,7 @@ const handlePublish = async () => {
   height: 100% !important;
   line-height: 48px !important;
   font-size: 16px !important;
-  color: #1E2A3A !important;
+  color: #4F3A32 !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -808,10 +1282,10 @@ const handlePublish = async () => {
   height: auto !important;
   min-height: 80px !important;
   font-size: 16px !important;
-  color: #1E2A3A !important;
+  color: #4F3A32 !important;
   background: #ffffff !important;
   border: none !important;
-  box-shadow: 0 0 0 1px #E2E6EC inset !important;
+  box-shadow: 0 0 0 1px #E8D8CF inset !important;
   padding: 14px 16px !important;
   line-height: 1.5 !important;
   resize: vertical;
@@ -820,19 +1294,19 @@ const handlePublish = async () => {
 }
 
 :deep(.el-textarea__inner:hover) {
-  box-shadow: 0 0 0 1px #2c7a9e inset !important;
+  box-shadow: 0 0 0 1px #E94F3D inset !important;
 }
 
 :deep(.el-textarea__inner:focus) {
-  box-shadow: 0 0 0 1px #2c7a9e inset !important;
+  box-shadow: 0 0 0 1px #E94F3D inset !important;
   outline: none !important;
 }
 
 :deep(.el-input.is-disabled .el-input__wrapper),
 :deep(.el-textarea.is-disabled .el-textarea__wrapper),
 :deep(.el-select.is-disabled .el-select__wrapper) {
-  background: #f5f7fa !important;
-  box-shadow: 0 0 0 1px #dcdfe6 inset !important;
+  background: #FFF9F2 !important;
+  box-shadow: 0 0 0 1px #EBD8CF inset !important;
   cursor: not-allowed;
 }
 
@@ -841,7 +1315,7 @@ const handlePublish = async () => {
   display: flex;
   align-items: center;
   height: 100%;
-  color: #909399;
+  color: #8A6C60;
 }
 
 :deep(.el-input__prefix .el-icon),
@@ -850,8 +1324,8 @@ const handlePublish = async () => {
 }
 
 :deep(.el-input-group__prepend) {
-  background: #f5f7fa !important;
-  color: #1E2A3A !important;
+  background: #FFF9F2 !important;
+  color: #4F3A32 !important;
   border: none !important;
   border-right: none !important;
   border-radius: 12px 0 0 12px !important;
@@ -950,7 +1424,7 @@ const handlePublish = async () => {
 .time-trigger {
   width: 100%;
   display: block;
-  background: #f5f5f5;
+  background: #FFF9F2;
   border-radius: 8px;
   padding: 12px 16px;
   box-sizing: border-box;
@@ -995,7 +1469,7 @@ const handlePublish = async () => {
 :deep(.el-radio__label),
 :deep(.el-checkbox__label) {
   font-size: 16px !important;
-  color: #303133;
+  color: #4F3A32;
   padding-left: 8px;
 }
 
@@ -1003,7 +1477,7 @@ const handlePublish = async () => {
 :deep(.el-checkbox__inner) {
   width: 20px !important;
   height: 20px !important;
-  border: 1.5px solid #dcdfe6;
+  border: 1.5px solid #EBD8CF;
   background: #ffffff;
   transition: all 0.2s;
 }
@@ -1018,19 +1492,19 @@ const handlePublish = async () => {
 
 :deep(.el-radio__input.is-checked .el-radio__inner),
 :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-  background: #2c7a9e !important;
-  border-color: #2c7a9e !important;
+  background: #E94F3D !important;
+  border-color: #E94F3D !important;
 }
 
 :deep(.el-radio__input.is-checked + .el-radio__label),
 :deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
-  color: #2c7a9e;
+  color: #E94F3D;
   font-weight: 500;
 }
 
 .price-hint {
   font-size: 14px;
-  color: #909399;
+  color: #8A6C60;
   margin-top: 8px;
   margin-left: 1px;
   margin-right: 1px;
@@ -1053,7 +1527,7 @@ const handlePublish = async () => {
 .budget-unit {
   font-size: 16px;
   font-weight: 500;
-  color: #1E2A3A;
+  color: #4F3A32;
   flex-shrink: 0;
 }
 
@@ -1072,7 +1546,7 @@ const handlePublish = async () => {
   padding: 0 !important;
   border-radius: 12px !important;
   background: #ffffff !important;
-  box-shadow: 0 0 0 1px #E2E6EC inset !important;
+  box-shadow: 0 0 0 1px #E8D8CF inset !important;
   box-sizing: border-box !important;
   display: flex !important;
   align-items: center !important;
@@ -1083,14 +1557,14 @@ const handlePublish = async () => {
   width: 36px !important;
   height: 36px !important;
   top: 6px !important;
-  background: #f5f7fa !important;
+  background: #FFF9F2 !important;
   border: none !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   font-size: 18px !important;
   font-weight: 700 !important;
-  color: #1E2A3A !important;
+  color: #4F3A32 !important;
 }
 
 :deep(.budget-slider-input .el-input-number__decrease) {
@@ -1106,14 +1580,14 @@ const handlePublish = async () => {
 
 :deep(.budget-slider-input .el-input-number__decrease:hover),
 :deep(.budget-slider-input .el-input-number__increase:hover) {
-  background: #e8ecf2 !important;
+  background: #FFF0EC !important;
 }
 
 :deep(.budget-slider-input .el-input__inner) {
   height: 100% !important;
   line-height: 48px !important;
   font-size: 16px !important;
-  color: #1E2A3A !important;
+  color: #4F3A32 !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -1126,8 +1600,8 @@ const handlePublish = async () => {
   position: relative;
   height: 52px;
   padding: 0 16px 0 24px;
-  background: linear-gradient(135deg, #f0faf0 0%, #e8f5e9 100%);
-  color: #2e7d32;
+  background: linear-gradient(135deg, #FFF7E3 0%, #FFF3D8 100%);
+  color: #654318;
   border-radius: 12px;
   margin: 0;
   font-size: 15px;
@@ -1136,7 +1610,7 @@ const handlePublish = async () => {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border: 1px solid #c8e6c9;
+  border: 1px solid #ead9ba;
 }
 
 .insurance-badge__text {
@@ -1150,7 +1624,7 @@ const handlePublish = async () => {
   font-size: 11px;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(135deg, #66bb6a, #43a047);
+  background: linear-gradient(135deg, #E94F3D, #F6A21A);
   padding: 2px 10px;
   border-radius: 10px;
   letter-spacing: 0.5px;
@@ -1159,7 +1633,7 @@ const handlePublish = async () => {
 
 .insurance-badge__text::before {
   content: '🛡️';
-  font-size: 24px;
+  font-size: 20px;
   flex-shrink: 0;
 }
 
@@ -1167,7 +1641,7 @@ const handlePublish = async () => {
   display: flex;
   align-items: center;
   gap: 2px;
-  color: #43a047;
+  color: #E94F3D;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -1195,8 +1669,8 @@ const handlePublish = async () => {
   padding: 0 16px;
   font-size: 16px;
   font-weight: 600;
-  color: #2c7a9e;
-  background: #f5f7fa;
+  color: #E94F3D;
+  background: #FFF9F2;
   border-radius: 12px;
   line-height: 1;
 }
@@ -1205,7 +1679,7 @@ const handlePublish = async () => {
   margin-top: 64px;
   padding: 20px 0;
   padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(to top, #f5f7fa 0%, rgba(245, 247, 250, 0.85) 60%, transparent 100%);
+  background: linear-gradient(to top, #FFF9F2 0%, rgba(245, 247, 250, 0.85) 60%, transparent 100%);
   position: sticky;
   bottom: 70px;
   z-index: 1000;
@@ -1225,26 +1699,39 @@ const handlePublish = async () => {
 
 .form-hint {
   font-size: 13px;
-  color: #909399;
+  color: #8A6C60;
   margin-top: 6px;
   line-height: 1.4;
 }
 
+.location-input-wrapper,
 .hospital-input-wrapper {
   position: relative;
   width: 100%;
 }
 
+.location-input-wrapper {
+  display: grid;
+  gap: 8px;
+}
+
+.location-field-shell {
+  position: relative;
+  width: 100%;
+  z-index: 5;
+}
+
+.location-suggestions,
 .hospital-suggestions {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
   background: white;
-  border: 1px solid #dcdfe6;
+  border: 1px solid #E9D4CA;
   border-radius: 10px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  z-index: 1000;
+  z-index: 2400;
   max-height: 320px;
   overflow-y: auto;
   margin-top: 4px;
@@ -1254,12 +1741,12 @@ const handlePublish = async () => {
 .suggestion-empty {
   padding: 16px 20px;
   font-size: 15px;
-  color: #909399;
+  color: #8A6C60;
   text-align: center;
 }
 
 .suggestion-empty {
-  color: #c0c4cc;
+  color: #8A6C60;
 }
 
 .suggestion-item {
@@ -1268,7 +1755,7 @@ const handlePublish = async () => {
   padding: 14px 20px;
   cursor: pointer;
   transition: background-color 0.2s;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #F2E6DE;
 }
 
 .suggestion-item:last-child {
@@ -1277,18 +1764,103 @@ const handlePublish = async () => {
 
 .suggestion-item:hover,
 .suggestion-item.highlighted {
-  background-color: #f5f7fa;
+  background-color: #FFF9F2;
 }
 
 .suggestion-item.highlighted {
-  background-color: #ecf5ff;
+  background-color: #FFF0EC;
 }
 
 .hospital-name {
   flex: 1;
   font-size: 15px;
-  color: #303133;
+  color: #4F3A32;
   font-weight: 500;
+}
+
+.suggestion-name {
+  flex: 1;
+  min-width: 0;
+  color: #4F3A32;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.suggestion-district {
+  flex: 0 0 auto;
+  margin-left: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #FFF0EC;
+  color: #E94F3D;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.location-status {
+  margin-top: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #FFF9F2;
+  color: #E94F3D;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.location-status.locating {
+  color: #8a6a24;
+}
+
+.patient-map-card {
+  margin-top: 2px;
+  padding: 10px;
+  border: 1px solid #EBD8CF;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.patient-map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.patient-map-head strong {
+  color: #4F3A32;
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: 900;
+}
+
+.patient-map-head span {
+  min-width: 0;
+  color: #E94F3D;
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 900;
+  text-align: right;
+}
+
+.patient-map {
+  width: 100%;
+  height: 132px;
+  border-radius: 14px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(233, 79, 61, 0.08), rgba(246, 162, 26, 0.12)),
+    #FFF9F2;
+}
+
+.patient-map-tip {
+  margin: 8px 0 0;
+  color: #8A6C60;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 800;
 }
 
 .hospital-level {
@@ -1300,33 +1872,33 @@ const handlePublish = async () => {
 }
 
 .hospital-level.三甲 {
-  background: #fef0f0;
-  color: #f56c6c;
+  background: #F9E7E3;
+  color: #B84545;
 }
 
 .hospital-level.三乙 {
-  background: #fdf6ec;
-  color: #e6a23c;
+  background: #FFF3D8;
+  color: #C98216;
 }
 
 .hospital-level.二甲 {
-  background: #ecf5ff;
-  color: #409eff;
+  background: #FFF0EC;
+  color: #E94F3D;
 }
 
 .hospital-level.二乙 {
-  background: #f0f9eb;
-  color: #67c23a;
+  background: #FFF3D8;
+  color: #B66A25;
 }
 
 .hospital-level.社区 {
-  background: #f4f4f5;
-  color: #909399;
+  background: #FFF9F2;
+  color: #8A6C60;
 }
 
 .hospital-city {
   font-size: 13px;
-  color: #909399;
+  color: #8A6C60;
   min-width: 50px;
   text-align: right;
 }
@@ -1342,10 +1914,10 @@ const handlePublish = async () => {
   left: 0;
   right: 0;
   background: white;
-  border: 1px solid #dcdfe6;
+  border: 1px solid #E9D4CA;
   border-radius: 10px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  z-index: 1000;
+  z-index: 1800;
   max-height: 240px;
   overflow-y: auto;
   margin-top: 4px;
@@ -1355,12 +1927,12 @@ const handlePublish = async () => {
 .dept-suggestion-empty {
   padding: 16px 20px;
   font-size: 15px;
-  color: #909399;
+  color: #8A6C60;
   text-align: center;
 }
 
 .dept-suggestion-empty {
-  color: #c0c4cc;
+  color: #8A6C60;
 }
 
 .dept-suggestion-item {
@@ -1369,7 +1941,7 @@ const handlePublish = async () => {
   padding: 14px 20px;
   cursor: pointer;
   transition: background-color 0.2s;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #F2E6DE;
 }
 
 .dept-suggestion-item:last-child {
@@ -1378,17 +1950,17 @@ const handlePublish = async () => {
 
 .dept-suggestion-item:hover,
 .dept-suggestion-item.highlighted {
-  background-color: #f5f7fa;
+  background-color: #FFF9F2;
 }
 
 .dept-suggestion-item.highlighted {
-  background-color: #ecf5ff;
+  background-color: #FFF0EC;
 }
 
 .dept-name {
   flex: 1;
   font-size: 15px;
-  color: #303133;
+  color: #4F3A32;
   font-weight: 500;
 }
 
@@ -1406,9 +1978,9 @@ const handlePublish = async () => {
 .detail-header {
   font-size: 17px;
   font-weight: 700;
-  color: #1E2A3A;
+  color: #4F3A32;
   padding-bottom: 12px;
-  border-bottom: 1px solid #eef0f4;
+  border-bottom: 1px solid #EFE2DC;
   margin-bottom: 4px;
 }
 
@@ -1421,14 +1993,743 @@ const handlePublish = async () => {
 
 .detail-label {
   font-size: 15px;
-  color: #666;
+  color: #7D6257;
   font-weight: 400;
 }
 
 .detail-value {
   font-size: 15px;
-  color: #1E2A3A;
+  color: #4F3A32;
   font-weight: 600;
+}
+
+.publish > .detail-header {
+  border-bottom: none !important;
+}
+
+/* 适老化统一风格：发布任务 */
+.publish {
+  min-height: 100vh;
+  padding: 0 16px calc(360px + env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, #FFF2E8 0%, #FFF9F2 38%, #FFF6EE 100%);
+  color: #4F3A32;
+}
+
+.detail-header {
+  padding: 14px 0 8px;
+}
+
+.back-btn {
+  width: 46px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  color: #E94F3D !important;
+  border-color: #E9D4CA !important;
+  box-shadow: 0 8px 20px rgba(23, 35, 49, 0.08);
+}
+
+.header {
+  margin: 0 0 18px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #E94F3D;
+  text-align: left;
+  box-shadow: 0 12px 28px rgba(23, 35, 49, 0.12);
+}
+
+.header h2 {
+  margin: 0 0 8px;
+  font-size: 29px;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #fff;
+}
+
+.header p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sub-type-section,
+:deep(.el-form-item) {
+  margin-bottom: 16px !important;
+  padding: 18px;
+  border: 1px solid #EBD8CF;
+  border-radius: 20px;
+  background: #fffdf8;
+  box-shadow: 0 10px 24px rgba(23, 35, 49, 0.06);
+  overflow: visible;
+}
+
+.section-title {
+  margin-bottom: 14px;
+  font-size: 21px;
+  line-height: 1.3;
+  font-weight: 900;
+  color: #4F3A32;
+}
+
+.sub-type-grid {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.sub-type-card {
+  min-height: 118px;
+  padding: 16px;
+  border: 1.5px solid #E9D4CA;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.sub-type-card.selected {
+  border-color: #E94F3D;
+  background: #E94F3D;
+  color: #fff;
+}
+
+.sub-type-card.selected .sub-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.sub-name {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.sub-price {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.sub-desc {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.service-notice {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #f8e1bd;
+  color: #654318;
+  font-size: 15px;
+}
+
+:deep(.el-form-item) {
+  display: block !important;
+}
+
+:deep(.el-form-item__label) {
+  width: 100% !important;
+  height: auto !important;
+  justify-content: flex-start !important;
+  padding: 0 0 10px !important;
+  color: #4F3A32;
+  font-size: 17px !important;
+  font-weight: 900;
+  line-height: 1.35 !important;
+}
+
+:deep(.el-form-item__content) {
+  width: 100%;
+  min-width: 0;
+  margin-left: 0 !important;
+  padding-top: 0;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-textarea__wrapper),
+:deep(.el-select__wrapper),
+:deep(.el-date-editor.el-input__wrapper) {
+  min-height: 56px !important;
+  height: auto !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 1.5px #EBD8CF inset !important;
+}
+
+:deep(.el-input__inner) {
+  min-height: 56px !important;
+  line-height: 56px !important;
+  font-size: 17px !important;
+}
+
+.time-picker-shell {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 16px;
+  box-sizing: border-box;
+}
+
+:deep(.time-form-item .el-form-item__content) {
+  overflow: hidden;
+}
+
+:deep(.time-picker.el-input),
+:deep(.time-picker.el-date-editor) {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box !important;
+  overflow: hidden;
+}
+
+:deep(.time-picker .el-input__wrapper) {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto;
+  box-sizing: border-box !important;
+  padding: 0 12px !important;
+  overflow: hidden;
+}
+
+:deep(.time-picker .el-input__inner) {
+  min-width: 0 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:deep(.time-range-picker) {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 64px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px !important;
+  box-sizing: border-box !important;
+  overflow: hidden;
+}
+
+:deep(.time-range-picker .el-range-input) {
+  width: 100% !important;
+  min-width: 0 !important;
+  font-size: 15px !important;
+  font-weight: 800;
+  text-align: center;
+}
+
+:deep(.time-range-picker .el-range-separator) {
+  width: auto !important;
+  min-width: 20px;
+  padding: 0 !important;
+  color: #8A6C60 !important;
+  font-weight: 900;
+}
+
+:deep(.time-range-picker .el-range__icon),
+:deep(.time-range-picker .el-range__close-icon) {
+  display: none !important;
+}
+
+:deep(.el-textarea__inner) {
+  min-height: 96px !important;
+  font-size: 17px !important;
+  line-height: 1.55 !important;
+}
+
+:deep(.el-radio),
+:deep(.el-checkbox) {
+  min-height: 44px;
+  align-items: center;
+  margin-right: 18px;
+}
+
+:deep(.el-radio__label),
+:deep(.el-checkbox__label) {
+  font-size: 17px;
+  font-weight: 800;
+  color: #4F3A32;
+}
+
+.duration-display {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: #FFF9F2;
+  color: #E94F3D;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.budget-slider-input-wrap {
+  gap: 10px;
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.budget-slider-input {
+  width: 100%;
+  height: 58px !important;
+  min-height: 58px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+:deep(.budget-slider-input .el-slider__input) {
+  width: 100% !important;
+  margin-left: 0 !important;
+}
+
+:deep(.budget-slider-input .el-input-number) {
+  width: 100% !important;
+}
+
+:deep(.budget-slider-input .el-slider__input .el-input__wrapper) {
+  min-height: 56px !important;
+  height: 56px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 0 0 1.5px #EBD8CF inset !important;
+}
+
+:deep(.budget-slider-input .el-input-number__decrease),
+:deep(.budget-slider-input .el-input-number__increase) {
+  width: 42px !important;
+  height: 42px !important;
+  top: 7px !important;
+  border-radius: 12px !important;
+  background: #FFF0EC !important;
+  color: #E94F3D !important;
+}
+
+:deep(.budget-slider-input .el-input__inner) {
+  height: 56px !important;
+  line-height: 56px !important;
+  padding: 0 48px !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  color: #4F3A32 !important;
+}
+
+.budget-unit {
+  color: #E94F3D;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.price-hint {
+  margin-top: 8px;
+  color: #8A6C60;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--global-tab-bar-height);
+  z-index: 900;
+  margin: 0;
+  padding: 9px 12px 10px;
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid #EBD8CF;
+  box-shadow: 0 -8px 24px rgba(23, 35, 49, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.insurance-badge {
+  min-height: 58px;
+  height: auto;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: #f8e1bd;
+  border-color: #ead9ba;
+  color: #654318;
+  flex-wrap: nowrap;
+  align-items: center;
+  margin: 0;
+}
+
+.insurance-badge__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.25;
+  flex-wrap: wrap;
+}
+
+.insurance-badge__free {
+  background: #E94F3D;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.insurance-badge__detail {
+  flex: 0 0 auto;
+  color: #E94F3D;
+  font-weight: 900;
+}
+
+:deep(.actions .el-button) {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 16px;
+  background: #E94F3D;
+  border-color: #E94F3D;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.location-suggestions,
+.hospital-suggestions,
+.dept-suggestions {
+  border-radius: 16px;
+  border-color: #E9D4CA;
+  box-shadow: 0 12px 28px rgba(23, 35, 49, 0.12);
+}
+
+.suggestion-item,
+.dept-suggestion-item {
+  min-height: 52px;
+  font-size: 16px;
+}
+
+.sub-type-card:hover {
+  border-color: #E94F3D;
+}
+
+.check-mark {
+  color: #E94F3D;
+}
+
+:deep(.el-button--primary),
+:deep(.el-radio__input.is-checked .el-radio__inner),
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background: #E94F3D !important;
+  border-color: #E94F3D !important;
+}
+
+:deep(.el-radio__input.is-checked + .el-radio__label),
+:deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
+  color: #E94F3D !important;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-textarea__wrapper:hover),
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-textarea__wrapper.is-focus) {
+  box-shadow: 0 0 0 1.5px #E94F3D inset !important;
+}
+
+.suggestion-item.highlighted,
+.dept-suggestion-item.highlighted,
+.suggestion-item:hover,
+.dept-suggestion-item:hover {
+  background: #FFF0EC;
+}
+
+.hospital-level.二甲,
+.hospital-level.二乙,
+.hospital-level.社区 {
+  background: #FFF0EC;
+  color: #E94F3D;
+}
+
+@media (max-width: 380px) {
+  .insurance-badge__detail {
+    margin-left: 0;
+  }
+}
+
+@media (min-width: 560px) {
+  .sub-type-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 全面精修：发布页 */
+.publish {
+  min-height: 100vh;
+  padding: 14px 14px calc(300px + env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, #F7F3EE 0%, #FBF8F4 46%, #F8F1EB 100%);
+  color: var(--text-primary);
+}
+
+.detail-header {
+  min-height: 44px;
+  margin-bottom: 12px;
+  background: transparent;
+  border-bottom: none;
+}
+
+.back-btn {
+  width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  border-radius: 13px !important;
+  background: rgba(255, 253, 251, 0.92) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+.sub-type-section,
+:deep(.el-form-item) {
+  margin-bottom: 12px !important;
+  padding: 16px !important;
+  border: 1px solid var(--line-soft) !important;
+  border-radius: 16px !important;
+  background: var(--bg-panel) !important;
+  box-shadow: 0 8px 22px rgba(64, 48, 40, 0.055) !important;
+}
+
+.sub-type-section .section-title,
+.section-title {
+  margin-bottom: 12px;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.sub-type-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sub-type-card {
+  min-height: 154px;
+  padding: 16px 14px;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #FFFCF8;
+  box-shadow: none;
+}
+
+.sub-type-card.selected {
+  background:
+    linear-gradient(180deg, #D94A37 0%, #C94131 100%);
+  box-shadow: 0 10px 22px rgba(217, 74, 55, 0.16);
+}
+
+.sub-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: var(--accent-light);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.sub-icon :deep(svg) {
+  width: 28px;
+  height: 28px;
+}
+
+.sub-name {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.sub-price {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sub-desc {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.42;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.service-notice {
+  border: 1px solid #EDDFC3;
+  background: #FBF0DA;
+  color: #805A25;
+  box-shadow: none;
+}
+
+:deep(.el-form-item__label) {
+  color: var(--text-secondary) !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-textarea__inner),
+:deep(.el-date-editor) {
+  border-radius: 13px !important;
+  background: #FFFCF8 !important;
+  box-shadow: 0 0 0 1px var(--line) inset !important;
+}
+
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-textarea__wrapper.is-focus),
+:deep(.el-date-editor.is-active) {
+  box-shadow: 0 0 0 1px var(--accent-soft) inset, 0 0 0 4px rgba(217, 74, 55, 0.08) !important;
+}
+
+.patient-map-card {
+  border-color: var(--line-soft);
+  border-radius: 15px;
+  background: #FFFCF8;
+  box-shadow: none;
+}
+
+.patient-map {
+  border-radius: 12px;
+}
+
+.location-suggestions,
+.hospital-suggestions,
+.dept-suggestions {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-panel);
+  box-shadow: 0 14px 34px rgba(64, 48, 40, 0.10);
+}
+
+.suggestion-item,
+.dept-suggestion-item {
+  min-height: 48px;
+}
+
+.duration-display,
+.budget-unit,
+.price-hint,
+.insurance-badge__detail {
+  color: var(--accent);
+}
+
+.actions {
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255, 253, 251, 0.96);
+  border-top: 1px solid var(--line-soft);
+  box-shadow: 0 -8px 22px rgba(64, 48, 40, 0.06);
+}
+
+.insurance-badge {
+  min-height: 54px;
+  border: 1px solid #EDDFC3;
+  border-radius: 13px;
+  background: #FBF0DA;
+  color: #745322;
+}
+
+.insurance-badge__free {
+  background: rgba(217, 74, 55, 0.12);
+  color: var(--accent);
+}
+
+:deep(.actions .el-button) {
+  min-height: 56px;
+  border-radius: 14px;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  box-shadow: none;
+}
+
+/* 边框核查：布局外壳不画线，真正可输入控件只保留一条边框 */
+.location-input-wrapper,
+.hospital-input-wrapper,
+.dept-input-wrapper,
+.location-field-shell,
+.time-picker-shell,
+.budget-slider-input-wrap,
+:deep(.budget-slider-input .el-slider__input),
+:deep(.budget-slider-input .el-input-number) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-textarea__inner),
+:deep(.el-date-editor.el-input__wrapper),
+:deep(.time-range-picker),
+:deep(.budget-slider-input .el-slider__input .el-input__wrapper) {
+  border: 1px solid var(--line) !important;
+  border-radius: 13px !important;
+  background: #FFFCF8 !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-textarea__inner:hover),
+:deep(.el-date-editor.el-input__wrapper:hover),
+:deep(.time-range-picker:hover),
+:deep(.budget-slider-input .el-slider__input .el-input__wrapper:hover) {
+  border-color: var(--accent-soft) !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-textarea__inner:focus),
+:deep(.el-date-editor.el-input__wrapper.is-active),
+:deep(.time-range-picker.is-active),
+:deep(.budget-slider-input .el-slider__input .el-input__wrapper.is-focus) {
+  border-color: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+:deep(.time-range-picker .el-range-input),
+:deep(.time-range-picker .el-range-separator),
+:deep(.time-range-picker .el-range__icon),
+:deep(.time-range-picker .el-range__close-icon) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+:deep(.budget-slider-input .el-input-number__decrease),
+:deep(.budget-slider-input .el-input-number__increase) {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 控件内部原生输入不画边框，避免圆角控件内出现直角内框 */
+:deep(.el-input__inner),
+:deep(.el-date-editor .el-input__inner),
+:deep(.service-time-picker .el-input__inner),
+:deep(.budget-slider-input .el-input__inner),
+:deep(.el-range-input) {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 </style>
 

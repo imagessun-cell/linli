@@ -12,7 +12,7 @@ router.post('/tasks', authMiddleware, async (req, res) => {
       return res.status(401).json({ code: 401, message: '用户未登录，请先登录' });
     }
 
-    const { type, sub_type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, department, patient_info } = req.body;
+    const { type, sub_type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, department, patient_info, special_assist, target_hospital, target_hospital_lat, target_hospital_lng } = req.body;
 
     if (!type || !start_time || !end_time || !duration_minutes || !address || budget === undefined) {
       return res.status(400).json({ code: 400, message: '缺少必要参数' });
@@ -24,17 +24,24 @@ router.post('/tasks', authMiddleware, async (req, res) => {
 
     const now = new Date().toISOString();
     const expiresAt = new Date(new Date(start_time).getTime() - 30 * 60 * 1000).toISOString();
-    const fullAddress = department ? `${address} ${department}` : address;
-    const fullRequirements = patient_info
-      ? `${special_requirements || ''} | 患者：${patient_info}`.trim()
-      : special_requirements;
+    const targetHospital = target_hospital || address;
+    const patientLocation = address;
+    const assistText = Array.isArray(special_assist) && special_assist.length > 0
+      ? `需要：${special_assist.join('、')}`
+      : '';
+    const fullRequirements = [
+      department ? `科室：${department}` : '',
+      patient_info ? `患者：${patient_info}` : '',
+      assistText,
+      special_requirements || ''
+    ].filter(Boolean).join(' | ');
 
-    console.log('准备插入数据:', { employer_id: req.user.id, type, start_time, end_time, duration_minutes, fullAddress, budget, sub_type: sub_type || null });
+    console.log('准备插入数据:', { employer_id: req.user.id, type, start_time, end_time, duration_minutes, patientLocation, targetHospital, budget, sub_type: sub_type || null });
 
     const result = await db.runSync(`
-      INSERT INTO t_task (employer_id, type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, status, created_at, expires_at, sub_type)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
-    `, req.user.id, type, start_time, end_time, duration_minutes, fullAddress, latitude || 0, longitude || 0, physical_level || 1, budget, is_charity || 0, fullRequirements, now, expiresAt, sub_type || null);
+      INSERT INTO t_task (employer_id, type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, status, created_at, expires_at, sub_type, target_hospital, target_hospital_lat, target_hospital_lng)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
+    `, req.user.id, type, start_time, end_time, duration_minutes, patientLocation, latitude || 0, longitude || 0, physical_level || 1, budget, is_charity || 0, fullRequirements, now, expiresAt, sub_type || null, targetHospital, target_hospital_lat || null, target_hospital_lng || null);
 
     console.log('任务发布成功, task_id:', result.lastInsertRowid);
     res.json({ code: 0, message: '任务发布成功', data: { task_id: result.lastInsertRowid } });

@@ -248,7 +248,7 @@ onMounted(fetchUsers)
 }
 
 .tag-worker { background: var(--accent-light); color: var(--accent); }
-.tag-employer { background: #e3f2fd; color: #1565c0; }
+.tag-employer { background: #FFF0EC; color: #E94F3D; }
 .tag-active { background: var(--success-light); color: var(--success); }
 .tag-disabled { background: var(--danger-light); color: var(--danger); }
 

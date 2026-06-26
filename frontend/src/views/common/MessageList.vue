@@ -1,6 +1,5 @@
 <template>
   <div class="message-list-page">
-    <h2 class="page-title">消息</h2>
     <div class="conversation-list">
       <div
         v-for="conv in conversations"
@@ -8,13 +7,13 @@
         class="conversation-item"
         @click="$router.push(`/common/chat/${conv.other_user_id}`)"
       >
-        <img
-          v-if="conv.other_avatar"
+        <LinliAvatar
+          class="conversation-avatar"
+          :name="conv.other_nickname || '联系人'"
           :src="conv.other_avatar"
-          class="avatar"
-          @error="onAvatarError($event, conv.other_nickname)"
+          variant="worker"
+          :size="52"
         />
-        <span v-else class="avatar avatar-placeholder">{{ (conv.other_nickname || '?').charAt(0) }}</span>
         <div class="content">
           <div class="header">
             <span class="nickname">{{ conv.other_nickname }}</span>
@@ -33,6 +32,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import request from '@/api/request'
+import LinliAvatar from '@/components/LinliAvatar.vue'
 
 const conversations = ref([])
 const loading = ref(false)
@@ -50,15 +50,6 @@ const formatTime = (time) => {
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
   }
   return `${date.getMonth() + 1}/${date.getDate()}`
-}
-
-const onAvatarError = (event, name) => {
-  const img = event.target
-  img.style.display = 'none'
-  const placeholder = document.createElement('span')
-  placeholder.className = 'avatar avatar-placeholder'
-  placeholder.textContent = (name || '?').charAt(0)
-  img.parentElement.appendChild(placeholder)
 }
 
 const fetchConversations = async () => {
@@ -147,6 +138,10 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+.conversation-avatar {
+  margin-right: 12px;
+}
+
 .content {
   flex: 1;
   overflow: hidden;
@@ -209,5 +204,177 @@ onMounted(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .conversation-item { transition: none; }
+}
+
+/* 适老化统一风格：消息列表 */
+.message-list-page {
+  min-height: 100vh;
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, #FFF2E8 0%, #FFF9F2 38%, #FFF6EE 100%);
+}
+
+.page-title {
+  padding: 22px 16px 10px;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 900;
+  color: #4F3A32;
+}
+
+.message-overview {
+  margin: 14px 14px 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #EBD8CF;
+  border-radius: 18px;
+  background: #fffdf8;
+  box-shadow: 0 10px 24px rgba(23, 35, 49, 0.06);
+}
+
+.message-overview span {
+  color: #8A6C60;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.message-overview strong {
+  color: #4F3A32;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.message-overview em {
+  margin-left: auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #FFF0EC;
+  color: #E94F3D;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.conversation-list {
+  margin: 14px 14px 0;
+  border: 1px solid #EBD8CF;
+  border-radius: 20px;
+  background: #fffdf8;
+  box-shadow: 0 12px 28px rgba(23, 35, 49, 0.08);
+}
+
+.conversation-item {
+  min-height: 86px;
+  padding: 16px;
+  border-bottom: 1px solid #F2E6DE;
+}
+
+.conversation-item:hover {
+  background: #FFF9F2;
+}
+
+.avatar,
+.avatar-placeholder {
+  width: 58px;
+  height: 58px;
+  margin-right: 12px;
+  border: 2px solid #FFF0EC;
+  font-size: 22px;
+  font-weight: 900;
+  background: #E94F3D;
+}
+
+.header {
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.nickname {
+  font-size: 19px;
+  font-weight: 900;
+  color: #4F3A32;
+}
+
+.time {
+  font-size: 14px;
+  font-weight: 800;
+  color: #8A6C60;
+}
+
+.preview {
+  font-size: 16px;
+  line-height: 1.45;
+  color: #7D6257;
+}
+
+.unread-badge {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #b45f32;
+  font-size: 13px;
+}
+
+.loading {
+  font-size: 18px;
+}
+
+/* 全面精修：消息列表 */
+.message-list-page {
+  background:
+    linear-gradient(180deg, #F7F3EE 0%, #FBF8F4 46%, #F8F1EB 100%);
+}
+
+.conversation-list {
+  display: grid;
+  gap: 10px;
+  margin: 14px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.conversation-item {
+  min-height: 82px;
+  padding: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: var(--bg-panel);
+  box-shadow: 0 8px 22px rgba(64, 48, 40, 0.055);
+}
+
+.conversation-item:last-child {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.conversation-item:hover {
+  background: #FFFCF8;
+  border-color: rgba(217, 74, 55, 0.22);
+}
+
+.conversation-avatar {
+  margin-right: 12px;
+  border: none;
+  box-shadow: none;
+}
+
+.nickname {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.preview,
+.time {
+  color: var(--text-muted);
+}
+
+.unread-badge {
+  background: var(--accent);
 }
 </style>

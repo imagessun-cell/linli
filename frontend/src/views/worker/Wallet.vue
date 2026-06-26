@@ -14,6 +14,7 @@
     </div>
 
     <div class="actions">
+      <el-button type="primary" size="large" @click="showRecharge = true">充值</el-button>
       <el-button type="primary" size="large" @click="showWithdraw = true">提现</el-button>
     </div>
 
@@ -25,8 +26,8 @@
             <span class="tx-type">{{ txTypeNames[tx.type] }}</span>
             <span class="tx-date">{{ formatDate(tx.created_at) }}</span>
           </div>
-          <span class="tx-amount" :class="tx.type === 1 ? 'income' : 'expense'">
-            {{ tx.type === 1 ? '+' : '-' }}¥{{ tx.amount }}
+          <span class="tx-amount" :class="[1, 4].includes(tx.type) ? 'income' : 'expense'">
+            {{ [1, 4].includes(tx.type) ? '+' : '-' }}¥{{ tx.amount }}
           </span>
         </div>
       </div>
@@ -47,6 +48,18 @@
         <el-button type="primary" @click="handleWithdraw" :loading="withdrawLoading">确认提现</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="showRecharge" title="充值" width="90%">
+      <el-form :model="rechargeForm" label-width="80px">
+        <el-form-item label="充值金额">
+          <el-input v-model="rechargeForm.amount" type="number" placeholder="请输入充值金额" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showRecharge = false">取消</el-button>
+        <el-button type="primary" @click="handleRecharge" :loading="rechargeLoading">确认充值</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -58,10 +71,13 @@ import { ElMessage } from 'element-plus'
 const wallet = ref(null)
 const transactions = ref([])
 const showWithdraw = ref(false)
+const showRecharge = ref(false)
 const withdrawLoading = ref(false)
+const rechargeLoading = ref(false)
 const withdrawForm = ref({ amount: '' })
+const rechargeForm = ref({ amount: '' })
 
-const txTypeNames = { 1: '服务收入', 2: '提现', 3: '积分兑换' }
+const txTypeNames = { 1: '服务收入', 2: '提现', 3: '积分兑换', 4: '充值' }
 
 const formatDate = (time) => {
   if (!time) return ''
@@ -80,6 +96,44 @@ const fetchWallet = async () => {
   }
 }
 
+const fetchTransactions = async () => {
+  try {
+    const res = await request.get('/worker/wallet/transactions')
+    if (res.code === 0) {
+      transactions.value = res.data || []
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const refreshWallet = () => {
+  fetchWallet()
+  fetchTransactions()
+}
+
+const handleRecharge = async () => {
+  const amount = Number(rechargeForm.value.amount)
+  if (!amount || amount <= 0) {
+    ElMessage.warning('请输入正确的金额')
+    return
+  }
+  rechargeLoading.value = true
+  try {
+    const res = await request.post('/worker/wallet/recharge', { amount })
+    if (res.code === 0) {
+      ElMessage.success('充值成功')
+      showRecharge.value = false
+      rechargeForm.value.amount = ''
+      refreshWallet()
+    }
+  } catch (e) {
+    ElMessage.error(e.message || '充值失败')
+  } finally {
+    rechargeLoading.value = false
+  }
+}
+
 const handleWithdraw = async () => {
   if (!withdrawForm.value.amount || withdrawForm.value.amount <= 0) {
     ElMessage.warning('请输入正确的金额')
@@ -92,7 +146,7 @@ const handleWithdraw = async () => {
       ElMessage.success('提现申请已提交')
       showWithdraw.value = false
       withdrawForm.value.amount = ''
-      fetchWallet()
+      refreshWallet()
     }
   } catch (e) {
     ElMessage.error(e.message || '提现失败')
@@ -102,7 +156,7 @@ const handleWithdraw = async () => {
 }
 
 onMounted(() => {
-  fetchWallet()
+  refreshWallet()
 })
 </script>
 
@@ -112,7 +166,7 @@ onMounted(() => {
 }
 
 .balance-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #E94F3D 0%, #F6A21A 100%);
   color: white;
   padding: 30px;
   border-radius: 16px;
@@ -151,20 +205,24 @@ onMounted(() => {
   display: block;
   font-size: 24px;
   font-weight: bold;
-  color: #667eea;
+  color: #E94F3D;
 }
 
 .stat-item .label {
   font-size: 12px;
-  color: #999;
+  color: #8A6C60;
 }
 
 .actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin-bottom: 20px;
 }
 
 .actions .el-button {
   width: 100%;
+  margin-left: 0 !important;
 }
 
 .section h3 {
@@ -183,7 +241,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #F2E6DE;
 }
 
 .tx-item:last-child {
@@ -197,12 +255,12 @@ onMounted(() => {
 
 .tx-type {
   font-size: 14px;
-  color: #333;
+  color: #4F3A32;
 }
 
 .tx-date {
   font-size: 12px;
-  color: #999;
+  color: #8A6C60;
 }
 
 .tx-amount {
@@ -210,6 +268,6 @@ onMounted(() => {
   font-weight: bold;
 }
 
-.tx-amount.income { color: #4caf50; }
-.tx-amount.expense { color: #f44336; }
+.tx-amount.income { color: #B66A25; }
+.tx-amount.expense { color: #B84545; }
 </style>

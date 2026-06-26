@@ -3,7 +3,7 @@
     <div class="post-list">
       <div v-for="post in posts" :key="post.id" class="post-card">
         <div class="post-header">
-          <img :src="post.avatar_url || '/default-avatar.png'" class="avatar" />
+          <LinliAvatar class="avatar" :name="post.nickname || '用户'" :src="post.avatar_url" variant="user" :size="44" />
           <div class="user-info">
             <span class="nickname">{{ post.nickname }}</span>
             <span class="time">{{ formatTime(post.created_at) }}</span>
@@ -56,6 +56,7 @@
 import { ref, onMounted } from 'vue'
 import request from '@/api/request'
 import { ElMessage } from 'element-plus'
+import LinliAvatar from '@/components/LinliAvatar.vue'
 
 const posts = ref([])
 const loading = ref(false)
@@ -159,7 +160,7 @@ onMounted(() => {
   height: 40px;
   border-radius: 50%;
   margin-right: 12px;
-  background: #ddd;
+  background: #EBD8CF;
 }
 
 .user-info {
@@ -174,12 +175,12 @@ onMounted(() => {
 
 .time {
   font-size: 12px;
-  color: #999;
+  color: #8A6C60;
 }
 
 .post-content p {
   font-size: 14px;
-  color: #333;
+  color: #4F3A32;
   line-height: 1.6;
   margin-bottom: 8px;
 }
@@ -208,7 +209,7 @@ onMounted(() => {
   gap: 24px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid #F2E6DE;
 }
 
 .action-item {
@@ -216,7 +217,7 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  color: #666;
+  color: #7D6257;
   cursor: pointer;
 }
 
