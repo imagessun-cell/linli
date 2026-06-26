@@ -115,10 +115,11 @@ const showSuggestions = ref(false)
 const isSearching = ref(false)
 const highlightedIndex = ref(-1)
 let debounceTimer = null
+const publicUrl = (path) => `${import.meta.env.BASE_URL || '/'}${path.replace(/^\//, '')}`
 
 const loadCommunities = async () => {
   try {
-    const res = await fetch('/data/communities.json')
+    const res = await fetch(publicUrl('/data/communities.json'))
     const data = await res.json()
     allCommunities.value = data.communities
   } catch (e) {

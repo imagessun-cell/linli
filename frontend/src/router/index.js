@@ -1,5 +1,6 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { isDemoMode } from '@/api/demo'
 
 const routes = [
   {
@@ -170,7 +171,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: isDemoMode ? createWebHashHistory(import.meta.env.BASE_URL) : createWebHistory(),
   routes
 })
 

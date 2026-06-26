@@ -48,9 +48,10 @@ const sizeStyle = computed(() => {
 })
 
 const logoSrc = computed(() => {
+  const base = import.meta.env.BASE_URL || '/'
   return props.variant === 'full'
-    ? '/brand/linli-logo-full.png'
-    : '/brand/linli-logo-mark.png'
+    ? `${base}brand/linli-logo-full.png`
+    : `${base}brand/linli-logo-mark.png`
 })
 </script>
 

@@ -1,4 +1,9 @@
 import axios from 'axios'
+import { createDemoRequest, isDemoMode } from './demo'
+
+if (isDemoMode) {
+  console.info('[Linli] demo API mode enabled')
+}
 
 const request = axios.create({
   baseURL: '/api',
@@ -31,4 +36,4 @@ request.interceptors.response.use(
   }
 )
 
-export default request
+export default isDemoMode ? createDemoRequest() : request

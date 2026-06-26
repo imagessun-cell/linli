@@ -293,12 +293,13 @@ let patientMarker = null
 let patientGeocoder = null
 let isSyncingPatientMap = false
 const defaultPatientPoint = { lng: 116.4074, lat: 39.9042 }
+const publicUrl = (path) => `${import.meta.env.BASE_URL || '/'}${path.replace(/^\//, '')}`
 
 const loadHospitals = async () => {
   if (hospitals.value.length > 0) return
 
   try {
-    const res = await fetch('/data/hospitals.json')
+    const res = await fetch(publicUrl('/data/hospitals.json'))
     const data = await res.json()
     hospitals.value = data.hospitals || []
   } catch (e) {
@@ -310,7 +311,7 @@ const loadCommunities = async () => {
   if (communities.value.length > 0) return
 
   try {
-    const res = await fetch('/data/communities.json')
+    const res = await fetch(publicUrl('/data/communities.json'))
     const data = await res.json()
     communities.value = data.communities || []
   } catch (e) {
@@ -685,7 +686,7 @@ let deptDebounceTimer = null
 
 const loadDepartments = async () => {
   try {
-    const res = await fetch('/data/departments.json')
+    const res = await fetch(publicUrl('/data/departments.json'))
     const data = await res.json()
     departments.value = data.departments || []
   } catch (e) {

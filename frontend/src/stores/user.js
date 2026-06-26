@@ -1,11 +1,45 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import request from '@/api/request'
+import { isDemoMode } from '@/api/demo'
+
+const demoUserInfo = {
+  id: 15,
+  phone: '13900000001',
+  nickname: '林阿姨',
+  real_name: '林阿姨',
+  age: 58,
+  role: 2,
+  avatar_url: '',
+  community: '朝阳区花家地社区',
+  worker: {
+    age: 58,
+    community: '朝阳区花家地社区',
+    status: 1,
+    total_orders: 38,
+    completed_tasks: 38,
+    service_hours: 124,
+    avg_rating: 4.9,
+    rating: 4.9,
+    total_earnings: 2688,
+    honor_level: '金牌邻里陪诊师'
+  },
+  employer: {
+    age: 58,
+    community: '朝阳区花家地社区',
+    credit_score: 116,
+    published_tasks: 7
+  }
+}
 
 export const useUserStore = defineStore('user', () => {
-  const token = ref(localStorage.getItem('linli_token') || '')
-  const userInfo = ref(null)
-  const role = ref(1)
+  const token = ref(localStorage.getItem('linli_token') || (isDemoMode ? 'demo-token' : ''))
+  const userInfo = ref(isDemoMode ? demoUserInfo : null)
+  const role = ref(Number(localStorage.getItem('linli_role')) || (isDemoMode ? 2 : 1))
+
+  if (isDemoMode && !localStorage.getItem('linli_token')) {
+    localStorage.setItem('linli_token', 'demo-token')
+  }
 
   const isLoggedIn = computed(() => !!token.value)
 

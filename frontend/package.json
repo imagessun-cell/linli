@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:pages": "VITE_LINLI_DEMO=1 VITE_BASE=/linli/ vite build",
     "preview": "vite preview"
   },
   "dependencies": {

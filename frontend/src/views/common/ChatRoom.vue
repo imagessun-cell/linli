@@ -156,6 +156,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import request from '@/api/request'
+import { isDemoMode } from '@/api/demo'
 import { io } from 'socket.io-client'
 import LinliAvatar from '@/components/LinliAvatar.vue'
 
@@ -420,6 +421,7 @@ const sendMessage = async (customContent = '') => {
 }
 
 const initSocket = () => {
+  if (isDemoMode) return
   socket = io({
     auth: { token: userStore.token }
   })
