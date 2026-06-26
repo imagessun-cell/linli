@@ -2,6 +2,25 @@ const now = new Date()
 const iso = (hoursFromNow = 0) => new Date(now.getTime() + hoursFromNow * 60 * 60 * 1000).toISOString()
 
 const ok = (data = {}, message = 'success') => Promise.resolve({ code: 0, message, data })
+const demoAsset = (path) => `${import.meta.env.BASE_URL || '/'}${path.replace(/^\//, '')}`
+
+const avatars = {
+  currentUser: demoAsset('/img/Avatar/KuaPai_AI_20260602114803.png'),
+  patients: [
+    demoAsset('/img/Avatar/KuaPai_AI_20260602114540.png'),
+    demoAsset('/img/Avatar/KuaPai_AI_20260602114655.png'),
+    demoAsset('/img/Avatar/KuaPai_AI_20260602114745.png'),
+    demoAsset('/img/Avatar/KuaPai_AI_20260602114703.png'),
+    demoAsset('/img/Avatar/KuaPai_AI_20260602114803.png')
+  ],
+  workers: [
+    demoAsset('/img/Avatar/KuaPai_AI_20260602114309.png'),
+    demoAsset('/img/Avatar/KuaPai_AI_20260602113400.jpeg'),
+    demoAsset('/img/Avatar/KuaPai_AI_20260602113549.jpeg'),
+    demoAsset('/img/Avatar/KuaPai_AI_20260602114344.png'),
+    demoAsset('/img/Avatar/KuaPai_AI_20260602113622.jpeg')
+  ]
+}
 
 const demoUser = {
   id: 15,
@@ -10,7 +29,7 @@ const demoUser = {
   real_name: '林阿姨',
   age: 58,
   role: 2,
-  avatar_url: '',
+  avatar_url: avatars.currentUser,
   community: '朝阳区花家地社区',
   worker: {
     id: 3,
@@ -90,7 +109,8 @@ let tasks = taskSeed.map((item, index) => {
     special_requirements: index % 2 ? '需要协助排队缴费，服务结束后帮忙整理医嘱。' : '就诊人走路较慢，请提前十分钟到达并耐心陪同。',
     employerNickname: employer,
     employer_nickname: employer,
-    employerAvatar: '',
+    employerAvatar: avatars.patients[index % avatars.patients.length],
+    employer_avatar: avatars.patients[index % avatars.patients.length],
     employerCommunity: community,
     targetHospital: hospital,
     target_hospital: hospital,
@@ -105,21 +125,21 @@ let tasks = taskSeed.map((item, index) => {
 })
 
 const workers = [
-  { id: 1, user_id: 21, nickname: '张阿姨', age: 56, community: '花家地社区', skills: '["全程陪同","挂号取药"]', service_periods: '["weekday_morning","weekend"]', total_orders: 62, service_hours: 188, avg_rating: 4.9, honor_level: '金牌', avatar_url: '', status: 1 },
-  { id: 2, user_id: 22, nickname: '刘师傅', age: 60, community: '望京西园', skills: '["门诊陪护","代为问诊"]', service_periods: '["weekday_afternoon","weekend"]', total_orders: 44, service_hours: 136, avg_rating: 4.8, honor_level: '银牌', avatar_url: '', status: 1 },
-  { id: 3, user_id: 23, nickname: '陈阿姨', age: 54, community: '安贞西里', skills: '["全程陪同","门诊陪护"]', service_periods: '["weekday_morning","weekday_afternoon"]', total_orders: 38, service_hours: 121, avg_rating: 4.9, honor_level: '金牌', avatar_url: '', status: 1 },
-  { id: 4, user_id: 24, nickname: '王叔叔', age: 59, community: '和平里社区', skills: '["挂号取药","代为问诊"]', service_periods: '["weekend"]', total_orders: 31, service_hours: 96, avg_rating: 4.7, honor_level: '邻里优选', avatar_url: '', status: 1 }
+  { id: 1, user_id: 21, nickname: '张阿姨', age: 56, community: '花家地社区', skills: '["全程陪同","挂号取药"]', service_periods: '["weekday_morning","weekend"]', total_orders: 62, service_hours: 188, avg_rating: 4.9, honor_level: '金牌', avatar_url: avatars.workers[0], status: 1 },
+  { id: 2, user_id: 22, nickname: '刘师傅', age: 60, community: '望京西园', skills: '["门诊陪护","代为问诊"]', service_periods: '["weekday_afternoon","weekend"]', total_orders: 44, service_hours: 136, avg_rating: 4.8, honor_level: '银牌', avatar_url: avatars.workers[1], status: 1 },
+  { id: 3, user_id: 23, nickname: '陈阿姨', age: 54, community: '安贞西里', skills: '["全程陪同","门诊陪护"]', service_periods: '["weekday_morning","weekday_afternoon"]', total_orders: 38, service_hours: 121, avg_rating: 4.9, honor_level: '金牌', avatar_url: avatars.workers[2], status: 1 },
+  { id: 4, user_id: 24, nickname: '王叔叔', age: 59, community: '和平里社区', skills: '["挂号取药","代为问诊"]', service_periods: '["weekend"]', total_orders: 31, service_hours: 96, avg_rating: 4.7, honor_level: '邻里优选', avatar_url: avatars.workers[3], status: 1 }
 ]
 
 let conversations = [
-  { other_user_id: 21, other_nickname: '张阿姨', other_avatar: '', last_message: '明天我会提前十分钟到小区门口。', last_message_time: iso(-1), last_message_type: 1, unread_count: 1 },
-  { other_user_id: 22, other_nickname: '刘师傅', other_avatar: '', last_message: '检查单拍照发我，我帮您看流程。', last_message_time: iso(-5), last_message_type: 1, unread_count: 0 }
+  { other_user_id: 21, other_nickname: '张阿姨', other_avatar: avatars.workers[0], last_message: '明天我会提前十分钟到小区门口。', last_message_time: iso(-1), last_message_type: 1, unread_count: 1 },
+  { other_user_id: 22, other_nickname: '刘师傅', other_avatar: avatars.workers[1], last_message: '检查单拍照发我，我帮您看流程。', last_message_time: iso(-5), last_message_type: 1, unread_count: 0 }
 ]
 
 let messages = [
-  { id: 1, from_user_id: 21, to_user_id: 15, content: '您好，我看到您的陪诊需求了。', type: 1, created_at: iso(-2), from_nickname: '张阿姨', from_avatar: '' },
-  { id: 2, from_user_id: 15, to_user_id: 21, content: '您好，老人行动比较慢，需要您多照看一下。', type: 1, created_at: iso(-1.9), from_nickname: '林阿姨', from_avatar: '' },
-  { id: 3, from_user_id: 21, to_user_id: 15, content: '没问题，我会提前到，路线也已经看好了。', type: 1, created_at: iso(-1), from_nickname: '张阿姨', from_avatar: '' }
+  { id: 1, from_user_id: 21, to_user_id: 15, content: '您好，我看到您的陪诊需求了。', type: 1, created_at: iso(-2), from_nickname: '张阿姨', from_avatar: avatars.workers[0] },
+  { id: 2, from_user_id: 15, to_user_id: 21, content: '您好，老人行动比较慢，需要您多照看一下。', type: 1, created_at: iso(-1.9), from_nickname: '林阿姨', from_avatar: avatars.currentUser },
+  { id: 3, from_user_id: 21, to_user_id: 15, content: '没问题，我会提前到，路线也已经看好了。', type: 1, created_at: iso(-1), from_nickname: '张阿姨', from_avatar: avatars.workers[0] }
 ]
 
 let orders = [
@@ -143,8 +163,8 @@ let walletTransactions = [
 ]
 
 let posts = [
-  { id: 1, nickname: '张阿姨', avatar_url: '', content_type: 1, content_text: '今天陪同老人去做复查，提前把检查楼层和缴费窗口查好，老人安心很多。', image_urls: '', voice_url: '', like_count: 18, comment_count: 4, created_at: iso(-4) },
-  { id: 2, nickname: '刘师傅', avatar_url: '', content_type: 1, content_text: '陪诊小经验：检查报告出来后先拍照留存，再帮家属整理成清单。', image_urls: '', voice_url: '', like_count: 12, comment_count: 2, created_at: iso(-28) }
+  { id: 1, nickname: '张阿姨', avatar_url: avatars.workers[0], content_type: 1, content_text: '今天陪同老人去做复查，提前把检查楼层和缴费窗口查好，老人安心很多。', image_urls: '', voice_url: '', like_count: 18, comment_count: 4, created_at: iso(-4) },
+  { id: 2, nickname: '刘师傅', avatar_url: avatars.workers[1], content_type: 1, content_text: '陪诊小经验：检查报告出来后先拍照留存，再帮家属整理成清单。', image_urls: '', voice_url: '', like_count: 12, comment_count: 2, created_at: iso(-28) }
 ]
 
 const normalizeTask = (task) => ({
@@ -334,12 +354,12 @@ export const createDemoRequest = () => ({
       return ok({}, '接单成功')
     }
     if (url === '/message/send') {
-      const message = { id: messages.length + 1, from_user_id: demoUser.id, to_user_id: Number(data.to_user_id), content: data.content, type: 1, created_at: iso(0), from_nickname: demoUser.nickname, from_avatar: '' }
+      const message = { id: messages.length + 1, from_user_id: demoUser.id, to_user_id: Number(data.to_user_id), content: data.content, type: 1, created_at: iso(0), from_nickname: demoUser.nickname, from_avatar: demoUser.avatar_url }
       messages.push(message)
       return ok(message)
     }
     if (url === '/community/posts') {
-      const post = { id: posts.length + 1, nickname: demoUser.nickname, avatar_url: '', content_type: 1, content_text: data.content_text, image_urls: '', voice_url: '', like_count: 0, comment_count: 0, created_at: iso(0) }
+      const post = { id: posts.length + 1, nickname: demoUser.nickname, avatar_url: demoUser.avatar_url, content_type: 1, content_text: data.content_text, image_urls: '', voice_url: '', like_count: 0, comment_count: 0, created_at: iso(0) }
       posts.unshift(post)
       return ok(post)
     }

@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import request from '@/api/request'
 import { isDemoMode } from '@/api/demo'
 
+const demoAsset = (path) => `${import.meta.env.BASE_URL || '/'}${path.replace(/^\//, '')}`
+
 const demoUserInfo = {
   id: 15,
   phone: '13900000001',
@@ -10,7 +12,7 @@ const demoUserInfo = {
   real_name: '林阿姨',
   age: 58,
   role: 2,
-  avatar_url: '',
+  avatar_url: demoAsset('/img/Avatar/KuaPai_AI_20260602114803.png'),
   community: '朝阳区花家地社区',
   worker: {
     age: 58,
