@@ -156,6 +156,21 @@ CREATE TABLE IF NOT EXISTS t_order (
     FOREIGN KEY (worker_id) REFERENCES t_user(id)
 );
 
+CREATE TABLE IF NOT EXISTS t_order_review (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL UNIQUE,
+    worker_id INTEGER NOT NULL,
+    employer_id INTEGER NOT NULL,
+    punctuality INTEGER DEFAULT 5,
+    communication INTEGER DEFAULT 5,
+    process INTEGER DEFAULT 5,
+    comment TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (order_id) REFERENCES t_order(id),
+    FOREIGN KEY (worker_id) REFERENCES t_user(id),
+    FOREIGN KEY (employer_id) REFERENCES t_user(id)
+);
+
 CREATE TABLE IF NOT EXISTS t_wallet (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     worker_id INTEGER NOT NULL UNIQUE,

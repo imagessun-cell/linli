@@ -76,7 +76,7 @@ const subTypeMeta = {
   4: { name: '代为问诊', icon: '📝' }
 }
 
-const orderStatusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中' }
+const orderStatusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中', 7: '待报价', 8: '待支付' }
 
 const servicePriceMeta = {
   full: { key: 'full', subType: 1, name: '全程陪同', price: 168, minutes: 180, durationText: '约3小时' },
@@ -173,8 +173,18 @@ let messages = [
 ]
 
 let orders = [
-  { id: 1, task_id: 1, order_no: 'ORD20260626001', employer_id: 15, worker_id: 21, task_type: 1, service_name: '全程陪同', address: '望京西园四区', start_time: iso(24), end_time: iso(25.5), worker_nickname: '张阿姨', worker_phone: '13800000001', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 140, platform_commission: 14, worker_income: 126, status: 2, order_status_text: '服务中', payment_status: 'paid', created_at: iso(-20), special_requirements: '请提前十分钟到达，协助老人完成缴费。' },
-  { id: 2, task_id: 2, order_no: 'ORD20260625003', employer_id: 15, worker_id: 22, task_type: 3, service_name: '门诊陪护', address: '花家地北里', start_time: iso(-24), end_time: iso(-22.5), worker_nickname: '刘师傅', worker_phone: '13800000002', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 120, platform_commission: 12, worker_income: 108, status: 4, order_status_text: '已完成', payment_status: 'paid', created_at: iso(-48), special_requirements: '陪同复诊并记录医生建议。' }
+  { id: 1, task_id: 1, order_no: 'ORD20260626001', employer_id: 15, worker_id: 21, task_type: 1, service_name: '全程陪同', address: '望京西园四区', target_hospital: '北京中医药大学东方医院', start_time: iso(24), end_time: iso(25.5), duration_minutes: 90, worker_nickname: '张阿姨', worker_phone: '13800000001', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 140, platform_commission: 14, worker_income: 126, status: 2, order_status_text: '服务中', payment_status: 'paid', created_at: iso(-20), special_requirements: '请提前十分钟到达，协助老人完成缴费。' },
+  { id: 2, task_id: 2, order_no: 'ORD20260625003', employer_id: 15, worker_id: 22, task_type: 3, service_name: '门诊陪护', address: '花家地北里', target_hospital: '中日友好医院', start_time: iso(-24), end_time: iso(-22.5), duration_minutes: 90, worker_nickname: '刘师傅', worker_phone: '13800000002', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 120, platform_commission: 12, worker_income: 108, status: 4, order_status_text: '已完成', payment_status: 'paid', created_at: iso(-48), special_requirements: '陪同复诊并记录医生建议。' },
+  { id: 3, task_id: 1003, order_no: 'ORD20260629007', employer_id: 13, worker_id: 15, task_type: 1, service_name: '全程陪同', address: '和平里七区', target_hospital: '北京积水潭医院新街口院区', start_time: iso(22), end_time: iso(25), duration_minutes: 180, worker_nickname: '林阿姨', worker_phone: '13900000001', employer_nickname: '赵阿姨', employer_phone: '13900000003', total_amount: 168, platform_commission: 16.8, worker_income: 151.2, status: 7, order_status_text: '待报价', payment_status: 'pending_quote', created_at: iso(-1.2), special_requirements: '就诊人腰腿不便，需要陪同候诊、缴费并整理医嘱。', quote_note: '请陪诊师根据路线和服务要求确认最终报价。' },
+  { id: 4, task_id: 1004, order_no: 'ORD20260629008', employer_id: 15, worker_id: 23, task_type: 1, service_name: '全程陪同', address: '朝阳区花家地社区', target_hospital: '中日友好医院', start_time: iso(30), end_time: iso(33), duration_minutes: 180, worker_nickname: '陈阿姨', worker_phone: '13800000003', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 188, platform_commission: 18.8, worker_income: 169.2, status: 8, order_status_text: '待支付', payment_status: 'pending_payment', created_at: iso(-0.8), special_requirements: '需要提前到小区门口接人，协助排队检查并提醒复诊安排。', quote_note: '已包含三小时全程陪同、院内排队协助和医嘱整理。' }
+]
+
+let preHistoryRecords = [
+  { id: 1, order_id: 1, patient_name: '林阿姨', patient_age: '58', medical_history: '高血压，规律服药。', allergy_history: '青霉素过敏。', current_symptoms: '近期头晕，需要复诊确认用药。', medication_info: '每日晨服降压药。', other_info: '走路较慢，请预留排队时间。', screenshot_url: '', confirmed_at: iso(-6) }
+]
+
+let serviceReports = [
+  { id: 1, order_id: 2, doctor_advice: '按医嘱继续服药，两周后复查。', medication_reminder: '早晚饭后服药，注意监测血压。', next_visit_date: iso(24 * 14), photo_urls: '[]', notes: '已将处方和缴费票据整理给就诊人。', submitted_at: iso(-20) }
 ]
 
 let wallet = {
@@ -337,8 +347,10 @@ const createOrderFromTask = (task, workerId = demoUser.id, options = {}) => {
     service_key: service.key,
     service_name: service.name,
     address: task.address,
+    target_hospital: task.targetHospital || task.target_hospital || '目标医院待确认',
     start_time: task.startTime || task.start_time,
     end_time: task.endTime || task.end_time,
+    duration_minutes: service.minutes || task.duration || task.duration_minutes,
     worker_nickname: worker.nickname,
     worker_phone: '13800000001',
     employer_nickname: task.employerNickname || task.employer_nickname || demoUser.nickname,
@@ -348,7 +360,8 @@ const createOrderFromTask = (task, workerId = demoUser.id, options = {}) => {
     worker_income: Math.round(amount * 90) / 100,
     status,
     order_status_text: orderStatusNames[status] || '待服务',
-    payment_status: 'paid',
+    payment_status: options.payment_status || (status === 1 ? 'paid' : 'unpaid'),
+    quote_note: options.quote_note || '',
     created_at: iso(0),
     special_requirements: task.specialRequirements || task.special_requirements || ''
   }
@@ -394,7 +407,8 @@ export const createDemoRequest = () => ({
         ? orders.filter((item) => Number(item.worker_id) === Number(demoUser.id))
         : orders.filter((item) => Number(item.employer_id) === Number(demoUser.id))
       const filtered = status ? scopedOrders.filter((item) => String(item.status) === String(status)) : scopedOrders
-      return ok({ orders: filtered, total: filtered.length })
+      const sorted = [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      return ok({ orders: sorted, total: sorted.length })
     }
     if (url.startsWith('/order/')) {
       const id = Number(url.split('/')[2])
@@ -435,6 +449,14 @@ export const createDemoRequest = () => ({
         ]
       })
     }
+    if (/^\/v1\/orders\/\d+\/pre-history$/.test(url)) {
+      const id = Number(url.split('/')[3])
+      return ok(preHistoryRecords.find((item) => Number(item.order_id) === id) || null)
+    }
+    if (/^\/v1\/orders\/\d+\/service-report$/.test(url)) {
+      const id = Number(url.split('/')[3])
+      return ok(serviceReports.find((item) => Number(item.order_id) === id) || null)
+    }
     if (url === '/location/ip') return ok({ latitude: 39.98, longitude: 116.46 })
     if (url === '/location/convert') return ok({ latitude: 39.98, longitude: 116.46, lat: 39.98, lng: 116.46 })
     if (url === '/location/geocode') {
@@ -466,7 +488,7 @@ export const createDemoRequest = () => ({
         type: 1,
         sub_type: service.subType,
         subType: service.subType,
-        address: data.address || demoUser.community || '花家地北里',
+        address: data.address || data.patient_location || demoUser.community || '花家地北里',
         target_hospital: data.target_hospital || '就近医院待确认',
         targetHospital: data.target_hospital || '就近医院待确认',
         latitude: data.latitude || 39.982,
@@ -481,8 +503,8 @@ export const createDemoRequest = () => ({
         distance: 860,
         employer_nickname: demoUser.nickname,
         employerCommunity: demoUser.community,
-        special_requirements: `${service.name}已支付，等待陪诊师确认服务安排。`,
-        status: 1,
+        special_requirements: data.special_requirements || `${service.name}需求已提交，等待陪诊师确认报价。`,
+        status: 7,
         created_at: iso(0)
       })
       tasks.unshift(task)
@@ -492,10 +514,12 @@ export const createDemoRequest = () => ({
         service_name: service.name,
         service_price: service.price,
         service_duration: service.durationText,
-        status: 1
+        status: 7,
+        payment_status: 'pending_quote',
+        quote_note: '等待陪诊师根据路线和要求确认最终报价'
       })
-      const message = pushOrderDynamic(order, '已支付，等待陪诊师确认服务时间')
-      return ok({ order, order_id: order.id, message_id: message.id }, '支付成功，订单已生成')
+      const message = pushOrderDynamic(order, '就诊人已补充路线和要求，等待陪诊师报价')
+      return ok({ order, order_id: order.id, message_id: message.id }, '需求已提交，等待陪诊师报价')
     }
     if (url === '/employer/tasks') {
       const nextId = tasks.length + 1
@@ -555,7 +579,59 @@ export const createDemoRequest = () => ({
       return ok(message)
     }
     if (/^\/order\/\d+\/review$/.test(url)) {
+      const id = Number(url.split('/')[2])
+      const order = orders.find((item) => item.id === id)
+      if (order) order.review = { ...data, submitted_at: iso(0) }
       return ok({ ...data, submitted_at: iso(0) }, '评价已提交')
+    }
+    if (/^\/worker\/orders\/\d+\/quote$/.test(url)) {
+      const id = Number(url.split('/')[3])
+      const order = orders.find((item) => item.id === id)
+      if (order) {
+        const amount = Math.max(1, Number(data.amount || order.total_amount || 0))
+        order.total_amount = amount
+        order.platform_commission = Math.round(amount * 10) / 100
+        order.worker_income = Math.round(amount * 90) / 100
+        order.status = 8
+        order.payment_status = 'pending_payment'
+        order.quote_note = data.quote_note || ''
+        order.order_status_text = orderStatusNames[8]
+        pushOrderDynamic(order, `陪诊师已报价 ¥${amount}，等待就诊人支付`, {
+          senderId: order.worker_id,
+          targetId: order.employer_id,
+          senderName: order.worker_nickname
+        })
+      }
+      return ok(order || {}, '报价已发送')
+    }
+    if (/^\/employer\/orders\/\d+\/pay$/.test(url)) {
+      const id = Number(url.split('/')[3])
+      const order = orders.find((item) => item.id === id)
+      if (order) {
+        order.status = 1
+        order.payment_status = 'paid'
+        order.order_status_text = orderStatusNames[1]
+        pushOrderDynamic(order, '就诊人已付款，订单进入待服务', {
+          senderId: order.employer_id,
+          targetId: order.worker_id,
+          senderName: order.employer_nickname
+        })
+      }
+      return ok(order || {}, '支付成功')
+    }
+    if (/^\/v1\/orders\/\d+\/pre-history$/.test(url)) {
+      const id = Number(url.split('/')[3])
+      const record = { ...(preHistoryRecords.find((item) => Number(item.order_id) === id) || {}), ...data, id: preHistoryRecords.length + 1, order_id: id, confirmed_at: iso(0) }
+      preHistoryRecords = preHistoryRecords.filter((item) => Number(item.order_id) !== id)
+      preHistoryRecords.unshift(record)
+      return ok(record, '病史资料已保存')
+    }
+    if (/^\/v1\/orders\/\d+\/service-report$/.test(url)) {
+      const id = Number(url.split('/')[3])
+      const report = { ...(serviceReports.find((item) => Number(item.order_id) === id) || {}), ...data, id: serviceReports.length + 1, order_id: id, submitted_at: iso(0) }
+      serviceReports = serviceReports.filter((item) => Number(item.order_id) !== id)
+      serviceReports.unshift(report)
+      return ok(report, '服务报告已保存')
     }
     if (url === '/community/posts') {
       const post = { id: posts.length + 1, nickname: demoUser.nickname, avatar_url: demoUser.avatar_url, content_type: 1, content_text: data.content_text, image_urls: '', voice_url: '', like_count: 0, comment_count: 0, created_at: iso(0) }
@@ -577,7 +653,7 @@ export const createDemoRequest = () => ({
       walletTransactions.unshift({ id: walletTransactions.length + 1, wallet_id: 1, type: 2, amount, status: 1, created_at: iso(0) })
       return ok(wallet)
     }
-    if (url === '/v1/agreement/sign' || url === '/v1/exam/submit' || url === '/v1/complaint' || url === '/v1/sos' || url.includes('/checkpoint') || url.includes('/pre-history') || url.includes('/service-report')) return ok({})
+    if (url === '/v1/agreement/sign' || url === '/v1/exam/submit' || url === '/v1/complaint' || url === '/v1/sos' || url.includes('/checkpoint')) return ok({})
     return ok({})
   },
   put(url, data = {}) {

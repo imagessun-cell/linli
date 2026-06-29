@@ -485,7 +485,7 @@ const handleGrab = async () => {
     const res = await request.post(`/task/${route.params.id}/grab`)
     if (res.code === 0) {
       ElMessage.success('接单成功')
-      router.push('/worker/my-tasks')
+      router.push({ path: '/worker/my-tasks', query: { status: '1' } })
     } else {
       ElMessage.error(res.message || '接单失败')
     }

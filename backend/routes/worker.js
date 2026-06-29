@@ -207,7 +207,8 @@ router.get('/orders', authMiddleware, async (req, res) => {
     const offset = (page - 1) * limit;
 
     let sql = `
-      SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.sub_type, t.address, t.start_time, t.end_time, t.special_requirements,
+      SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.sub_type, t.address, t.target_hospital,
+             t.duration_minutes, t.start_time, t.end_time, t.special_requirements,
              e.nickname as employer_nickname, e.phone as employer_phone
       FROM t_order o
       JOIN t_task t ON o.task_id = t.id
@@ -238,6 +239,52 @@ router.get('/orders', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+router.post('/orders/:orderId/quote', authMiddleware, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const amount = Number(req.body.amount);
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ code: 400, message: '请输入正确的报价金额' });
+    }
+
+    const order = await db.getSync(`
+      SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.sub_type
+      FROM t_order o
+      JOIN t_task t ON o.task_id = t.id
+      WHERE o.id = ? AND o.worker_id = ?
+    `, [orderId, req.user.id]);
+    if (!order) {
+      return res.status(404).json({ code: 404, message: '订单不存在' });
+    }
+    if (Number(order.status) !== 7 && Number(order.status) !== 8) {
+      return res.status(400).json({ code: 400, message: '当前订单不能报价' });
+    }
+
+    const platformCommission = Math.round(amount * 10) / 100;
+    const workerIncome = Math.round(amount * 90) / 100;
+    await db.runSync(`
+      UPDATE t_order
+      SET total_amount = ?, platform_commission = ?, worker_income = ?, status = 8
+      WHERE id = ?
+    `, [amount, platformCommission, workerIncome, orderId]);
+
+    const updated = await db.getSync('SELECT * FROM t_order WHERE id = ?', [orderId]);
+    await sendOrderDynamic(req, {
+      order: { ...order, ...updated, status: 8 },
+      fromUserId: req.user.id,
+      toUserId: order.employer_id,
+      serviceName: serviceNameFromOrder(order),
+      statusText: `陪诊师已报价 ¥${amount}，等待就诊人支付`,
+      amount
+    });
+
+    res.json({ code: 0, message: '报价已发送', data: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ code: 500, message: '服务器错误: ' + err.message });
   }
 });
 

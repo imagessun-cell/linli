@@ -1,8 +1,9 @@
 <template>
   <div class="service-report">
     <div class="form-header">
-      <h3>📄 陪诊服务报告</h3>
+      <h3>陪诊服务报告</h3>
       <p class="form-desc">服务结束后请在 24 小时内提交陪诊报告</p>
+      <span v-if="savedAt" class="saved-badge">已保存 · 可重新编辑</span>
     </div>
 
     <el-form ref="formRef" :model="form" label-width="100px">
@@ -64,14 +65,14 @@
 
     <div class="form-actions">
       <el-button type="primary" :loading="submitting" @click="submitReport">
-        提交服务报告
+        {{ savedAt ? '保存更新' : '提交服务报告' }}
       </el-button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import request from '@/api/request'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
@@ -87,6 +88,7 @@ const userStore = useUserStore()
 const formRef = ref(null)
 const submitting = ref(false)
 const uploadedUrls = ref([])
+const savedAt = ref('')
 
 const form = reactive({
   doctor_advice: '',
@@ -123,6 +125,34 @@ const beforeUpload = (file) => {
   return true
 }
 
+const parsePhotoUrls = (value) => {
+  if (!value) return []
+  if (Array.isArray(value)) return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return []
+  }
+}
+
+const loadExisting = async () => {
+  try {
+    const res = await request.get(`/v1/orders/${props.orderId}/service-report`)
+    if (res.code === 0 && res.data) {
+      Object.assign(form, {
+        doctor_advice: res.data.doctor_advice || '',
+        medication_reminder: res.data.medication_reminder || '',
+        next_visit_date: res.data.next_visit_date || '',
+        notes: res.data.notes || ''
+      })
+      uploadedUrls.value = parsePhotoUrls(res.data.photo_urls)
+      savedAt.value = res.data.submitted_at || ''
+    }
+  } catch (e) {
+    // 无历史报告时保持空表单
+  }
+}
+
 const submitReport = async () => {
   submitting.value = true
   try {
@@ -132,7 +162,8 @@ const submitReport = async () => {
       photo_urls: uploadedUrls.value.length > 0 ? JSON.stringify(uploadedUrls.value) : null
     })
     if (res.code === 0) {
-      ElMessage.success('服务报告已提交')
+      savedAt.value = res.data?.submitted_at || new Date().toISOString()
+      ElMessage.success('服务报告已保存')
       emit('submitted', res.data)
     } else {
       ElMessage.warning(res.message || '提交失败')
@@ -143,6 +174,8 @@ const submitReport = async () => {
     submitting.value = false
   }
 }
+
+onMounted(loadExisting)
 </script>
 
 <style scoped>
@@ -169,6 +202,19 @@ const submitReport = async () => {
   line-height: 1.5;
 }
 
+.saved-badge {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #FFF0EC;
+  color: #D94A37;
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .form-actions {
   margin-top: 20px;
 }
@@ -184,5 +230,24 @@ const submitReport = async () => {
 .uploaded-label {
   font-size: 13px;
   color: #B66A25;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-textarea__inner),
+:deep(.el-date-editor.el-input__wrapper) {
+  border: 1px solid #EBD8CF !important;
+  border-radius: 14px !important;
+  background: #FFFCF8 !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-input__inner) {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-form-item__label) {
+  color: #6F5C53;
+  font-weight: 900;
 }
 </style>

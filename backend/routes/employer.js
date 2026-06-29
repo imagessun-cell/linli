@@ -154,8 +154,9 @@ router.post('/workers/:workerId/invite', authMiddleware, async (req, res) => {
       const startTime = req.body.start_time || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       const endTime = req.body.end_time || new Date(new Date(startTime).getTime() + service.minutes * 60 * 1000).toISOString();
       const expiresAt = new Date(new Date(startTime).getTime() - 30 * 60 * 1000).toISOString();
-      const address = req.body.address || '就诊人地点待确认';
+      const address = req.body.address || req.body.patient_location || '就诊人地点待确认';
       const targetHospital = req.body.target_hospital || '就近医院待确认';
+      const requirements = req.body.special_requirements || `${service.name}需求已提交，等待陪诊师确认报价。`;
 
       const taskResult = await db.runSync(`
         INSERT INTO t_task (employer_id, type, sub_type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, status, worker_id, created_at, expires_at, target_hospital, target_hospital_lat, target_hospital_lng)
@@ -170,7 +171,7 @@ router.post('/workers/:workerId/invite', authMiddleware, async (req, res) => {
         req.body.latitude || 0,
         req.body.longitude || 0,
         service.price,
-        `${service.name}已支付，等待陪诊师确认服务安排。`,
+        requirements,
         workerId,
         now,
         expiresAt,
@@ -182,8 +183,21 @@ router.post('/workers/:workerId/invite', authMiddleware, async (req, res) => {
       task = await db.getSync('SELECT * FROM t_task WHERE id = ?', [taskResult.lastInsertRowid]);
     } else {
       await db.runSync(
-        'UPDATE t_task SET worker_id = ?, status = 1, budget = ?, sub_type = COALESCE(sub_type, ?) WHERE id = ?',
-        [workerId, service.price, service.subType, task.id]
+        `UPDATE t_task
+         SET worker_id = ?, status = 1, budget = ?, sub_type = COALESCE(sub_type, ?),
+             address = COALESCE(?, address),
+             target_hospital = COALESCE(?, target_hospital),
+             special_requirements = COALESCE(?, special_requirements)
+         WHERE id = ?`,
+        [
+          workerId,
+          service.price,
+          service.subType,
+          req.body.address || req.body.patient_location || null,
+          req.body.target_hospital || null,
+          req.body.special_requirements || null,
+          task.id
+        ]
       );
       task = await db.getSync('SELECT * FROM t_task WHERE id = ?', [task.id]);
     }
@@ -194,7 +208,7 @@ router.post('/workers/:workerId/invite', authMiddleware, async (req, res) => {
 
     const orderResult = await db.runSync(`
       INSERT INTO t_order (task_id, order_no, employer_id, worker_id, total_amount, platform_commission, worker_income, status, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 7, ?)
     `, [task.id, orderNo, req.user.id, workerId, service.price, platform_commission, worker_income, now]);
 
     const order = await db.getSync('SELECT * FROM t_order WHERE id = ?', [orderResult.lastInsertRowid]);
@@ -203,11 +217,11 @@ router.post('/workers/:workerId/invite', authMiddleware, async (req, res) => {
       fromUserId: req.user.id,
       toUserId: workerId,
       serviceName: service.name,
-      statusText: '已支付，等待陪诊师确认服务时间',
+      statusText: '就诊人已补充路线和要求，等待陪诊师报价',
       amount: service.price
     });
 
-    res.json({ code: 0, message: '支付成功，订单已生成', data: { order, order_id: order.id } });
+    res.json({ code: 0, message: '需求已提交，等待陪诊师报价', data: { order, order_id: order.id } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ code: 500, message: '服务器错误: ' + err.message });
@@ -220,7 +234,8 @@ router.get('/orders', authMiddleware, async (req, res) => {
     const offset = (page - 1) * limit;
 
     let sql = `
-      SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.address, t.start_time, t.end_time,
+      SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.address, t.target_hospital,
+             t.duration_minutes, t.start_time, t.end_time, t.special_requirements,
              w.nickname as worker_nickname, w.phone as worker_phone,
              e.nickname as employer_nickname
       FROM t_order o
@@ -240,12 +255,56 @@ router.get('/orders', authMiddleware, async (req, res) => {
     params.push(parseInt(limit), parseInt(offset));
 
     const orders = await db.allSync(sql, ...params);
-    const totalResult = await db.getSync(`SELECT COUNT(*) as count FROM t_order WHERE employer_id = ?`, req.user.id);
+    let countSql = `SELECT COUNT(*) as count FROM t_order WHERE employer_id = ?`;
+    const countParams = [req.user.id];
+    if (status !== undefined) {
+      countSql += ` AND status = ?`;
+      countParams.push(parseInt(status));
+    }
+    const totalResult = await db.getSync(countSql, countParams);
 
     res.json({ code: 0, message: 'success', data: { orders, total: totalResult.count } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+router.post('/orders/:orderId/pay', authMiddleware, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const now = new Date().toISOString();
+
+    const order = await db.getSync(`
+      SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.sub_type
+      FROM t_order o
+      JOIN t_task t ON o.task_id = t.id
+      WHERE o.id = ? AND o.employer_id = ?
+    `, [orderId, req.user.id]);
+    if (!order) {
+      return res.status(404).json({ code: 404, message: '订单不存在' });
+    }
+    if (Number(order.status) !== 8) {
+      return res.status(400).json({ code: 400, message: '当前订单还不能支付' });
+    }
+
+    await db.runSync('UPDATE t_order SET status = 1, pay_time = ? WHERE id = ?', [now, orderId]);
+    await db.runSync('UPDATE t_task SET status = 1 WHERE id = ?', [order.task_id]);
+
+    const updated = await db.getSync('SELECT * FROM t_order WHERE id = ?', [orderId]);
+    await sendOrderDynamic(req, {
+      order: { ...order, status: 1 },
+      fromUserId: req.user.id,
+      toUserId: order.worker_id,
+      serviceName: SERVICE_NAMES[order.sub_type || order.task_type] || '陪诊服务',
+      statusText: '就诊人已付款，订单进入待服务',
+      amount: updated.total_amount
+    });
+
+    res.json({ code: 0, message: '支付成功', data: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ code: 500, message: '服务器错误: ' + err.message });
   }
 });
 

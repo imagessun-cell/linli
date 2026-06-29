@@ -126,15 +126,29 @@
             <span class="service-price-meta">{{ option.duration }} · {{ option.feeText }}</span>
           </button>
         </div>
+        <div class="invite-route-form" aria-label="补充陪诊路线和要求">
+          <label>
+            <span>就诊人地点</span>
+            <input v-model="inviteForm.patient_location" type="text" placeholder="例如：朝阳区花家地北里 8 号楼" />
+          </label>
+          <label>
+            <span>就诊医院</span>
+            <input v-model="inviteForm.target_hospital" type="text" placeholder="例如：中日友好医院" />
+          </label>
+          <label class="full">
+            <span>陪诊要求</span>
+            <textarea v-model="inviteForm.special_requirements" rows="3" placeholder="说明行动情况、科室、资料携带、是否需要取药等"></textarea>
+          </label>
+        </div>
         <div class="invite-pay-summary">
-          <span>需支付</span>
+          <span>参考价</span>
           <strong>¥{{ selectedInviteOption.price }}</strong>
-          <em>含平台保障与订单通知</em>
+          <em>陪诊师确认后再支付</em>
         </div>
         <div class="dialog-actions">
           <button class="dialog-btn" :disabled="inviteLoading" @click="showInviteDialog = false">取消</button>
           <button class="dialog-btn primary" :disabled="inviteLoading" @click="confirmInviteAndPay">
-            {{ inviteLoading ? '支付中...' : '确认并支付' }}
+            {{ inviteLoading ? '提交中...' : '提交需求' }}
           </button>
         </div>
       </div>
@@ -206,6 +220,11 @@ const showInviteDialog = ref(false)
 const selectedWorker = ref(null)
 const selectedInviteService = ref('full')
 const inviteLoading = ref(false)
+const inviteForm = ref({
+  patient_location: '朝阳区花家地社区',
+  target_hospital: '中日友好医院',
+  special_requirements: '就诊人走路较慢，请提前十分钟到达，协助排队缴费并整理医嘱。'
+})
 const showLevelDialog = ref(false)
 const showRatingDialog = ref(false)
 let workerSearchTimer = null
@@ -300,11 +319,20 @@ const handleInvite = (worker) => {
       : skills.includes('代为问诊')
         ? 'consult'
         : 'full'
+  inviteForm.value = {
+    patient_location: '朝阳区花家地社区',
+    target_hospital: '中日友好医院',
+    special_requirements: '就诊人走路较慢，请提前十分钟到达，协助排队缴费并整理医嘱。'
+  }
   showInviteDialog.value = true
 }
 
 const confirmInviteAndPay = async () => {
   if (!selectedWorker.value || inviteLoading.value) return
+  if (!inviteForm.value.patient_location.trim() || !inviteForm.value.target_hospital.trim()) {
+    ElMessage.warning('请补充就诊人地点和就诊医院')
+    return
+  }
   inviteLoading.value = true
   try {
     const option = selectedInviteOption.value
@@ -312,10 +340,14 @@ const confirmInviteAndPay = async () => {
       service_type: option.key,
       service_name: option.name,
       service_price: option.price,
-      service_duration: option.duration
+      service_duration: option.duration,
+      address: inviteForm.value.patient_location.trim(),
+      patient_location: inviteForm.value.patient_location.trim(),
+      target_hospital: inviteForm.value.target_hospital.trim(),
+      special_requirements: inviteForm.value.special_requirements.trim()
     })
     if (res.code === 0) {
-      ElMessage.success('支付成功，已生成订单')
+      ElMessage.success('需求已提交，等待陪诊师报价')
       showInviteDialog.value = false
       router.push(`/common/chat/${selectedWorker.value.user_id}`)
     } else {
@@ -1378,6 +1410,55 @@ onMounted(() => {
   color: #9A7667;
   font-size: 13px;
   font-weight: 900;
+}
+
+.invite-route-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.invite-route-form label {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.invite-route-form label.full {
+  grid-column: 1 / -1;
+}
+
+.invite-route-form span {
+  color: #6F5C53;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.invite-route-form input,
+.invite-route-form textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 12px;
+  border: 1px solid #EBD8CF;
+  border-radius: 14px;
+  background: #fff;
+  color: #4F3A32;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.4;
+  outline: none;
+  box-shadow: none;
+}
+
+.invite-route-form textarea {
+  resize: vertical;
+}
+
+.invite-route-form input:focus,
+.invite-route-form textarea:focus {
+  border-color: #D94A37;
+  box-shadow: 0 0 0 3px rgba(217, 74, 55, 0.1);
 }
 
 .invite-pay-summary {

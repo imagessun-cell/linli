@@ -9,8 +9,8 @@
       <h4>服务信息</h4>
       <div class="info-grid">
         <div class="info-item">
-          <span class="label">服务地址</span>
-          <span class="value">{{ task.address }}</span>
+          <span class="label">服务路线</span>
+          <span class="value">{{ formatTaskRoute(task) }}</span>
         </div>
         <div class="info-item">
           <span class="label">服务时间</span>
@@ -92,13 +92,19 @@ const formatDuration = (minutes) => {
   return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}小时`
 }
 
+const formatTaskRoute = (item) => {
+  const start = item?.address || '就诊人地点'
+  const end = item?.target_hospital || item?.targetHospital || '目标医院'
+  return `${start} → ${end}`
+}
+
 const handleAccept = async () => {
   loading.value = true
   try {
     const res = await request.post(`/worker/tasks/${route.params.id}/accept`)
     if (res.code === 0) {
       ElMessage.success('接单成功')
-      router.push('/worker/my-tasks')
+      router.push({ path: '/worker/my-tasks', query: { status: '1' } })
     } else {
       ElMessage.error(res.message)
     }

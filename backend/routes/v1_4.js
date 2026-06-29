@@ -528,14 +528,33 @@ router.post('/orders/:orderId/pre-history', authMiddleware, async (req, res) => 
 
     const worker = await db.getSync('SELECT * FROM t_worker WHERE user_id = ?', [req.user.id]);
 
+    const existing = await db.getSync(
+      'SELECT * FROM t_pre_history WHERE order_id = ? ORDER BY confirmed_at DESC LIMIT 1',
+      [orderId]
+    );
+    const now = new Date().toISOString();
+
+    if (existing) {
+      await db.runSync(
+        `UPDATE t_pre_history
+         SET worker_id = ?, patient_name = ?, patient_age = ?, medical_history = ?,
+             allergy_history = ?, current_symptoms = ?, medication_info = ?,
+             other_info = ?, screenshot_url = ?, confirmed_at = ?
+         WHERE id = ?`,
+        [worker.id, patient_name, patient_age, medical_history, allergy_history, current_symptoms, medication_info, other_info, screenshot_url || null, now, existing.id]
+      );
+      const record = await db.getSync('SELECT * FROM t_pre_history WHERE id = ?', [existing.id]);
+      return res.json({ code: 0, message: '病史资料已保存', data: record });
+    }
+
     const result = await db.runSync(
-      `INSERT INTO t_pre_history (order_id, worker_id, patient_name, patient_age, medical_history, allergy_history, current_symptoms, medication_info, other_info, screenshot_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [orderId, worker.id, patient_name, patient_age, medical_history, allergy_history, current_symptoms, medication_info, other_info, screenshot_url || null]
+      `INSERT INTO t_pre_history (order_id, worker_id, patient_name, patient_age, medical_history, allergy_history, current_symptoms, medication_info, other_info, screenshot_url, confirmed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [orderId, worker.id, patient_name, patient_age, medical_history, allergy_history, current_symptoms, medication_info, other_info, screenshot_url || null, now]
     );
 
     const record = await db.getSync('SELECT * FROM t_pre_history WHERE id = ?', [result.lastInsertRowid]);
-    res.json({ code: 0, message: '病史资料已提交', data: record });
+    res.json({ code: 0, message: '病史资料已保存', data: record });
   } catch (err) {
     console.error(err);
     res.status(500).json({ code: 500, message: '服务器错误' });
@@ -573,14 +592,32 @@ router.post('/orders/:orderId/service-report', authMiddleware, async (req, res) 
 
     const worker = await db.getSync('SELECT * FROM t_worker WHERE user_id = ?', [req.user.id]);
 
+    const existing = await db.getSync(
+      'SELECT * FROM t_service_report WHERE order_id = ? ORDER BY submitted_at DESC LIMIT 1',
+      [orderId]
+    );
+    const now = new Date().toISOString();
+
+    if (existing) {
+      await db.runSync(
+        `UPDATE t_service_report
+         SET worker_id = ?, doctor_advice = ?, medication_reminder = ?,
+             next_visit_date = ?, photo_urls = ?, notes = ?, submitted_at = ?
+         WHERE id = ?`,
+        [worker.id, doctor_advice || null, medication_reminder || null, next_visit_date || null, photo_urls || null, notes || null, now, existing.id]
+      );
+      const report = await db.getSync('SELECT * FROM t_service_report WHERE id = ?', [existing.id]);
+      return res.json({ code: 0, message: '服务报告已保存', data: report });
+    }
+
     const result = await db.runSync(
-      `INSERT INTO t_service_report (order_id, worker_id, doctor_advice, medication_reminder, next_visit_date, photo_urls, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [orderId, worker.id, doctor_advice || null, medication_reminder || null, next_visit_date || null, photo_urls || null, notes || null]
+      `INSERT INTO t_service_report (order_id, worker_id, doctor_advice, medication_reminder, next_visit_date, photo_urls, notes, submitted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [orderId, worker.id, doctor_advice || null, medication_reminder || null, next_visit_date || null, photo_urls || null, notes || null, now]
     );
 
     const report = await db.getSync('SELECT * FROM t_service_report WHERE id = ?', [result.lastInsertRowid]);
-    res.json({ code: 0, message: '服务报告已提交', data: report });
+    res.json({ code: 0, message: '服务报告已保存', data: report });
   } catch (err) {
     console.error(err);
     res.status(500).json({ code: 500, message: '服务器错误' });

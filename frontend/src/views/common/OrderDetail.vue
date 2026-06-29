@@ -17,7 +17,7 @@
         </div>
         <div class="info-item">
           <span class="label">服务地址</span>
-          <span class="value">{{ order.address }}</span>
+          <span class="value">{{ formatOrderRoute(order) }}</span>
         </div>
         <div class="info-item">
           <span class="label">服务时间</span>
@@ -61,7 +61,7 @@
     </div>
 
     <!-- 服务流程打卡（仅陪诊师可见） -->
-    <div class="section" v-if="isWorker && order.status >= 2">
+    <div class="section" v-if="isWorker && order.status >= 2 && order.status <= 4">
       <ServiceCheckpoints
         :progressData="checkpointProgress"
         :canCheckIn="order.status === 2"
@@ -70,13 +70,46 @@
     </div>
 
     <!-- 诊前病史资料上传（仅陪诊师可见，服务中） -->
-    <div class="section" v-if="isWorker && order.status === 2 && !preHistoryDone">
+    <div class="section form-section" v-if="isWorker && order.status >= 2 && order.status <= 3">
       <PreHistoryForm :orderId="route.params.id" @submitted="onPreHistoryDone" />
     </div>
 
     <!-- 诊后陪诊服务报告（仅陪诊师可见，服务中/待确认） -->
-    <div class="section" v-if="isWorker && order.status >= 2 && order.status <= 3 && !reportDone">
+    <div class="section form-section" v-if="isWorker && order.status >= 2 && order.status <= 3">
       <ServiceReportForm :orderId="route.params.id" @submitted="onReportDone" />
+    </div>
+
+    <div class="section quote-section" v-if="isWorker && order.status === 7">
+      <h3>确认报价</h3>
+      <p class="quote-lead">请根据就诊人路线和要求确认最终服务价格，就诊人付款后订单进入待服务。</p>
+      <div class="quote-route">
+        <span>服务路线</span>
+        <strong>{{ formatOrderRoute(order) }}</strong>
+      </div>
+      <label class="quote-field">
+        <span>本次报价</span>
+        <input v-model="quoteForm.amount" type="number" min="1" inputmode="decimal" />
+      </label>
+      <label class="quote-field">
+        <span>报价说明</span>
+        <textarea v-model="quoteForm.quote_note" rows="3" placeholder="可说明交通、排队时长、是否含取药等"></textarea>
+      </label>
+      <button class="quote-submit" type="button" :disabled="quoteLoading" @click="submitQuote">
+        {{ quoteLoading ? '发送中...' : '发送报价' }}
+      </button>
+    </div>
+
+    <div class="section pay-section" v-if="isEmployer && order.status === 8">
+      <h3>待支付</h3>
+      <p class="quote-lead">陪诊师已根据路线和要求确认报价，支付后进入待服务。</p>
+      <div class="pay-summary">
+        <span>本次需支付</span>
+        <strong>¥{{ formatMoney(order.total_amount) }}</strong>
+        <em>{{ order.quote_note || '含平台保障与订单动态通知' }}</em>
+      </div>
+      <button class="quote-submit" type="button" :disabled="payLoading" @click="payOrder">
+        {{ payLoading ? '支付中...' : '确认支付' }}
+      </button>
     </div>
 
     <div class="section">
@@ -108,7 +141,11 @@
     <div class="section review-section" v-if="canReview">
       <h3>服务评价</h3>
       <p class="review-lead">评价会同步影响陪诊师列表中的综合评分。</p>
-      <div class="review-score-list">
+      <div v-if="reviewSubmitted" class="review-done-card">
+        <strong>评价已提交</strong>
+        <span>感谢您的反馈，评分将同步到陪诊师服务表现中。</span>
+      </div>
+      <div v-else class="review-score-list">
         <div v-for="item in reviewFields" :key="item.key" class="review-score-row">
           <span>{{ item.label }}</span>
           <div class="score-buttons" role="group" :aria-label="item.label">
@@ -124,10 +161,10 @@
           </div>
         </div>
       </div>
-      <textarea v-model="reviewForm.comment" class="review-textarea" placeholder="可补充陪诊过程中的感受（选填）"></textarea>
-      <button class="review-submit" type="button" :disabled="reviewSubmitted" @click="submitReview">
-        {{ reviewSubmitted ? '已提交评价' : '提交评价' }}
-      </button>
+      <template v-if="!reviewSubmitted">
+        <textarea v-model="reviewForm.comment" class="review-textarea" placeholder="可补充陪诊过程中的感受（选填）"></textarea>
+        <button class="review-submit" type="button" @click="submitReview">提交评价</button>
+      </template>
     </div>
 
     <div class="actions" v-if="showActions">
@@ -143,7 +180,7 @@
     </div>
 
     <!-- 投诉入口 -->
-    <div class="section action-links" v-if="order.status >= 3">
+    <div class="section action-links" v-if="canComplain">
       <el-button text type="danger" size="small" @click="showComplaint = true">
         投诉违规行为
       </el-button>
@@ -183,6 +220,12 @@ const showComplaint = ref(false)
 const preHistoryDone = ref(false)
 const reportDone = ref(false)
 const reviewSubmitted = ref(false)
+const quoteLoading = ref(false)
+const payLoading = ref(false)
+const quoteForm = reactive({
+  amount: '',
+  quote_note: ''
+})
 const reviewFields = [
   { key: 'punctuality', label: '准时到达' },
   { key: 'communication', label: '沟通耐心' },
@@ -196,17 +239,32 @@ const reviewForm = reactive({
 })
 
 const taskTypes = ['', '全程陪同', '挂号取药', '门诊陪护', '代为问诊', '陪诊师培训']
-const statusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中' }
+const statusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中', 7: '待报价', 8: '待支付' }
 
 const statusClass = (status) => {
-  const classes = { 1: 'warning', 2: 'primary', 3: 'info', 4: 'success', 5: 'danger', 6: 'danger' }
+  const classes = { 1: 'warning', 2: 'primary', 3: 'info', 4: 'success', 5: 'danger', 6: 'danger', 7: 'info', 8: 'warning' }
   return classes[status] || ''
 }
 
 const isEmployer = computed(() => order.value?.employer_id === userStore.userInfo?.id)
 const isWorker = computed(() => order.value?.worker_id === userStore.userInfo?.id)
-const showActions = computed(() => order.value?.status < 4 && (isEmployer.value || isWorker.value))
-const canReview = computed(() => isEmployer.value && order.value?.worker_id && order.value?.status >= 3)
+const showActions = computed(() => order.value?.status < 4 && order.value?.status !== 8 && (isEmployer.value || isWorker.value))
+const canReview = computed(() => {
+  const status = Number(order.value?.status)
+  return isEmployer.value && order.value?.worker_id && status >= 3 && status <= 4
+})
+const canComplain = computed(() => {
+  const status = Number(order.value?.status)
+  return status >= 3 && status <= 6
+})
+
+const formatMoney = (value) => Number(value || 0).toFixed(2)
+
+const formatOrderRoute = (item) => {
+  const start = item?.address || '就诊人地点'
+  const end = item?.target_hospital || item?.targetHospital || '目标医院'
+  return `${start} → ${end}`
+}
 
 const formatDateTime = (time) => {
   if (!time) return ''
@@ -258,6 +316,44 @@ const cancelOrder = async () => {
     }
   } catch (e) {
     ElMessage.error(e.message || '操作失败')
+  }
+}
+
+const submitQuote = async () => {
+  const amount = Number(quoteForm.amount)
+  if (!amount || amount <= 0) {
+    ElMessage.warning('请输入正确的报价金额')
+    return
+  }
+  quoteLoading.value = true
+  try {
+    const res = await request.post(`/worker/orders/${route.params.id}/quote`, {
+      amount,
+      quote_note: quoteForm.quote_note
+    })
+    if (res.code === 0) {
+      ElMessage.success('报价已发送，等待就诊人支付')
+      fetchOrder()
+    }
+  } catch (e) {
+    ElMessage.error(e.message || '报价失败')
+  } finally {
+    quoteLoading.value = false
+  }
+}
+
+const payOrder = async () => {
+  payLoading.value = true
+  try {
+    const res = await request.post(`/employer/orders/${route.params.id}/pay`)
+    if (res.code === 0) {
+      ElMessage.success('支付成功，订单进入待服务')
+      fetchOrder()
+    }
+  } catch (e) {
+    ElMessage.error(e.message || '支付失败')
+  } finally {
+    payLoading.value = false
   }
 }
 
@@ -321,12 +417,18 @@ const fetchOrder = async () => {
     const res = await request.get(`/order/${route.params.id}`)
     if (res.code === 0) {
       order.value = res.data
+      quoteForm.amount = String(res.data.total_amount || '')
+      quoteForm.quote_note = res.data.quote_note || ''
+      reviewSubmitted.value = Boolean(res.data.review)
       // Fetch worker certification
       if (res.data.worker_id) {
         const certRes = await request.get('/v1/certification').catch(() => null)
         if (certRes?.code === 0) {
           workerCert.value = certRes.data
         }
+      }
+      if (isWorker.value) {
+        fetchCheckpoints()
       }
     }
   } catch (e) {
@@ -336,9 +438,6 @@ const fetchOrder = async () => {
 
 onMounted(() => {
   fetchOrder()
-  if (isWorker) {
-    fetchCheckpoints()
-  }
 })
 </script>
 
@@ -506,6 +605,113 @@ onMounted(() => {
 .review-lead {
   margin: -4px 0 14px;
   color: #8A6C60 !important;
+}
+
+.quote-lead {
+  margin: -4px 0 14px;
+  color: #8A6C60 !important;
+}
+
+.quote-route,
+.pay-summary {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #F2E6DE;
+  border-radius: 16px;
+  background: #FFF9F2;
+}
+
+.quote-route span,
+.pay-summary span,
+.quote-field span {
+  color: #8A6C60;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.quote-route strong {
+  color: #4F3A32;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.pay-summary strong {
+  color: #D94A37;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.pay-summary em {
+  color: #8A6C60;
+  font-size: 14px;
+  line-height: 1.45;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.quote-field {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.quote-field input,
+.quote-field textarea {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid #EBD8CF;
+  border-radius: 14px;
+  background: #fff;
+  color: #4F3A32;
+  font: inherit;
+  box-shadow: none;
+  outline: none;
+}
+
+.quote-field textarea {
+  resize: vertical;
+}
+
+.quote-field input:focus,
+.quote-field textarea:focus {
+  border-color: #D94A37;
+  box-shadow: 0 0 0 3px rgba(217, 74, 55, 0.1);
+}
+
+.quote-submit {
+  width: 100%;
+  min-height: 54px;
+  border: 1px solid #D94A37 !important;
+  border-radius: 14px !important;
+  background: #D94A37 !important;
+  color: #fff !important;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.review-done-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid #F2E6DE;
+  border-radius: 16px;
+  background: #FFF9F2;
+}
+
+.review-done-card strong {
+  color: #D94A37;
+  font-size: 18px;
+}
+
+.review-done-card span {
+  color: #7D6257;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 800;
 }
 
 .review-score-list {

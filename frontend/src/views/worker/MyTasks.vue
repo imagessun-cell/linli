@@ -10,6 +10,8 @@
     </section>
 
     <el-tabs v-model="activeTab" @tab-change="fetchOrders">
+      <el-tab-pane label="待报价" name="7" />
+      <el-tab-pane label="待支付" name="8" />
       <el-tab-pane label="待服务" name="1" />
       <el-tab-pane label="服务中" name="2" />
       <el-tab-pane label="待确认" name="3" />
@@ -24,15 +26,16 @@
         </div>
         <div class="order-content">
           <h4>{{ taskTypes[order.task_type] || '未知服务' }}</h4>
-          <p>{{ order.address }}</p>
-          <p class="time">{{ formatDateTime(order.start_time) }}</p>
+          <p>{{ formatOrderRoute(order) }}</p>
+          <p class="time">{{ formatDateTime(order.start_time) }} · {{ formatDuration(order.duration_minutes) }}</p>
         </div>
         <div class="order-footer">
-          <span class="amount">¥{{ order.worker_income }}</span>
+          <span class="amount">¥{{ order.total_amount }}</span>
           <span class="date">{{ formatDate(order.created_at) }}</span>
         </div>
 
-        <div class="order-actions" v-if="[1, 2].includes(Number(order.status))" @click.stop>
+        <div class="order-actions" v-if="[1, 2, 7].includes(Number(order.status))" @click.stop>
+          <el-button v-if="Number(order.status) === 7" type="primary" size="small" @click="$router.push(`/common/order/${order.id}`)">去报价</el-button>
           <el-button v-if="Number(order.status) === 1" type="primary" size="small" @click="startService(order.id)">开始服务</el-button>
           <el-button v-if="Number(order.status) === 2" type="success" size="small" @click="completeService(order.id)">完成服务</el-button>
         </div>
@@ -46,15 +49,17 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import request from '@/api/request'
 import { ElMessage } from 'element-plus'
 
-const activeTab = ref('1')
+const route = useRoute()
+const activeTab = ref(String(route.query.status || '7'))
 const orders = ref([])
 const loading = ref(false)
 
 const taskTypes = ['', '全程陪同', '挂号取药', '门诊陪护', '代为问诊', '陪诊师培训']
-const statusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中' }
+const statusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中', 7: '待报价', 8: '待支付' }
 
 const statusClass = (status) => {
   const classes = {
@@ -63,9 +68,25 @@ const statusClass = (status) => {
     3: 'info',
     4: 'success',
     5: 'danger',
-    6: 'danger'
+    6: 'danger',
+    7: 'info',
+    8: 'warning'
   }
   return classes[status] || ''
+}
+
+const formatOrderRoute = (order) => {
+  const start = order.address || '就诊人地点'
+  const end = order.target_hospital || '目标医院'
+  return `${start} → ${end}`
+}
+
+const formatDuration = (minutes) => {
+  const total = Number(minutes || 0)
+  if (!total) return '时长待定'
+  if (total < 60) return `${total}分钟`
+  const hours = total / 60
+  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}小时`
 }
 
 const formatDateTime = (time) => {
@@ -83,7 +104,7 @@ const formatDate = (time) => {
 const fetchOrders = async () => {
   loading.value = true
   try {
-    const res = await request.get('/worker/orders', { status: activeTab.value })
+    const res = await request.get('/worker/orders', { params: { status: activeTab.value } })
     if (res.code === 0) {
       orders.value = res.data.orders || []
     }
@@ -211,7 +232,7 @@ onMounted(() => {
 :deep(.el-tabs__nav) {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
   float: none;
 }
@@ -228,7 +249,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   color: #7D6257;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
 }
 

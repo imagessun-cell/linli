@@ -11,6 +11,8 @@
 
     <el-tabs v-model="activeTab" @tab-change="fetchOrders">
       <el-tab-pane label="全部" name="" />
+      <el-tab-pane label="待报价" name="7" />
+      <el-tab-pane label="待支付" name="8" />
       <el-tab-pane label="待服务" name="1" />
       <el-tab-pane label="服务中" name="2" />
       <el-tab-pane label="已完成" name="4" />
@@ -24,7 +26,7 @@
         </div>
         <div class="order-content">
           <h4>{{ taskTypes[order.task_type] }}</h4>
-          <p>{{ order.address }}</p>
+          <p>{{ formatOrderRoute(order) }}</p>
           <p class="time">{{ formatDateTime(order.start_time) }} - {{ formatTime(order.end_time) }}</p>
         </div>
         <div class="order-footer">
@@ -34,9 +36,10 @@
           <span class="amount">¥{{ order.total_amount }}</span>
         </div>
 
-        <div class="order-actions" v-if="order.status === 3" @click.stop>
-          <el-button type="primary" size="small" @click="confirmOrder(order.id)">确认完成</el-button>
-          <el-button type="danger" size="small" @click="complaintOrder(order.id)">投诉</el-button>
+        <div class="order-actions" v-if="[3, 8].includes(Number(order.status))" @click.stop>
+          <el-button v-if="Number(order.status) === 8" type="primary" size="small" @click="$router.push(`/common/order/${order.id}`)">去支付</el-button>
+          <el-button v-if="Number(order.status) === 3" type="primary" size="small" @click="confirmOrder(order.id)">确认完成</el-button>
+          <el-button v-if="Number(order.status) === 3" type="danger" size="small" @click="complaintOrder(order.id)">投诉</el-button>
         </div>
       </div>
     </div>
@@ -59,11 +62,17 @@ const orders = ref([])
 const loading = ref(false)
 
 const taskTypes = ['', '全程陪同', '挂号取药', '门诊陪护', '代为问诊', '陪诊师培训']
-const statusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中' }
+const statusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中', 7: '待报价', 8: '待支付' }
 
 const statusClass = (status) => {
-  const classes = { 1: 'warning', 2: 'primary', 3: 'info', 4: 'success', 5: 'danger', 6: 'danger' }
+  const classes = { 1: 'warning', 2: 'primary', 3: 'info', 4: 'success', 5: 'danger', 6: 'danger', 7: 'info', 8: 'warning' }
   return classes[status] || ''
+}
+
+const formatOrderRoute = (order) => {
+  const start = order.address || '就诊人地点'
+  const end = order.target_hospital || '目标医院'
+  return `${start} → ${end}`
 }
 
 const formatDateTime = (time) => {
@@ -83,7 +92,7 @@ const fetchOrders = async () => {
   try {
     const params = {}
     if (activeTab.value) params.status = activeTab.value
-    const res = await request.get('/employer/orders', params)
+    const res = await request.get('/employer/orders', { params })
     if (res.code === 0) {
       orders.value = res.data.orders || []
     }
@@ -217,7 +226,7 @@ onMounted(() => {
 :deep(.el-tabs__nav) {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
   float: none;
 }
@@ -234,7 +243,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   color: #7D6257;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
 }
 

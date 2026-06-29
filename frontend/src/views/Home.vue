@@ -2447,17 +2447,18 @@ onUnmounted(() => {
   }
 
   .task-facts {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 8px;
   }
 
   .task-fact {
-    min-height: 76px;
+    min-height: 68px;
     padding: 10px 8px;
   }
 
   .task-fact strong {
-    font-size: 16px;
+    font-size: 15px;
+    line-height: 1.25;
   }
 
   .task-side {
