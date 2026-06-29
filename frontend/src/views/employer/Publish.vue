@@ -1082,8 +1082,8 @@ const doPublish = async () => {
 
 .sub-type-card.selected {
   border-color: #E94F3D;
-  background: linear-gradient(135deg, #E94F3D 0%, #F6A21A 100%);
-  color: white;
+  background: #FFF0EC;
+  color: #E94F3D;
 }
 
 .sub-icon {
@@ -1139,8 +1139,8 @@ const doPublish = async () => {
 }
 
 .sub-type-card.selected .check-mark {
-  background: rgba(255,255,255,0.3);
-  color: white;
+  background: #fff;
+  color: #E94F3D;
 }
 
 :deep(.el-form-item__label) {
@@ -2089,14 +2089,14 @@ const doPublish = async () => {
 
 .sub-type-card.selected {
   border-color: #E94F3D;
-  background: #E94F3D;
-  color: #fff;
+  background: #FFF0EC;
+  color: #E94F3D;
 }
 
 .sub-type-card.selected .sub-icon {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  background: #fff;
+  color: #E94F3D;
+  box-shadow: none;
 }
 
 .sub-name {
@@ -2535,9 +2535,10 @@ const doPublish = async () => {
 }
 
 .sub-type-card.selected {
-  background:
-    linear-gradient(180deg, #D94A37 0%, #C94131 100%);
-  box-shadow: 0 10px 22px rgba(217, 74, 55, 0.16);
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: none;
 }
 
 .sub-icon {
@@ -2635,6 +2636,7 @@ const doPublish = async () => {
 
 .actions {
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  bottom: 0;
   background: rgba(255, 253, 251, 0.96);
   border-top: 1px solid var(--line-soft);
   box-shadow: 0 -8px 22px rgba(64, 48, 40, 0.06);
@@ -2732,13 +2734,6 @@ const doPublish = async () => {
   outline: none !important;
 }
 
-.sub-type-card.selected .sub-desc,
-.sub-type-card.selected .sub-price,
-.sub-type-card.selected .sub-name {
-  color: #fff !important;
-  opacity: 1;
-}
-
 .insurance-detail-content {
   gap: 14px;
 }
@@ -2820,6 +2815,55 @@ const doPublish = async () => {
 
 .insurance-list .detail-item:last-child {
   border-bottom: none;
+}
+
+/* 发布页选中态统一：1px 细线、无投影、浅品牌底色 */
+.service-time-fields,
+.service-time-row,
+.sub-type-card,
+.insurance-badge,
+.patient-map-card,
+:deep(.el-radio),
+:deep(.el-checkbox) {
+  box-shadow: none !important;
+}
+
+.service-time-row,
+.sub-type-card {
+  border: 1px solid var(--line) !important;
+}
+
+.service-time-row:focus-within,
+.sub-type-card.selected,
+:deep(.el-radio.is-checked),
+:deep(.el-checkbox.is-checked) {
+  border-color: var(--accent) !important;
+  background: var(--accent-light) !important;
+  color: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+.sub-type-card.selected .sub-name,
+.sub-type-card.selected .sub-price,
+.sub-type-card.selected .sub-desc {
+  color: var(--accent) !important;
+  opacity: 1;
+}
+
+.sub-type-card.selected .sub-icon,
+.sub-type-card.selected .check-mark {
+  background: #fff !important;
+  color: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+:deep(.service-time-picker.el-input),
+:deep(.service-time-picker.el-date-editor),
+:deep(.service-time-picker .el-input__wrapper) {
+  width: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 </style>
 

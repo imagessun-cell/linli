@@ -28,7 +28,7 @@
             <h2 class="worker-name">{{ worker.nickname }}</h2>
             <p class="worker-location">
               <span>{{ worker.community || '社区待完善' }}</span>
-              <span class="worker-distance">跟您{{ formatWorkerDistance(worker, index) }}</span>
+              <span class="worker-distance">距您{{ formatWorkerDistance(worker, index) }}</span>
             </p>
           </div>
           <button class="rating" type="button" aria-label="查看评分详情" @click="openRatingDialog(worker)">
@@ -59,24 +59,26 @@
           <div class="stat-item">
             <span class="stat-value level-value">
               {{ honorLevelNumber(worker.honor_level) }}
+            </span>
+            <span class="stat-label level-label">
+              等级
               <button class="level-info-btn" type="button" aria-label="查看等级标准" @click.stop="openLevelDialog(worker)">i</button>
             </span>
-            <span class="stat-label">等级</span>
           </div>
         </div>
 
         <div class="worker-actions">
           <button
-            class="action-btn primary"
-            @click="handleInvite(worker)"
-          >
-            邀请陪诊
-          </button>
-          <button
             class="action-btn"
             @click="$router.push(`/common/chat/${worker.user_id}`)"
           >
             发消息
+          </button>
+          <button
+            class="action-btn primary"
+            @click="handleInvite(worker)"
+          >
+            邀请陪诊
           </button>
         </div>
       </article>
@@ -1045,17 +1047,22 @@ onMounted(() => {
   color: #D94A37 !important;
 }
 
-.level-value {
+.level-value,
+.level-label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
+}
+
+.level-label {
+  line-height: 1.2;
 }
 
 .level-info-btn {
-  width: 20px !important;
-  height: 20px !important;
-  min-height: 20px !important;
+  width: 13px !important;
+  height: 13px !important;
+  min-height: 13px !important;
   padding: 0 !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -1064,7 +1071,7 @@ onMounted(() => {
   border: 1px solid #E2B5A8 !important;
   background: #FFF0EC !important;
   color: #D94A37 !important;
-  font-size: 12px !important;
+  font-size: 10px !important;
   font-weight: 900 !important;
   line-height: 1 !important;
 }

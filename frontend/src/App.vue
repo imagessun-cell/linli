@@ -4,11 +4,19 @@
       <component :is="Component" :key="route.fullPath" />
     </Transition>
   </router-view>
-  <GlobalTabBar v-if="!$route.meta.hideTabBar" />
+  <GlobalTabBar v-if="showGlobalTabBar" />
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import GlobalTabBar from '@/components/GlobalTabBar.vue'
+
+const route = useRoute()
+const primaryTabRouteNames = new Set(['Home', 'WorkerSquare', 'MessageList', 'Profile'])
+const showGlobalTabBar = computed(() => {
+  return !route.meta.hideTabBar && primaryTabRouteNames.has(route.name)
+})
 </script>
 
 <style>
@@ -412,16 +420,32 @@ label {
 
 #app .back-btn,
 #app .hero-back,
-#app .header-icon-btn {
+#app .header-icon-btn,
+#app .close-btn,
+#app .map-info-close {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background: rgba(255, 253, 251, 0.92) !important;
   border: 1px solid var(--line) !important;
   color: var(--accent) !important;
+  border-radius: 13px !important;
   box-shadow: none !important;
+  font-size: 22px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
 }
 
 #app .header-icon-btn:hover,
 #app .back-btn:hover,
-#app .hero-back:hover {
+#app .hero-back:hover,
+#app .close-btn:hover,
+#app .map-info-close:hover {
   background: var(--accent-light) !important;
   border-color: var(--accent-soft) !important;
   color: var(--accent) !important;
@@ -630,11 +654,10 @@ label {
 }
 
 #app .sub-type-card.selected {
-  background:
-    linear-gradient(180deg, #D94A37 0%, #C94131 100%) !important;
-  border-color: transparent !important;
-  color: #fff !important;
-  box-shadow: 0 10px 22px rgba(217, 74, 55, 0.16) !important;
+  background: var(--accent-light) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  box-shadow: none !important;
 }
 
 #app .sub-icon,
@@ -648,8 +671,9 @@ label {
 
 #app .sub-type-card.selected .sub-icon,
 #app .sub-type-card.selected .check-mark {
-  background: rgba(255, 255, 255, 0.18) !important;
-  color: #fff !important;
+  background: #fff !important;
+  color: var(--accent) !important;
+  box-shadow: none !important;
 }
 
 #app .meta-chip {
@@ -989,9 +1013,29 @@ label {
 .el-dialog__headerbtn {
   top: 12px !important;
   right: 12px !important;
-  width: 38px !important;
-  height: 38px !important;
-  border-radius: 12px !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  border-radius: 13px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255, 253, 251, 0.92) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+.el-dialog__headerbtn:hover {
+  background: var(--accent-light) !important;
+  border-color: var(--accent-soft) !important;
+}
+
+.el-dialog__headerbtn .el-dialog__close {
+  color: var(--accent) !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
 }
 
 .el-dialog__body {
@@ -1046,6 +1090,59 @@ label {
   border-radius: 20px !important;
   border: 1px solid var(--line-soft) !important;
   background: var(--bg-panel) !important;
+}
+
+.el-dialog .el-input,
+.el-message-box .el-input {
+  width: 100% !important;
+}
+
+.el-dialog .el-input .el-input__wrapper,
+.el-message-box .el-input .el-input__wrapper {
+  border: 1px solid var(--line) !important;
+  border-radius: 14px !important;
+  background: #FFFCF8 !important;
+  box-shadow: none !important;
+}
+
+.el-dialog .el-input .el-input__wrapper.is-focus,
+.el-message-box .el-input .el-input__wrapper.is-focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px rgba(217, 74, 55, 0.08) !important;
+}
+
+.el-dialog .el-input .el-input__inner,
+.el-message-box .el-input .el-input__inner {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+#app .el-dialog .el-input__wrapper,
+#app .el-dialog .el-input .el-input__wrapper,
+#app .el-message-box .el-input__wrapper,
+#app .el-message-box .el-input .el-input__wrapper,
+.el-overlay .el-dialog .el-input__wrapper,
+.el-overlay .el-dialog .el-input .el-input__wrapper,
+.el-overlay .el-message-box .el-input__wrapper,
+.el-overlay .el-message-box .el-input .el-input__wrapper {
+  border: 1px solid var(--line) !important;
+  border-radius: 14px !important;
+  background: #FFFCF8 !important;
+  box-shadow: none !important;
+}
+
+#app .el-dialog .el-input__inner,
+#app .el-message-box .el-input__inner,
+.el-overlay .el-dialog .el-input__inner,
+.el-overlay .el-message-box .el-input__inner {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

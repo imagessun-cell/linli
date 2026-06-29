@@ -33,7 +33,68 @@
     </template>
 
     <article v-else class="article-page">
-      <section class="flow-list" aria-label="陪诊流程">
+      <section class="flow-chart-card" aria-label="陪诊流程图表">
+        <div class="flow-card-title">
+          <h2>流程总览</h2>
+          <span>{{ activeGuide.steps.length }} 步闭环</span>
+        </div>
+        <div class="flow-chart" role="list">
+          <div
+            v-for="(step, index) in activeGuide.steps"
+            :key="step.title"
+            class="flow-node"
+            role="listitem"
+          >
+            <span class="chart-index">{{ String(index + 1).padStart(2, '0') }}</span>
+            <LinliProcessIllustration class="chart-icon" :type="step.type" :label="step.title" />
+            <strong>{{ step.title }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="flow-table-card" aria-label="陪诊流程表格">
+        <div class="flow-card-title">
+          <h2>执行清单</h2>
+          <span>照表执行</span>
+        </div>
+        <div class="flow-table-wrap">
+          <table class="flow-table">
+            <thead>
+              <tr>
+                <th>流程</th>
+                <th>关键目标</th>
+                <th>现场动作</th>
+                <th>交付物</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(step, index) in activeGuide.steps" :key="step.title">
+                <td>
+                  <span class="table-step-no">{{ String(index + 1).padStart(2, '0') }}</span>
+                  <strong>{{ step.title }}</strong>
+                </td>
+                <td>
+                  <span
+                    v-for="phrase in toVisualPhrases(step.body).slice(0, 2)"
+                    :key="phrase"
+                    class="table-pill"
+                  >
+                    {{ phrase }}
+                  </span>
+                </td>
+                <td>
+                  <ul>
+                    <li v-for="point in step.points" :key="point">{{ point }}</li>
+                  </ul>
+                </td>
+                <td>{{ getStepDeliverable(step.type) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="flow-list compact-flow-list" aria-label="流程图文提示">
         <div
           v-for="(step, index) in activeGuide.steps"
           :key="step.title"
@@ -249,6 +310,17 @@ const activeGuide = computed(() => {
 
 const siteNoteCards = ['先看大厅导诊牌', '向导医台确认差异', '医嘱只记录并转述', '不替医生做判断']
 
+const deliverableMap = {
+  prepare: '资料确认清单',
+  arrive: '会合地点与取号信息',
+  triage: '诊区、诊室与候诊状态',
+  consult: '医嘱、检查、复诊安排',
+  pay: '缴费凭证与检查路线',
+  check: '检查完成状态与不适反馈',
+  pharmacy: '药品、报告与用药提醒',
+  record: '服务复盘与安全到达确认'
+}
+
 const toVisualPhrases = (body = '') => {
   return body
     .split(/[，。；]/)
@@ -256,6 +328,8 @@ const toVisualPhrases = (body = '') => {
     .filter(Boolean)
     .slice(0, 3)
 }
+
+const getStepDeliverable = (type) => deliverableMap[type] || '现场结果同步'
 
 const openGuide = (id) => {
   activeGuideId.value = id
@@ -502,10 +576,231 @@ const handleBack = () => {
   font-weight: 900;
 }
 
+.flow-chart-card,
+.flow-table-card {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #EBD8CF;
+  border-radius: 20px;
+  background: #fffdf8;
+  box-shadow: 0 10px 24px rgba(64, 48, 40, 0.06);
+}
+
+.flow-card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.flow-card-title h2 {
+  margin: 0;
+  color: #4F3A32;
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.flow-card-title span {
+  flex-shrink: 0;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #FFF0EC;
+  color: #D94A37;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.flow-chart {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.flow-node {
+  position: relative;
+  min-width: 0;
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 10px;
+  border: 1px solid #F0E3DD;
+  border-radius: 16px;
+  background: #FFFCF8;
+}
+
+.chart-index {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #FFF0EC;
+  color: #D94A37;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.chart-icon {
+  width: 56px;
+  justify-self: end;
+}
+
+.flow-node strong {
+  grid-column: 1 / -1;
+  color: #4F3A32;
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 900;
+}
+
+.flow-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #F0E3DD;
+  border-radius: 16px;
+  background: #FFFCF8;
+}
+
+.flow-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.flow-table th,
+.flow-table td {
+  padding: 12px;
+  border-bottom: 1px solid #F0E3DD;
+  border-right: 1px solid #F0E3DD;
+  vertical-align: top;
+  text-align: left;
+}
+
+.flow-table th:last-child,
+.flow-table td:last-child {
+  border-right: none;
+}
+
+.flow-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.flow-table th {
+  background: #FFF7F4;
+  color: #7D6257;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.flow-table td {
+  color: #5F4A42;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.flow-table td:first-child {
+  width: 132px;
+}
+
+.flow-table td:first-child strong {
+  display: block;
+  margin-top: 6px;
+  color: #4F3A32;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.table-step-no,
+.table-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.table-step-no {
+  min-height: 26px;
+  padding: 3px 8px;
+  background: #FFF0EC;
+  color: #D94A37;
+  font-size: 12px;
+}
+
+.table-pill {
+  max-width: 100%;
+  min-height: 26px;
+  margin: 0 5px 6px 0;
+  padding: 4px 8px;
+  background: #FFF7E6;
+  color: #8A5A1D;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.flow-table ul {
+  margin: 0;
+  padding-left: 17px;
+}
+
+.flow-table li + li {
+  margin-top: 5px;
+}
+
 .flow-list {
   display: grid;
   gap: 12px;
   margin-top: 14px;
+}
+
+.compact-flow-list {
+  gap: 10px;
+}
+
+.compact-flow-list .flow-step {
+  padding: 12px;
+  box-shadow: none;
+}
+
+.compact-flow-list .step-card-head {
+  grid-template-columns: 38px minmax(0, 1fr) 46px;
+}
+
+.compact-flow-list .step-number {
+  width: 38px;
+  height: 38px;
+  font-size: 12px;
+}
+
+.compact-flow-list .step-title-block h2 {
+  font-size: 17px;
+}
+
+.compact-flow-list .step-title-block span,
+.compact-flow-list .step-section-label,
+.compact-flow-list .summary-pill,
+.compact-flow-list .step-action-card strong {
+  font-size: 12px;
+}
+
+.compact-flow-list .step-visual {
+  width: 46px;
+  flex-basis: 46px;
 }
 
 .flow-step {
@@ -724,6 +1019,15 @@ const handleBack = () => {
 
   .note-grid {
     grid-template-columns: 1fr;
+  }
+
+  .flow-chart {
+    grid-template-columns: 1fr;
+  }
+
+  .flow-chart-card,
+  .flow-table-card {
+    padding: 12px;
   }
 }
 </style>

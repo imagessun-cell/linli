@@ -32,6 +32,31 @@
             <span class="time">{{ formatTime(msg.created_at) }}</span>
           </div>
         </div>
+        <div v-if="completedServiceOrder" class="service-review-card" role="region" aria-label="服务评价">
+          <div class="service-review-head">
+            <strong>服务已结束</strong>
+            <span>请为本次陪诊服务评价</span>
+          </div>
+          <div class="service-review-scores">
+            <div v-for="item in reviewFields" :key="item.key" class="service-review-row">
+              <span>{{ item.label }}</span>
+              <div class="score-buttons">
+                <button
+                  v-for="score in [1, 2, 3, 4, 5]"
+                  :key="score"
+                  type="button"
+                  :class="{ active: reviewForm[item.key] === score }"
+                  @click="reviewForm[item.key] = score"
+                >
+                  {{ score }}
+                </button>
+              </div>
+            </div>
+          </div>
+          <button class="service-review-submit" type="button" :disabled="reviewSubmitted" @click="submitServiceReview">
+            {{ reviewSubmitted ? '已提交评价' : '提交评价' }}
+          </button>
+        </div>
       </div>
 
       <div class="input-area">
@@ -151,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -179,8 +204,22 @@ const pendingAttachments = ref([])
 const locating = ref(false)
 const isRecording = ref(false)
 const voiceStartAt = ref(0)
+const completedServiceOrder = ref(null)
+const reviewSubmitted = ref(false)
 const isValidTarget = computed(() => Number.isInteger(targetUserId.value) && targetUserId.value > 0)
 const canSend = computed(() => Boolean(inputText.value.trim() || pendingAttachments.value.length > 0))
+
+const reviewFields = [
+  { key: 'punctuality', label: '准时到达' },
+  { key: 'communication', label: '沟通耐心' },
+  { key: 'process', label: '流程熟悉' }
+]
+
+const reviewForm = reactive({
+  punctuality: 5,
+  communication: 5,
+  process: 5
+})
 
 const quickMessages = [
   '我已到达医院门口',
@@ -384,6 +423,38 @@ const fetchMessages = async () => {
   }
 }
 
+const fetchReviewContext = async () => {
+  if (Number(userStore.role) !== 2 || !isValidTarget.value) return
+  try {
+    const res = await request.get('/employer/orders', { params: { status: 4 } })
+    if (res.code === 0) {
+      completedServiceOrder.value = (res.data.orders || []).find((order) => {
+        return Number(order.worker_id) === Number(targetUserId.value)
+      }) || null
+    }
+  } catch (e) {
+    completedServiceOrder.value = null
+  }
+}
+
+const submitServiceReview = async () => {
+  if (!completedServiceOrder.value || reviewSubmitted.value) return
+  try {
+    const res = await request.post(`/order/${completedServiceOrder.value.id}/review`, {
+      worker_id: targetUserId.value,
+      punctuality: reviewForm.punctuality,
+      communication: reviewForm.communication,
+      process: reviewForm.process
+    })
+    if (res.code === 0) {
+      reviewSubmitted.value = true
+      ElMessage.success('评价已提交')
+    }
+  } catch (e) {
+    ElMessage.error(e.message || '评价提交失败')
+  }
+}
+
 const sendMessage = async (customContent = '') => {
   const attachmentText = buildAttachmentText()
   const composedContent = [
@@ -446,6 +517,7 @@ onMounted(() => {
   if (isValidTarget.value) {
     fetchTargetUser()
     fetchMessages()
+    fetchReviewContext()
     initSocket()
   }
 })
@@ -670,6 +742,83 @@ onUnmounted(() => {
 .bubble .time {
   margin-top: 6px;
   font-size: 12px;
+}
+
+.service-review-card {
+  margin: 10px 42px 18px;
+  padding: 14px;
+  border: 1px solid #EBD8CF;
+  border-radius: 18px;
+  background: #fffdf8;
+  box-shadow: 0 8px 22px rgba(64, 48, 40, 0.08);
+}
+
+.service-review-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 12px;
+}
+
+.service-review-head strong {
+  font-size: 17px;
+  line-height: 1.3;
+  color: #4F3A32;
+}
+
+.service-review-head span {
+  font-size: 13px;
+  font-weight: 800;
+  color: #8A6C60;
+}
+
+.service-review-scores {
+  display: grid;
+  gap: 10px;
+}
+
+.service-review-row {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.service-review-row > span {
+  font-size: 14px;
+  font-weight: 900;
+  color: #4F3A32;
+}
+
+.score-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+
+.score-buttons button {
+  min-height: 36px !important;
+  padding: 0 !important;
+  border: 1px solid #EBD8CF !important;
+  border-radius: 11px !important;
+  background: #fff !important;
+  color: #6F5C53 !important;
+  font-size: 14px !important;
+}
+
+.score-buttons button.active {
+  border-color: #D94A37 !important;
+  background: #FFF0EC !important;
+  color: #D94A37 !important;
+}
+
+.service-review-submit {
+  width: 100%;
+  min-height: 46px !important;
+  margin-top: 12px;
+  border-color: #D94A37 !important;
+  background: #D94A37 !important;
+  color: #fff !important;
 }
 
 .input-area {

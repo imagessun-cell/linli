@@ -427,6 +427,9 @@ export const createDemoRequest = () => ({
       upsertConversation(Number(data.to_user_id), message)
       return ok(message)
     }
+    if (/^\/order\/\d+\/review$/.test(url)) {
+      return ok({ ...data, submitted_at: iso(0) }, '评价已提交')
+    }
     if (url === '/community/posts') {
       const post = { id: posts.length + 1, nickname: demoUser.nickname, avatar_url: demoUser.avatar_url, content_type: 1, content_text: data.content_text, image_urls: '', voice_url: '', like_count: 0, comment_count: 0, created_at: iso(0) }
       posts.unshift(post)
@@ -450,8 +453,11 @@ export const createDemoRequest = () => ({
     if (url === '/v1/agreement/sign' || url === '/v1/exam/submit' || url === '/v1/complaint' || url === '/v1/sos' || url.includes('/checkpoint') || url.includes('/pre-history') || url.includes('/service-report')) return ok({})
     return ok({})
   },
-  put(url) {
-    if (url === '/auth/switch-role') return ok({ token: 'demo-token', role: demoUser.role })
+  put(url, data = {}) {
+    if (url === '/auth/switch-role') {
+      demoUser.role = Number(data.role || demoUser.role)
+      return ok({ token: 'demo-token', role: demoUser.role })
+    }
     if (url.includes('/start')) {
       const id = Number(url.split('/').find((part) => /^\d+$/.test(part)))
       const order = orders.find((item) => item.id === id)

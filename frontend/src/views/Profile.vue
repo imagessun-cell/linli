@@ -105,18 +105,16 @@
         <section class="info-section" aria-labelledby="worker-stats-title">
           <h3 id="worker-stats-title" class="section-title">服务统计</h3>
           <div class="stats-grid">
-            <div class="stat-item">
-              <span class="stat-value">{{ workerInfo?.completed_tasks || 0 }}</span>
-              <span class="stat-label">完成任务</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-value">{{ workerInfo?.rating || '0.0' }}</span>
-              <span class="stat-label">用户评分</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-value">¥{{ workerInfo?.total_earnings || 0 }}</span>
-              <span class="stat-label">累计收入</span>
-            </div>
+            <button
+              v-for="stat in workerStatCards"
+              :key="stat.key"
+              class="stat-item stat-action"
+              type="button"
+              @click="openWorkerStatDetail(stat)"
+            >
+              <span class="stat-value">{{ stat.value }}</span>
+              <span class="stat-label">{{ stat.label }}</span>
+            </button>
           </div>
         </section>
 
@@ -228,6 +226,22 @@
       </div>
     </el-dialog>
 
+    <el-dialog v-model="showWorkerStatDetail" :title="activeWorkerStat?.title || '服务统计详情'" width="92%" align-center>
+      <div v-if="activeWorkerStat" class="stat-detail-dialog">
+        <div class="stat-detail-hero">
+          <strong>{{ activeWorkerStat.value }}</strong>
+          <span>{{ activeWorkerStat.label }}</span>
+          <p>{{ activeWorkerStat.summary }}</p>
+        </div>
+        <div class="stat-detail-list">
+          <div v-for="item in activeWorkerStat.items" :key="item.label" class="stat-detail-row">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+
     <el-dialog v-model="showRealnameDialog" title="实名认证" width="92%" align-center>
       <div class="realname-dialog">
         <label class="realname-field">
@@ -239,16 +253,16 @@
           <input v-model="realnameForm.id_card" type="text" placeholder="请输入身份证号码" />
         </label>
         <div class="realname-upload-grid">
-          <input ref="realnameFrontInputRef" class="hidden-file-input" type="file" accept="image/*" @change="handleRealnameFileChange($event, 'front')" />
-          <input ref="realnameBackInputRef" class="hidden-file-input" type="file" accept="image/*" @change="handleRealnameFileChange($event, 'back')" />
+          <input ref="realnameFrontInputRef" class="hidden-file-input" type="file" accept="image/*" capture="environment" @change="handleRealnameFileChange($event, 'front')" />
+          <input ref="realnameBackInputRef" class="hidden-file-input" type="file" accept="image/*" capture="environment" @change="handleRealnameFileChange($event, 'back')" />
           <button class="realname-upload-card" type="button" @click="realnameFrontInputRef?.click()">
             <span>人像面</span>
-            <strong>{{ realnameForm.id_card_front ? '已上传正面' : '上传身份证正面' }}</strong>
+            <strong>{{ realnameForm.id_card_front ? '已上传正面' : '扫描/拍照上传正面' }}</strong>
             <em>{{ realnameForm.id_card_front || '照片仅用于认证审核' }}</em>
           </button>
           <button class="realname-upload-card" type="button" @click="realnameBackInputRef?.click()">
             <span>国徽面</span>
-            <strong>{{ realnameForm.id_card_back ? '已上传反面' : '上传身份证反面' }}</strong>
+            <strong>{{ realnameForm.id_card_back ? '已上传反面' : '扫描/拍照上传反面' }}</strong>
             <em>{{ realnameForm.id_card_back || '平台会保护隐私信息' }}</em>
           </button>
         </div>
@@ -287,6 +301,8 @@ const showWithdraw = ref(false)
 const showWalletDetail = ref(false)
 const showCreditDetail = ref(false)
 const showRealnameDialog = ref(false)
+const showWorkerStatDetail = ref(false)
+const activeWorkerStat = ref(null)
 const walletActionLoading = ref(false)
 const realnameLoading = ref(false)
 const rechargeForm = ref({ amount: '' })
@@ -347,6 +363,51 @@ const creditDetails = computed(() => {
   ]
 })
 
+const workerStatCards = computed(() => {
+  const completedTasks = workerInfo.value?.completed_tasks || workerInfo.value?.total_orders || 0
+  const rating = workerInfo.value?.rating || workerInfo.value?.avg_rating || '0.0'
+  const totalEarnings = Number(workerInfo.value?.total_earnings || walletInfo.value?.cash_balance || 0)
+  const serviceHours = workerInfo.value?.service_hours || workerInfo.value?.total_hours || 0
+  return [
+    {
+      key: 'completed',
+      label: '完成任务',
+      value: completedTasks,
+      title: '完成任务详情',
+      summary: '统计已确认完成的陪诊服务，帮助您了解近期服务稳定度。',
+      items: [
+        { label: '已完成服务', value: `${completedTasks} 单` },
+        { label: '进行中服务', value: `${workerInfo.value?.ongoing_tasks || 0} 单` },
+        { label: '累计服务时长', value: `${Number(serviceHours || 0)} 小时` }
+      ]
+    },
+    {
+      key: 'rating',
+      label: '用户评分',
+      value: rating,
+      title: '用户评分详情',
+      summary: '评分来自就诊人对准时到达、沟通耐心、流程熟悉等维度的综合反馈。',
+      items: [
+        { label: '准时到达', value: `${rating} 分` },
+        { label: '沟通耐心', value: `${rating} 分` },
+        { label: '流程熟悉', value: `${rating} 分` }
+      ]
+    },
+    {
+      key: 'earnings',
+      label: '累计收入',
+      value: `¥${formatMoney(totalEarnings)}`,
+      title: '累计收入详情',
+      summary: '展示已结算服务收入，提现与充值可在我的钱包中继续查看明细。',
+      items: [
+        { label: '已结算收入', value: `¥${formatMoney(totalEarnings)}` },
+        { label: '钱包余额', value: `¥${formatMoney(walletInfo.value?.cash_balance)}` },
+        { label: '交易记录', value: `${walletTransactions.value.length} 条` }
+      ]
+    }
+  ]
+})
+
 const formatMoney = (value) => {
   const amount = Number(value || 0)
   return amount.toFixed(2)
@@ -393,6 +454,11 @@ const refreshWallet = async () => {
 const openWalletDetail = async () => {
   showWalletDetail.value = true
   await fetchWalletTransactions()
+}
+
+const openWorkerStatDetail = (stat) => {
+  activeWorkerStat.value = stat
+  showWorkerStatDetail.value = true
 }
 
 const handleRecharge = async () => {
@@ -1494,9 +1560,96 @@ onMounted(async () => {
   border-radius: 12px;
 }
 
+.stat-action {
+  width: 100%;
+  padding: 12px 8px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--line-soft) !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
+  text-align: center;
+}
+
+.stat-action:hover {
+  border-color: var(--accent-soft) !important;
+  background: var(--accent-light) !important;
+  color: var(--accent) !important;
+}
+
 .stat-value {
   font-size: 22px;
   color: var(--accent);
+}
+
+.stat-detail-dialog {
+  display: grid;
+  gap: 12px;
+}
+
+.stat-detail-hero {
+  padding: 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: #FFFCF8;
+}
+
+.stat-detail-hero strong {
+  display: block;
+  color: var(--accent);
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.stat-detail-hero span {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.stat-detail-hero p {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.stat-detail-list {
+  display: grid;
+  gap: 8px;
+}
+
+.stat-detail-row {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: var(--bg-secondary);
+}
+
+.stat-detail-row span {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.stat-detail-row strong {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 900;
+  text-align: right;
 }
 
 .wallet-actions {

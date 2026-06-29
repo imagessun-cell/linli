@@ -10,7 +10,7 @@
         <span v-if="task.subTypeIcon" :class="['sub-type-tag', getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
         <span v-else class="hero-type-plain">{{ task.typeIcon }} {{ task.typeName }}</span>
       </div>
-      <h1 class="hero-title">{{ task.address || task.employerCommunity || '就诊人地点' }} → {{ task.targetHospital || '目标医院' }}</h1>
+      <h1 class="hero-title">{{ taskRouteText }}</h1>
       <div class="hero-meta">
         <span>{{ formatPublishTime(task.createdAt) }}</span>
       </div>
@@ -45,7 +45,7 @@
             <span class="info-icon">🏥</span>
             <div class="info-content">
               <span class="info-label">服务路线</span>
-              <span class="info-value">{{ task.address || task.employerCommunity || '就诊人地点' }} → {{ task.targetHospital || '目标医院' }}</span>
+              <span class="info-value">{{ taskRouteText }}</span>
             </div>
           </div>
           <div class="map-container-small">
@@ -109,7 +109,7 @@
           />
           <div class="publisher-info">
             <span class="publisher-name">{{ task.employerNickname }}</span>
-            <span class="publisher-rating">📍 {{ task.employerCommunity || '所在社区' }}</span>
+            <span class="publisher-rating">📍 {{ task.employerCommunity || '所在小区' }}</span>
           </div>
         </div>
         <div class="contact-actions">
@@ -157,6 +157,9 @@ const error = ref(null)
 const canGrab = computed(() => {
   return task.value && task.value.status === 0
 })
+
+const taskStartName = computed(() => task.value?.address || task.value?.employerCommunity || '就诊人小区')
+const taskRouteText = computed(() => `${taskStartName.value} → ${task.value?.targetHospital || '目标医院'}`)
 
 const formatDateTime = (str) => {
   if (!str) return ''
@@ -276,8 +279,8 @@ const myToEmployerKm = computed(() => {
 
 const formatDistance = (km) => {
   if (km == null) return '—'
-  if (km < 1) return `${Math.round(km * 1000)} 米`
-  return `${km.toFixed(1)}km`
+  if (km < 1) return `${Math.round(km * 1000)}米`
+  return `${km.toFixed(1)}公里`
 }
 
 // 百度地图 URL Scheme 导航
@@ -336,24 +339,31 @@ const initTaskMap = () => {
             task.value.latitude + 0.003
           )
 
+      map.centerAndZoom(patientPoint, hasHospital ? 13 : 15)
+
       const buildMarker = (id, point, title, color, emoji) => {
-        const wrap = document.createElement('div')
-        wrap.className = 'task-map-marker'
-        wrap.dataset.id = id
-        wrap.innerHTML = `
+        const html = `
           <div class="task-map-pin" style="background:${color}">
             <span class="task-map-emoji">${emoji}</span>
           </div>
           <div class="task-map-callout">${title}</div>
         `
-        if (typeof BMapGL.DomOverlay === 'function') {
-          try {
-            const dom = new BMapGL.DomOverlay(point, wrap, {
-              offset: { width: 0, height: 0 }
-            })
-            map.addOverlay(dom)
-            return
-          } catch (e) { /* fallthrough */ }
+        try {
+          const label = new BMapGL.Label(html, {
+            position: point,
+            offset: new BMapGL.Size(-32, -58)
+          })
+          label.setStyle({
+            border: 'none',
+            background: 'transparent',
+            padding: '0',
+            color: 'inherit'
+          })
+          label.setZIndex?.(20 + id)
+          map.addOverlay(label)
+          return
+        } catch (e) {
+          console.warn('Label marker fallback:', e)
         }
         map.addOverlay(new BMapGL.Marker(point))
       }
@@ -385,11 +395,15 @@ const initTaskMap = () => {
           if (m.point.lat < minLat) minLat = m.point.lat
           if (m.point.lat > maxLat) maxLat = m.point.lat
         })
-        const bounds = new BMapGL.Bounds(
-          new BMapGL.Point(minLng, minLat),
-          new BMapGL.Point(maxLng, maxLat)
-        )
-        map.setBounds(bounds)
+        if (typeof map.setViewport === 'function') {
+          map.setViewport(markers.map(m => m.point), { margins: [40, 40, 40, 40] })
+        } else {
+          const bounds = new BMapGL.Bounds(
+            new BMapGL.Point(minLng, minLat),
+            new BMapGL.Point(maxLng, maxLat)
+          )
+          map.setBounds(bounds)
+        }
       } catch (e) {
         map.centerAndZoom(patientPoint, 14)
       }
@@ -453,7 +467,7 @@ const handleGrab = async () => {
     router.push('/login')
     return
   }
-  if (userStore.userInfo?.role !== 1) {
+  if (Number(userStore.role) !== 1) {
     ElMessage.warning('请切换为陪诊师身份接单')
     return
   }
@@ -1218,5 +1232,64 @@ onMounted(() => {
   .grab-btn {
     font-size: 15px !important;
   }
+}
+
+/* 详情页地图与吸底联系栏修正 */
+.task-detail-page {
+  padding-bottom: calc(238px + env(safe-area-inset-bottom));
+}
+
+.map-container-small {
+  min-height: 190px;
+  overflow: hidden;
+  border: 1px solid #EBD8CF;
+}
+
+.map-small {
+  width: 100%;
+  height: 100%;
+  min-height: 190px;
+}
+
+.contact-dock {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+  border-right: none;
+  border-bottom: none;
+  border-left: none;
+  border-radius: 20px 20px 0 0;
+}
+
+:global(.task-map-pin) {
+  width: 34px;
+  height: 34px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  box-shadow: 0 6px 14px rgba(64, 48, 40, 0.18);
+}
+
+:global(.task-map-emoji) {
+  transform: rotate(45deg);
+  font-size: 15px;
+  line-height: 1;
+}
+
+:global(.task-map-callout) {
+  margin-top: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(63, 51, 46, 0.88);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(64, 48, 40, 0.18);
 }
 </style>

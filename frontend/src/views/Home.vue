@@ -150,17 +150,17 @@
                 <span v-if="task.subTypeIcon" :class="[getSubTypeClass(task.subType)]">{{ task.subTypeIcon }} {{ task.subTypeName }}</span>
                 <span v-else>{{ task.typeIcon }} {{ task.typeName }}</span>
               </span>
-              <span class="task-date">{{ formatTaskDate(task.startTime) }}</span>
             </div>
-            <h3 class="task-title">{{ task.address || task.employerCommunity || '就诊人地点' }} 到 {{ task.targetHospital || '目标医院' }}</h3>
+            <h3 class="task-title">{{ task.subTypeName || task.typeName || '陪诊服务' }}</h3>
+            <p class="task-route">{{ formatTaskRoute(task) }}</p>
             <div class="task-facts" aria-label="任务关键信息">
               <div class="task-fact">
                 <span>距离</span>
                 <strong>{{ formatDistance(task.distance) }}</strong>
               </div>
               <div class="task-fact">
-                <span>时长</span>
-                <strong>{{ formatDuration(task.duration).trim() }}</strong>
+                <span>时间</span>
+                <strong>{{ formatTaskDate(task.startTime) }}</strong>
               </div>
             </div>
           </div>
@@ -641,8 +641,14 @@ const buildMapAvatarHtml = (task) => {
 
 const formatDistance = (distance) => {
   if (!distance) return '—'
-  if (distance < 1000) return `${distance}m`
-  return `${(distance / 1000).toFixed(1)}km`
+  if (distance < 1000) return `${Math.round(distance)}米`
+  return `${(distance / 1000).toFixed(1)}公里`
+}
+
+const formatTaskRoute = (task) => {
+  const start = task.address || task.employerCommunity || '就诊人小区'
+  const end = task.targetHospital || '目标医院'
+  return `${start} → ${end}`
 }
 
 const formatDuration = (minutes) => {
@@ -2326,40 +2332,40 @@ onUnmounted(() => {
 }
 
 .task-card-top {
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px;
 }
 
-.task-type,
-.task-date {
+.task-type {
   min-height: 36px;
   display: inline-flex;
   align-items: center;
   padding: 7px 12px;
   font-size: 15px;
-}
-
-.task-type {
   max-width: none;
   background: #FFF0EC;
   color: #E94F3D;
 }
 
-.task-date {
-  color: #654318;
-  background: #f8e1bd;
+.task-title {
+  margin: 16px 0 8px;
+  font-size: 24px;
+  line-height: 1.26;
+  color: #3F332E;
 }
 
-.task-title {
-  margin: 18px 0 18px;
-  font-size: 25px;
-  line-height: 1.36;
-  color: #162936;
+.task-route {
+  margin: 0 0 16px;
+  font-size: 17px;
+  line-height: 1.45;
+  font-weight: 800;
+  color: #6F5C53;
+  word-break: break-word;
 }
 
 .task-facts {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: minmax(92px, 0.82fr) minmax(0, 1.18fr);
   gap: 10px;
 }
 
@@ -2383,7 +2389,7 @@ onUnmounted(() => {
   display: block;
   color: #4F3A32;
   font-size: 18px;
-  line-height: 1.2;
+  line-height: 1.25;
   font-weight: 900;
 }
 
@@ -2441,7 +2447,7 @@ onUnmounted(() => {
   }
 
   .task-facts {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
     gap: 8px;
   }
 

@@ -270,4 +270,24 @@ onMounted(() => {
 
 .tx-amount.income { color: #B66A25; }
 .tx-amount.expense { color: #B84545; }
+
+:deep(.el-dialog .el-input__wrapper) {
+  border: 1px solid var(--line) !important;
+  border-radius: 14px !important;
+  background: #FFFCF8 !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-dialog .el-input__wrapper.is-focus) {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px rgba(217, 74, 55, 0.08) !important;
+}
+
+:deep(.el-dialog .el-input__inner) {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
 </style>

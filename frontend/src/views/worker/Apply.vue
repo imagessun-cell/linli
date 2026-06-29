@@ -78,16 +78,16 @@
 
       <el-form-item label="实名认证" prop="id_card_front">
         <div class="id-upload-grid">
-          <input ref="idFrontInputRef" class="hidden-file-input" type="file" accept="image/*" @change="handleIdFileChange($event, 'front')" />
-          <input ref="idBackInputRef" class="hidden-file-input" type="file" accept="image/*" @change="handleIdFileChange($event, 'back')" />
-          <button class="id-upload-card" type="button" @click="idFrontInputRef?.click()">
+          <input ref="idFrontInputRef" class="hidden-file-input" type="file" accept="image/*" capture="environment" @change="handleIdFileChange($event, 'front')" />
+          <input ref="idBackInputRef" class="hidden-file-input" type="file" accept="image/*" capture="environment" @change="handleIdFileChange($event, 'back')" />
+          <button :class="['id-upload-card', { selected: form.id_card_front }]" type="button" @click="idFrontInputRef?.click()">
             <span class="id-upload-icon">人像面</span>
-            <strong>{{ form.id_card_front ? '已上传' : '上传身份证正面' }}</strong>
+            <strong>{{ form.id_card_front ? '已上传' : '扫描/拍照上传正面' }}</strong>
             <em>{{ form.id_card_front || '用于核验本人身份' }}</em>
           </button>
-          <button class="id-upload-card" type="button" @click="idBackInputRef?.click()">
+          <button :class="['id-upload-card', { selected: form.id_card_back }]" type="button" @click="idBackInputRef?.click()">
             <span class="id-upload-icon">国徽面</span>
-            <strong>{{ form.id_card_back ? '已上传' : '上传身份证反面' }}</strong>
+            <strong>{{ form.id_card_back ? '已上传' : '扫描/拍照上传反面' }}</strong>
             <em>{{ form.id_card_back || '仅用于平台认证' }}</em>
           </button>
         </div>
@@ -1103,6 +1103,7 @@ onMounted(async () => {
 
 .actions {
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  bottom: 0;
   background: rgba(255, 253, 251, 0.96);
   border-top: 1px solid var(--line-soft);
   box-shadow: 0 -8px 22px rgba(64, 48, 40, 0.06);
@@ -1172,6 +1173,40 @@ onMounted(async () => {
 .id-upload-card:hover {
   border-color: var(--accent-soft) !important;
   background: var(--accent-light) !important;
+}
+
+.id-upload-card.selected {
+  border-color: var(--accent) !important;
+  background: #FFFCF8 !important;
+  color: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+:deep(.period-group .el-checkbox-button.is-checked .el-checkbox-button__inner) {
+  border-color: var(--accent) !important;
+  background: #FFFCF8 !important;
+  color: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+:deep(.period-group .el-checkbox-button.is-checked .period-time) {
+  color: var(--accent) !important;
+}
+
+:deep(.el-checkbox-group:not(.period-group) .el-checkbox.is-checked) {
+  border-color: var(--accent) !important;
+  background: #FFFCF8 !important;
+  color: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-checkbox-group:not(.period-group) .el-checkbox.is-checked .el-checkbox__label) {
+  color: var(--accent) !important;
+}
+
+:deep(.el-checkbox-group:not(.period-group) .el-checkbox.is-checked .el-checkbox__inner) {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
 }
 
 .id-upload-icon {

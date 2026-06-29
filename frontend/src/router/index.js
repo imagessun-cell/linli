@@ -69,7 +69,7 @@ const routes = [
     path: '/worker/apply',
     name: 'WorkerApply',
     component: () => import('@/views/worker/Apply.vue'),
-    meta: { requiresAuth: true, role: 1 }
+    meta: { requiresAuth: true, role: 1, hideTabBar: true }
   },
   {
     path: '/employer/dashboard',
@@ -81,7 +81,7 @@ const routes = [
     path: '/employer/publish',
     name: 'PublishTask',
     component: () => import('@/views/employer/Publish.vue'),
-    meta: { requiresAuth: true, role: 2 }
+    meta: { requiresAuth: true, role: 2, hideTabBar: true }
   },
   {
     path: '/employer/workers',
