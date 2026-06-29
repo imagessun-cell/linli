@@ -76,6 +76,34 @@ const subTypeMeta = {
   4: { name: '代为问诊', icon: '📝' }
 }
 
+const orderStatusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中' }
+
+const servicePriceMeta = {
+  full: { key: 'full', subType: 1, name: '全程陪同', price: 168, minutes: 180, durationText: '约3小时' },
+  medicine: { key: 'medicine', subType: 2, name: '挂号取药', price: 68, minutes: 60, durationText: '约1小时' },
+  clinic: { key: 'clinic', subType: 3, name: '门诊陪护', price: 128, minutes: 120, durationText: '约2小时' },
+  consult: { key: 'consult', subType: 4, name: '代为问诊', price: 98, minutes: 90, durationText: '约1.5小时' }
+}
+
+const serviceKeyBySubType = { 1: 'full', 2: 'medicine', 3: 'clinic', 4: 'consult' }
+
+const resolveServiceOption = (data = {}, task = {}) => {
+  const subType = Number(task.subType || task.sub_type || data.sub_type || 1)
+  const key = data.service_type || serviceKeyBySubType[subType] || 'full'
+  const meta = servicePriceMeta[key] || servicePriceMeta.full
+  const price = Number(data.service_price || task.budget || meta.price)
+  const minutes = Number(data.duration_minutes || task.duration || task.duration_minutes || meta.minutes)
+  return {
+    ...meta,
+    key,
+    subType: Number(data.sub_type || meta.subType || subType),
+    name: data.service_name || task.subTypeName || task.sub_type_name || meta.name,
+    price,
+    minutes,
+    durationText: data.service_duration || meta.durationText
+  }
+}
+
 let tasks = taskSeed.map((item, index) => {
   const [address, hospital, type, subType, budget, duration, physicalLevel, distance, lat, lng, hospitalLat, hospitalLng, employer, community] = item
   const start = iso(24 + index * 3)
@@ -145,8 +173,8 @@ let messages = [
 ]
 
 let orders = [
-  { id: 1, task_id: 1, order_no: 'ORD20260626001', employer_id: 15, worker_id: 21, task_type: 1, address: '望京西园四区', start_time: iso(24), end_time: iso(25.5), worker_nickname: '张阿姨', worker_phone: '13800000001', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 140, platform_commission: 14, worker_income: 126, status: 2, created_at: iso(-20), special_requirements: '请提前十分钟到达，协助老人完成缴费。' },
-  { id: 2, task_id: 2, order_no: 'ORD20260625003', employer_id: 15, worker_id: 22, task_type: 1, address: '花家地北里', start_time: iso(-24), end_time: iso(-22.5), worker_nickname: '刘师傅', worker_phone: '13800000002', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 120, platform_commission: 12, worker_income: 108, status: 4, created_at: iso(-48), special_requirements: '陪同复诊并记录医生建议。' }
+  { id: 1, task_id: 1, order_no: 'ORD20260626001', employer_id: 15, worker_id: 21, task_type: 1, service_name: '全程陪同', address: '望京西园四区', start_time: iso(24), end_time: iso(25.5), worker_nickname: '张阿姨', worker_phone: '13800000001', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 140, platform_commission: 14, worker_income: 126, status: 2, order_status_text: '服务中', payment_status: 'paid', created_at: iso(-20), special_requirements: '请提前十分钟到达，协助老人完成缴费。' },
+  { id: 2, task_id: 2, order_no: 'ORD20260625003', employer_id: 15, worker_id: 22, task_type: 3, service_name: '门诊陪护', address: '花家地北里', start_time: iso(-24), end_time: iso(-22.5), worker_nickname: '刘师傅', worker_phone: '13800000002', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 120, platform_commission: 12, worker_income: 108, status: 4, order_status_text: '已完成', payment_status: 'paid', created_at: iso(-48), special_requirements: '陪同复诊并记录医生建议。' }
 ]
 
 let wallet = {
@@ -252,33 +280,75 @@ const upsertConversation = (targetId, lastMessage) => {
     }
     conversations.unshift(conv)
   }
-  conv.last_message = lastMessage.content
+  conv.last_message = lastMessage.type === 3 ? `订单动态：${lastMessage.order_status_text || '状态已更新'}` : lastMessage.content
   conv.last_message_time = lastMessage.created_at
   conv.last_message_type = lastMessage.type || 1
   return conv
 }
 
-const createOrderFromTask = (task, workerId = 21) => {
+const getOrderChatTarget = (order, senderId = demoUser.id) => {
+  return Number(senderId) === Number(order.worker_id) ? Number(order.employer_id) : Number(order.worker_id)
+}
+
+const pushOrderDynamic = (order, statusText, options = {}) => {
+  const targetId = Number(options.targetId || getOrderChatTarget(order, options.senderId || demoUser.id))
+  const senderId = Number(options.senderId || demoUser.id)
+  const senderWorker = workers.find((item) => item.user_id === senderId)
+  const serviceName = order.service_name || subTypeMeta[order.task_type]?.name || '陪诊服务'
+  const message = {
+    id: messages.length + 1,
+    from_user_id: senderId,
+    to_user_id: targetId,
+    content: `[订单动态] ${serviceName} · ${statusText}`,
+    type: 3,
+    order_id: order.id,
+    order_no: order.order_no,
+    order_status: order.status,
+    order_status_text: statusText,
+    order_amount: order.total_amount,
+    service_name: serviceName,
+    created_at: iso(0),
+    from_nickname: options.senderName || senderWorker?.nickname || demoUser.nickname,
+    from_avatar: options.senderAvatar || senderWorker?.avatar_url || demoUser.avatar_url
+  }
+  messages.push(message)
+  const otherId = senderId === demoUser.id ? targetId : (targetId === demoUser.id ? senderId : targetId)
+  upsertConversation(otherId, message)
+  return message
+}
+
+const createOrderFromTask = (task, workerId = demoUser.id, options = {}) => {
   const id = orders.length + 1
-  const worker = workers.find((item) => item.user_id === Number(workerId)) || workers[0]
+  const worker = workers.find((item) => item.user_id === Number(workerId)) ||
+    (Number(workerId) === demoUser.id
+      ? { user_id: demoUser.id, nickname: demoUser.nickname, avatar_url: demoUser.avatar_url }
+      : workers[0])
+  const service = resolveServiceOption(options, task)
+  const amount = Number(options.total_amount || service.price || task.budget || 0)
+  const status = Number(options.status || 1)
+  const employerId = Number(options.employerId || task.employerId || task.employer_id || demoUser.id)
   const order = {
     id,
     task_id: task.id,
     order_no: `ORD${Date.now()}`,
-    employer_id: demoUser.id,
+    employer_id: employerId,
     worker_id: worker.user_id,
-    task_type: task.type || 1,
+    task_type: service.subType,
+    service_key: service.key,
+    service_name: service.name,
     address: task.address,
     start_time: task.startTime || task.start_time,
     end_time: task.endTime || task.end_time,
     worker_nickname: worker.nickname,
     worker_phone: '13800000001',
-    employer_nickname: demoUser.nickname,
+    employer_nickname: task.employerNickname || task.employer_nickname || demoUser.nickname,
     employer_phone: demoUser.phone,
-    total_amount: task.budget,
-    platform_commission: Math.round(task.budget * 10) / 100,
-    worker_income: Math.round(task.budget * 90) / 100,
-    status: 1,
+    total_amount: amount,
+    platform_commission: Math.round(amount * 10) / 100,
+    worker_income: Math.round(amount * 90) / 100,
+    status,
+    order_status_text: orderStatusNames[status] || '待服务',
+    payment_status: 'paid',
     created_at: iso(0),
     special_requirements: task.specialRequirements || task.special_requirements || ''
   }
@@ -320,7 +390,10 @@ export const createDemoRequest = () => ({
     if (url === '/employer/orders' || url === '/worker/orders') {
       const params = paramsFrom(config)
       const status = params.status
-      const filtered = status ? orders.filter((item) => String(item.status) === String(status)) : orders
+      const scopedOrders = url === '/worker/orders'
+        ? orders.filter((item) => Number(item.worker_id) === Number(demoUser.id))
+        : orders.filter((item) => Number(item.employer_id) === Number(demoUser.id))
+      const filtered = status ? scopedOrders.filter((item) => String(item.status) === String(status)) : scopedOrders
       return ok({ orders: filtered, total: filtered.length })
     }
     if (url.startsWith('/order/')) {
@@ -378,6 +451,52 @@ export const createDemoRequest = () => ({
       demoUser.face_verified = 1
       return ok({})
     }
+    if (/^\/employer\/workers\/\d+\/invite$/.test(url)) {
+      const workerId = Number(url.split('/')[3])
+      const worker = workers.find((item) => item.user_id === workerId) || workers[0]
+      const service = resolveServiceOption(data)
+      const nextId = tasks.length + 1
+      const start = iso(24)
+      const end = iso(24 + service.minutes / 60)
+      const task = normalizeTask({
+        id: nextId,
+        employerId: demoUser.id,
+        employer_id: demoUser.id,
+        worker_id: worker.user_id,
+        type: 1,
+        sub_type: service.subType,
+        subType: service.subType,
+        address: data.address || demoUser.community || '花家地北里',
+        target_hospital: data.target_hospital || '就近医院待确认',
+        targetHospital: data.target_hospital || '就近医院待确认',
+        latitude: data.latitude || 39.982,
+        longitude: data.longitude || 116.469,
+        target_hospital_lat: data.target_hospital_lat || 39.971,
+        target_hospital_lng: data.target_hospital_lng || 116.424,
+        start_time: start,
+        end_time: end,
+        duration_minutes: service.minutes,
+        budget: service.price,
+        physical_level: 1,
+        distance: 860,
+        employer_nickname: demoUser.nickname,
+        employerCommunity: demoUser.community,
+        special_requirements: `${service.name}已支付，等待陪诊师确认服务安排。`,
+        status: 1,
+        created_at: iso(0)
+      })
+      tasks.unshift(task)
+      demoUser.employer.published_tasks += 1
+      const order = createOrderFromTask(task, worker.user_id, {
+        service_type: service.key,
+        service_name: service.name,
+        service_price: service.price,
+        service_duration: service.durationText,
+        status: 1
+      })
+      const message = pushOrderDynamic(order, '已支付，等待陪诊师确认服务时间')
+      return ok({ order, order_id: order.id, message_id: message.id }, '支付成功，订单已生成')
+    }
     if (url === '/employer/tasks') {
       const nextId = tasks.length + 1
       const subType = Number(data.sub_type || 1)
@@ -418,8 +537,16 @@ export const createDemoRequest = () => ({
       const id = Number(url.split('/').find((part) => /^\d+$/.test(part)))
       const task = tasks.find((item) => item.id === id) || tasks[0]
       task.status = 1
-      createOrderFromTask(task)
-      return ok({}, '接单成功')
+      task.worker_id = demoUser.id
+      const order = createOrderFromTask(task, demoUser.id, { status: 1 })
+      demoUser.worker.total_orders += 1
+      pushOrderDynamic(order, '陪诊师已接单，订单待服务', {
+        senderId: demoUser.id,
+        targetId: order.employer_id,
+        senderName: demoUser.nickname,
+        senderAvatar: demoUser.avatar_url
+      })
+      return ok({ order, order_id: order.id }, '接单成功')
     }
     if (url === '/message/send') {
       const message = { id: messages.length + 1, from_user_id: demoUser.id, to_user_id: Number(data.to_user_id), content: data.content, type: 1, created_at: iso(0), from_nickname: demoUser.nickname, from_avatar: demoUser.avatar_url }
@@ -461,16 +588,58 @@ export const createDemoRequest = () => ({
     if (url.includes('/start')) {
       const id = Number(url.split('/').find((part) => /^\d+$/.test(part)))
       const order = orders.find((item) => item.id === id)
-      if (order) order.status = 2
+      if (order) {
+        order.status = 2
+        order.order_status_text = orderStatusNames[2]
+        pushOrderDynamic(order, '服务已开始，陪诊师正在陪同就诊', {
+          senderId: order.worker_id,
+          targetId: order.employer_id,
+          senderName: order.worker_nickname
+        })
+      }
       return ok({ insurance_no: `INS${Date.now()}` })
     }
-    if (url.includes('/complete') || url.includes('/confirm')) {
+    if (url.includes('/complete')) {
       const id = Number(url.split('/').find((part) => /^\d+$/.test(part)))
       const order = orders.find((item) => item.id === id)
-      if (order) order.status = 4
+      if (order) {
+        order.status = 3
+        order.order_status_text = orderStatusNames[3]
+        pushOrderDynamic(order, '陪诊师已提交完成，等待就诊人确认', {
+          senderId: order.worker_id,
+          targetId: order.employer_id,
+          senderName: order.worker_nickname
+        })
+      }
       return ok({})
     }
-    if (url.includes('/cancel')) return ok({})
+    if (url.includes('/confirm')) {
+      const id = Number(url.split('/').find((part) => /^\d+$/.test(part)))
+      const order = orders.find((item) => item.id === id)
+      if (order) {
+        order.status = 4
+        order.order_status_text = orderStatusNames[4]
+        pushOrderDynamic(order, '就诊人已确认完成，服务结束', {
+          senderId: order.employer_id,
+          targetId: order.worker_id,
+          senderName: order.employer_nickname
+        })
+      }
+      return ok({})
+    }
+    if (url.includes('/cancel')) {
+      const id = Number(url.split('/').find((part) => /^\d+$/.test(part)))
+      const order = orders.find((item) => item.id === id || item.task_id === id)
+      if (order) {
+        order.status = 5
+        order.order_status_text = orderStatusNames[5]
+        pushOrderDynamic(order, '订单已取消', {
+          senderId: demoUser.id,
+          targetId: getOrderChatTarget(order)
+        })
+      }
+      return ok({})
+    }
     return ok({})
   },
   delete() {

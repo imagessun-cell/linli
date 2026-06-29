@@ -467,9 +467,18 @@ const handleGrab = async () => {
     router.push('/login')
     return
   }
+  const certifiedWorker = userStore.userInfo?.worker?.status === 1 || userStore.userInfo?.worker?.id
   if (Number(userStore.role) !== 1) {
-    ElMessage.warning('请切换为陪诊师身份接单')
-    return
+    if (!certifiedWorker) {
+      ElMessage.warning('请先完成陪诊师认证后接单')
+      return
+    }
+    try {
+      await userStore.switchRole(1)
+    } catch (e) {
+      ElMessage.warning('陪诊师身份切换失败，请稍后重试')
+      return
+    }
   }
   grabLoading.value = true
   try {

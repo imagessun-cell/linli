@@ -73,6 +73,19 @@
           <span class="entry-arrow" aria-hidden="true">›</span>
         </button>
 
+        <section v-if="latestWorkerOrder" class="info-section order-progress-section" aria-labelledby="worker-order-progress-title">
+          <h3 id="worker-order-progress-title" class="section-title">最近任务动态</h3>
+          <button class="order-progress-card" type="button" @click="$router.push(`/common/order/${latestWorkerOrder.id}`)">
+            <span class="order-progress-status">{{ orderStatusText(latestWorkerOrder.status) }}</span>
+            <strong>{{ formatOrderService(latestWorkerOrder) }}</strong>
+            <p>{{ latestWorkerOrder.address || '服务地点待确认' }}</p>
+            <span class="order-progress-foot">
+              <span>{{ formatDate(latestWorkerOrder.created_at) }}</span>
+              <em>收入 ¥{{ formatMoney(latestWorkerOrder.worker_income) }}</em>
+            </span>
+          </button>
+        </section>
+
         
         <section class="info-section" aria-labelledby="worker-basic-title">
           <h3 id="worker-basic-title" class="section-title">基本信息</h3>
@@ -171,6 +184,19 @@
           </span>
           <span class="entry-arrow" aria-hidden="true">›</span>
         </button>
+
+        <section v-if="latestEmployerOrder" class="info-section order-progress-section" aria-labelledby="employer-order-progress-title">
+          <h3 id="employer-order-progress-title" class="section-title">最近订单动态</h3>
+          <button class="order-progress-card" type="button" @click="$router.push(`/common/order/${latestEmployerOrder.id}`)">
+            <span class="order-progress-status">{{ orderStatusText(latestEmployerOrder.status) }}</span>
+            <strong>{{ formatOrderService(latestEmployerOrder) }}</strong>
+            <p>{{ latestEmployerOrder.worker_nickname ? `陪诊师：${latestEmployerOrder.worker_nickname}` : '等待陪诊师确认' }}</p>
+            <span class="order-progress-foot">
+              <span>{{ formatDate(latestEmployerOrder.created_at) }}</span>
+              <em>支付 ¥{{ formatMoney(latestEmployerOrder.total_amount) }}</em>
+            </span>
+          </button>
+        </section>
       </div>
     </main>
 
@@ -296,6 +322,8 @@ const workerInfo = ref(null)
 const employerInfo = ref(null)
 const walletInfo = ref(null)
 const walletTransactions = ref([])
+const workerOrders = ref([])
+const employerOrders = ref([])
 const showRecharge = ref(false)
 const showWithdraw = ref(false)
 const showWalletDetail = ref(false)
@@ -317,6 +345,8 @@ const realnameForm = ref({
 })
 
 const txTypeNames = { 1: '服务收入', 2: '提现申请', 3: '积分兑换', 4: '钱包充值' }
+const taskTypes = ['', '全程陪同', '挂号取药', '门诊陪护', '代为问诊', '陪诊师培训']
+const orderStatusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中' }
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const userInfo = computed(() => userStore.userInfo)
@@ -345,6 +375,10 @@ const displayAgeText = computed(() => {
 const displayCommunity = computed(() => {
   return activeRoleInfo.value?.community || userInfo.value?.community || '社区待完善'
 })
+
+const latestWorkerOrder = computed(() => workerOrders.value[0] || null)
+const latestEmployerOrder = computed(() => employerOrders.value[0] || null)
+
 const statusClass = computed(() => {
   const status = workerInfo.value?.status
   if (status === 1) return 'success'
@@ -419,6 +453,13 @@ const formatDate = (time) => {
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
+const orderStatusText = (status) => orderStatusNames[Number(status)] || '状态更新'
+
+const formatOrderService = (order) => {
+  if (!order) return '陪诊服务'
+  return order.service_name || taskTypes[Number(order.task_type)] || '陪诊服务'
+}
+
 const formatTxAmount = (tx) => {
   const amount = Number(tx.amount || 0).toFixed(2)
   if (tx.type === 2) return `-¥${amount}`
@@ -449,6 +490,24 @@ const fetchWalletTransactions = async () => {
 
 const refreshWallet = async () => {
   await Promise.all([fetchWallet(), fetchWalletTransactions()])
+}
+
+const normalizeOrderList = (res) => {
+  if (Array.isArray(res?.data)) return res.data
+  return res?.data?.orders || []
+}
+
+const fetchProfileOrders = async () => {
+  const [workerResult, employerResult] = await Promise.allSettled([
+    request.get('/worker/orders'),
+    request.get('/employer/orders')
+  ])
+  if (workerResult.status === 'fulfilled' && workerResult.value?.code === 0) {
+    workerOrders.value = normalizeOrderList(workerResult.value)
+  }
+  if (employerResult.status === 'fulfilled' && employerResult.value?.code === 0) {
+    employerOrders.value = normalizeOrderList(employerResult.value)
+  }
 }
 
 const openWalletDetail = async () => {
@@ -577,7 +636,7 @@ onMounted(async () => {
     await userStore.fetchProfile()
     workerInfo.value = userInfo.value?.worker
     employerInfo.value = userInfo.value?.employer
-    await refreshWallet()
+    await Promise.all([refreshWallet(), fetchProfileOrders()])
   }
 })
 </script>
@@ -1757,6 +1816,75 @@ onMounted(async () => {
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-progress-section .section-title {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.order-progress-card {
+  width: 100%;
+  padding: 15px 16px !important;
+  display: grid;
+  gap: 8px;
+  border: none !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  text-align: left;
+  box-shadow: none !important;
+}
+
+.order-progress-status {
+  justify-self: start;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.order-progress-card strong {
+  color: var(--text-primary);
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 900;
+}
+
+.order-progress-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 800;
+}
+
+.order-progress-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.order-progress-foot span {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.order-progress-foot em {
+  color: var(--accent);
+  font-size: 16px;
+  line-height: 1;
+  font-style: normal;
+  font-weight: 900;
   white-space: nowrap;
 }
 

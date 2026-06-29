@@ -2,6 +2,34 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const db = require('../db');
+const { sendOrderDynamic } = require('../utils/orderDynamic');
+
+const INVITE_SERVICES = {
+  full: { subType: 1, name: '全程陪同', price: 168, minutes: 180 },
+  medicine: { subType: 2, name: '挂号取药', price: 68, minutes: 60 },
+  clinic: { subType: 3, name: '门诊陪护', price: 128, minutes: 120 },
+  consult: { subType: 4, name: '代为问诊', price: 98, minutes: 90 }
+};
+
+const SERVICE_NAMES = {
+  1: '全程陪同',
+  2: '挂号取药',
+  3: '门诊陪护',
+  4: '代为问诊',
+  5: '陪诊师培训'
+};
+
+const resolveInviteService = (body = {}, task = {}) => {
+  const service = INVITE_SERVICES[body.service_type] || INVITE_SERVICES.full;
+  const price = Number(body.service_price || task.budget || service.price);
+  const minutes = Number(body.duration_minutes || task.duration_minutes || service.minutes);
+  return {
+    ...service,
+    name: body.service_name || service.name,
+    price,
+    minutes
+  };
+};
 
 router.post('/tasks', authMiddleware, async (req, res) => {
   try {
@@ -93,29 +121,96 @@ router.get('/workers', async (req, res) => {
 
 router.post('/workers/:workerId/invite', authMiddleware, async (req, res) => {
   try {
-    const { workerId } = req.params;
+    const workerId = Number(req.params.workerId);
     const { task_id } = req.body;
 
-    const task = await db.getSync('SELECT * FROM t_task WHERE id = ? AND employer_id = ?', task_id, req.user.id);
-    if (!task) {
-      return res.status(404).json({ code: 404, message: '任务不存在' });
+    const worker = await db.getSync(`
+      SELECT w.*, u.nickname
+      FROM t_worker w
+      JOIN t_user u ON w.user_id = u.id
+      WHERE w.user_id = ? AND w.status = 1
+    `, [workerId]);
+    if (!worker) {
+      return res.status(404).json({ code: 404, message: '陪诊师不存在或未认证' });
     }
 
-    await db.runSync('UPDATE t_task SET worker_id = ?, status = 1 WHERE id = ?', workerId, task_id);
+    const now = new Date().toISOString();
+    let task = null;
+
+    if (task_id) {
+      task = await db.getSync('SELECT * FROM t_task WHERE id = ? AND employer_id = ?', [task_id, req.user.id]);
+      if (!task) {
+        return res.status(404).json({ code: 404, message: '任务不存在' });
+      }
+      const existingOrder = await db.getSync('SELECT id FROM t_order WHERE task_id = ?', [task.id]);
+      if (existingOrder) {
+        return res.status(400).json({ code: 400, message: '该任务已生成订单' });
+      }
+    }
+
+    const service = resolveInviteService(req.body, task || {});
+
+    if (!task) {
+      const startTime = req.body.start_time || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const endTime = req.body.end_time || new Date(new Date(startTime).getTime() + service.minutes * 60 * 1000).toISOString();
+      const expiresAt = new Date(new Date(startTime).getTime() - 30 * 60 * 1000).toISOString();
+      const address = req.body.address || '就诊人地点待确认';
+      const targetHospital = req.body.target_hospital || '就近医院待确认';
+
+      const taskResult = await db.runSync(`
+        INSERT INTO t_task (employer_id, type, sub_type, start_time, end_time, duration_minutes, address, latitude, longitude, physical_level, budget, is_charity, special_requirements, status, worker_id, created_at, expires_at, target_hospital, target_hospital_lat, target_hospital_lng)
+        VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, 1, ?, 0, ?, 1, ?, ?, ?, ?, ?, ?)
+      `, [
+        req.user.id,
+        service.subType,
+        startTime,
+        endTime,
+        service.minutes,
+        address,
+        req.body.latitude || 0,
+        req.body.longitude || 0,
+        service.price,
+        `${service.name}已支付，等待陪诊师确认服务安排。`,
+        workerId,
+        now,
+        expiresAt,
+        targetHospital,
+        req.body.target_hospital_lat || null,
+        req.body.target_hospital_lng || null
+      ]);
+
+      task = await db.getSync('SELECT * FROM t_task WHERE id = ?', [taskResult.lastInsertRowid]);
+    } else {
+      await db.runSync(
+        'UPDATE t_task SET worker_id = ?, status = 1, budget = ?, sub_type = COALESCE(sub_type, ?) WHERE id = ?',
+        [workerId, service.price, service.subType, task.id]
+      );
+      task = await db.getSync('SELECT * FROM t_task WHERE id = ?', [task.id]);
+    }
 
     const orderNo = `ORD${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-    const platform_commission = task.budget * 0.1;
-    const worker_income = task.budget - platform_commission;
+    const platform_commission = service.price * 0.1;
+    const worker_income = service.price - platform_commission;
 
-    await db.runSync(`
+    const orderResult = await db.runSync(`
       INSERT INTO t_order (task_id, order_no, employer_id, worker_id, total_amount, platform_commission, worker_income, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
-    `, task_id, orderNo, req.user.id, workerId, task.budget, platform_commission, worker_income, new Date().toISOString());
+    `, [task.id, orderNo, req.user.id, workerId, service.price, platform_commission, worker_income, now]);
 
-    res.json({ code: 0, message: '已邀请服务者' });
+    const order = await db.getSync('SELECT * FROM t_order WHERE id = ?', [orderResult.lastInsertRowid]);
+    await sendOrderDynamic(req, {
+      order,
+      fromUserId: req.user.id,
+      toUserId: workerId,
+      serviceName: service.name,
+      statusText: '已支付，等待陪诊师确认服务时间',
+      amount: service.price
+    });
+
+    res.json({ code: 0, message: '支付成功，订单已生成', data: { order, order_id: order.id } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    res.status(500).json({ code: 500, message: '服务器错误: ' + err.message });
   }
 });
 
@@ -125,7 +220,7 @@ router.get('/orders', authMiddleware, async (req, res) => {
     const offset = (page - 1) * limit;
 
     let sql = `
-      SELECT o.*, t.type as task_type, t.address, t.start_time,
+      SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.address, t.start_time, t.end_time,
              w.nickname as worker_nickname, w.phone as worker_phone,
              e.nickname as employer_nickname
       FROM t_order o
@@ -148,6 +243,40 @@ router.get('/orders', authMiddleware, async (req, res) => {
     const totalResult = await db.getSync(`SELECT COUNT(*) as count FROM t_order WHERE employer_id = ?`, req.user.id);
 
     res.json({ code: 0, message: 'success', data: { orders, total: totalResult.count } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+router.put('/orders/:orderId/confirm', authMiddleware, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const now = new Date().toISOString();
+
+    const order = await db.getSync(`
+      SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.sub_type
+      FROM t_order o
+      JOIN t_task t ON o.task_id = t.id
+      WHERE o.id = ? AND o.employer_id = ?
+    `, [orderId, req.user.id]);
+    if (!order) {
+      return res.status(404).json({ code: 404, message: '订单不存在' });
+    }
+
+    await db.runSync('UPDATE t_order SET status = 4, complete_time = ? WHERE id = ?', [now, orderId]);
+    await db.runSync('UPDATE t_task SET status = 3 WHERE id = ?', [order.task_id]);
+
+    await sendOrderDynamic(req, {
+      order: { ...order, status: 4 },
+      fromUserId: req.user.id,
+      toUserId: order.worker_id,
+      serviceName: SERVICE_NAMES[order.sub_type || order.task_type] || '陪诊服务',
+      statusText: '就诊人已确认完成，服务结束',
+      amount: order.total_amount
+    });
+
+    res.json({ code: 0, message: '已确认完成' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ code: 500, message: '服务器错误' });

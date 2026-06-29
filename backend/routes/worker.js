@@ -2,6 +2,17 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const db = require('../db');
+const { sendOrderDynamic } = require('../utils/orderDynamic');
+
+const SERVICE_NAMES = {
+  1: '全程陪同',
+  2: '挂号取药',
+  3: '门诊陪护',
+  4: '代为问诊',
+  5: '陪诊师培训'
+};
+
+const serviceNameFromOrder = (order = {}) => SERVICE_NAMES[order.sub_type || order.task_type] || '陪诊服务';
 
 const getWorkerWallet = async (userId) => {
   const worker = await db.getSync('SELECT * FROM t_worker WHERE user_id = ?', [userId]);
@@ -161,20 +172,69 @@ router.post('/tasks/:taskId/accept', authMiddleware, async (req, res) => {
     }
 
     const now = new Date().toISOString();
-    await db.runSync('UPDATE t_task SET status = 1, worker_id = ?, updated_at = ? WHERE id = ?', [req.user.id, now, taskId]);
+    await db.runSync('UPDATE t_task SET status = 1, worker_id = ? WHERE id = ?', [req.user.id, taskId]);
 
     const orderNo = `ORD${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
     const platform_commission = task.budget * 0.1;
     const worker_income = task.budget - platform_commission;
 
-    await db.runSync(`
+    const orderResult = await db.runSync(`
       INSERT INTO t_order (task_id, order_no, employer_id, worker_id, total_amount, platform_commission, worker_income, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
     `, [taskId, orderNo, task.employer_id, req.user.id, task.budget, platform_commission, worker_income, now]);
 
     await db.runSync('UPDATE t_worker SET total_orders = total_orders + 1 WHERE user_id = ?', [req.user.id]);
+    const order = await db.getSync('SELECT * FROM t_order WHERE id = ?', [orderResult.lastInsertRowid]);
+    await sendOrderDynamic(req, {
+      order,
+      fromUserId: req.user.id,
+      toUserId: task.employer_id,
+      serviceName: serviceNameFromOrder({ sub_type: task.sub_type, task_type: task.type }),
+      statusText: '陪诊师已接单，订单待服务',
+      amount: task.budget
+    });
 
-    res.json({ code: 0, message: '接单成功' });
+    res.json({ code: 0, message: '接单成功', data: { order_id: order.id, order } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+router.get('/orders', authMiddleware, async (req, res) => {
+  try {
+    const { status, page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let sql = `
+      SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.sub_type, t.address, t.start_time, t.end_time, t.special_requirements,
+             e.nickname as employer_nickname, e.phone as employer_phone
+      FROM t_order o
+      JOIN t_task t ON o.task_id = t.id
+      JOIN t_user e ON o.employer_id = e.id
+      WHERE o.worker_id = ?
+    `;
+    const params = [req.user.id];
+
+    if (status !== undefined && status !== '') {
+      sql += ' AND o.status = ?';
+      params.push(parseInt(status));
+    }
+
+    sql += ' ORDER BY o.created_at DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(limit), parseInt(offset));
+
+    const orders = await db.allSync(sql, params);
+
+    let countSql = 'SELECT COUNT(*) as count FROM t_order WHERE worker_id = ?';
+    const countParams = [req.user.id];
+    if (status !== undefined && status !== '') {
+      countSql += ' AND status = ?';
+      countParams.push(parseInt(status));
+    }
+    const totalResult = await db.getSync(countSql, countParams);
+
+    res.json({ code: 0, message: 'success', data: { orders, total: totalResult.count } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ code: 500, message: '服务器错误' });
@@ -186,13 +246,26 @@ router.put('/orders/:orderId/start', authMiddleware, async (req, res) => {
     const { orderId } = req.params;
     const now = new Date().toISOString();
 
-    const order = await db.getSync('SELECT * FROM t_order WHERE id = ? AND worker_id = ?', [orderId, req.user.id]);
+    const order = await db.getSync(`
+      SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.sub_type
+      FROM t_order o
+      JOIN t_task t ON o.task_id = t.id
+      WHERE o.id = ? AND o.worker_id = ?
+    `, [orderId, req.user.id]);
     if (!order) {
       return res.status(404).json({ code: 404, message: '订单不存在' });
     }
 
     await db.runSync('UPDATE t_order SET status = 2, start_service_time = ? WHERE id = ?', [now, orderId]);
     await db.runSync('UPDATE t_task SET status = 2 WHERE id = ?', [order.task_id]);
+    await sendOrderDynamic(req, {
+      order: { ...order, status: 2 },
+      fromUserId: req.user.id,
+      toUserId: order.employer_id,
+      serviceName: serviceNameFromOrder(order),
+      statusText: '服务已开始，陪诊师正在陪同就诊',
+      amount: order.total_amount
+    });
 
     res.json({ code: 0, message: '服务已开始', data: { insurance_no: `INS${Date.now()}` } });
   } catch (err) {
@@ -207,7 +280,12 @@ router.put('/orders/:orderId/complete', authMiddleware, async (req, res) => {
     const { verification_images } = req.body;
     const now = new Date().toISOString();
 
-    const order = await db.getSync('SELECT * FROM t_order WHERE id = ? AND worker_id = ?', [orderId, req.user.id]);
+    const order = await db.getSync(`
+      SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.sub_type
+      FROM t_order o
+      JOIN t_task t ON o.task_id = t.id
+      WHERE o.id = ? AND o.worker_id = ?
+    `, [orderId, req.user.id]);
     if (!order) {
       return res.status(404).json({ code: 404, message: '订单不存在' });
     }
@@ -222,6 +300,14 @@ router.put('/orders/:orderId/complete', authMiddleware, async (req, res) => {
       INSERT INTO t_wallet_transaction (wallet_id, type, amount, order_id, status, created_at)
       VALUES (?, 1, ?, ?, 1, ?)
     `, [wallet.id, order.worker_income, orderId, now]);
+    await sendOrderDynamic(req, {
+      order: { ...order, status: 3 },
+      fromUserId: req.user.id,
+      toUserId: order.employer_id,
+      serviceName: serviceNameFromOrder(order),
+      statusText: '陪诊师已提交完成，等待就诊人确认',
+      amount: order.total_amount
+    });
 
     res.json({ code: 0, message: '服务已完成，等待就诊人确认' });
   } catch (err) {

@@ -102,14 +102,40 @@
       aria-labelledby="invite-title"
     >
       <div class="dialog-content">
-        <h2 id="invite-title" class="dialog-title">邀请服务</h2>
-        <p class="dialog-text">
-          确定邀请 <strong>{{ selectedWorker?.nickname }}</strong> 为您服务吗？
-        </p>
-        <p class="dialog-tips">请先发布任务，然后从任务列表中邀请该陪诊师</p>
+        <h2 id="invite-title" class="dialog-title">邀请陪诊</h2>
+        <div class="invite-worker-summary">
+          <LinliAvatar :name="selectedWorker?.nickname" :src="selectedWorker?.avatar_url" variant="worker" :size="48" />
+          <div>
+            <strong>{{ selectedWorker?.nickname }}</strong>
+            <span>{{ selectedWorker?.community || '邻里社区' }} · {{ selectedWorker?.avg_rating || '4.9' }}分</span>
+          </div>
+        </div>
+        <div class="service-price-list" aria-label="选择服务价格">
+          <button
+            v-for="option in inviteServiceOptions"
+            :key="option.key"
+            type="button"
+            :class="['service-price-card', { active: selectedInviteService === option.key }]"
+            @click="selectedInviteService = option.key"
+          >
+            <span class="service-price-head">
+              <strong>{{ option.name }}</strong>
+              <em>¥{{ option.price }}</em>
+            </span>
+            <span class="service-price-desc">{{ option.desc }}</span>
+            <span class="service-price-meta">{{ option.duration }} · {{ option.feeText }}</span>
+          </button>
+        </div>
+        <div class="invite-pay-summary">
+          <span>需支付</span>
+          <strong>¥{{ selectedInviteOption.price }}</strong>
+          <em>含平台保障与订单通知</em>
+        </div>
         <div class="dialog-actions">
-          <button class="dialog-btn" @click="showInviteDialog = false">取消</button>
-          <button class="dialog-btn primary" @click="goToPublish">去发单</button>
+          <button class="dialog-btn" :disabled="inviteLoading" @click="showInviteDialog = false">取消</button>
+          <button class="dialog-btn primary" :disabled="inviteLoading" @click="confirmInviteAndPay">
+            {{ inviteLoading ? '支付中...' : '确认并支付' }}
+          </button>
         </div>
       </div>
     </div>
@@ -163,8 +189,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import request from '@/api/request'
 import LinliAvatar from '@/components/LinliAvatar.vue'
 
@@ -177,9 +204,22 @@ const searchKeyword = ref('')
 const matchedSkill = ref('')
 const showInviteDialog = ref(false)
 const selectedWorker = ref(null)
+const selectedInviteService = ref('full')
+const inviteLoading = ref(false)
 const showLevelDialog = ref(false)
 const showRatingDialog = ref(false)
 let workerSearchTimer = null
+
+const inviteServiceOptions = [
+  { key: 'full', name: '全程陪同', price: 168, duration: '约3小时', feeText: '56元/小时', desc: '陪同取号、候诊、问诊、缴费、取药，全流程照看。' },
+  { key: 'clinic', name: '门诊陪护', price: 128, duration: '约2小时', feeText: '64元/小时', desc: '适合门诊候诊、检查排队与楼层路线协助。' },
+  { key: 'medicine', name: '挂号取药', price: 68, duration: '约1小时', feeText: '68元/次', desc: '协助挂号、缴费、取药、报告领取等轻量服务。' },
+  { key: 'consult', name: '代为问诊', price: 98, duration: '约1.5小时', feeText: '含医嘱整理', desc: '陪同沟通病情重点，整理医生建议和后续安排。' }
+]
+
+const selectedInviteOption = computed(() => {
+  return inviteServiceOptions.find((option) => option.key === selectedInviteService.value) || inviteServiceOptions[0]
+})
 
 const levelRules = [
   { level: '1级', desc: '完成 0-19 单，评分稳定，无重大投诉。' },
@@ -252,12 +292,40 @@ const openRatingDialog = (worker) => {
 
 const handleInvite = (worker) => {
   selectedWorker.value = worker
+  const skills = String(worker.skills || '')
+  selectedInviteService.value = skills.includes('门诊陪护')
+    ? 'clinic'
+    : skills.includes('挂号取药')
+      ? 'medicine'
+      : skills.includes('代为问诊')
+        ? 'consult'
+        : 'full'
   showInviteDialog.value = true
 }
 
-const goToPublish = () => {
-  showInviteDialog.value = false
-  router.push('/employer/publish')
+const confirmInviteAndPay = async () => {
+  if (!selectedWorker.value || inviteLoading.value) return
+  inviteLoading.value = true
+  try {
+    const option = selectedInviteOption.value
+    const res = await request.post(`/employer/workers/${selectedWorker.value.user_id}/invite`, {
+      service_type: option.key,
+      service_name: option.name,
+      service_price: option.price,
+      service_duration: option.duration
+    })
+    if (res.code === 0) {
+      ElMessage.success('支付成功，已生成订单')
+      showInviteDialog.value = false
+      router.push(`/common/chat/${selectedWorker.value.user_id}`)
+    } else {
+      ElMessage.error(res.message || '邀请失败')
+    }
+  } catch (e) {
+    ElMessage.error(e.message || '邀请失败')
+  } finally {
+    inviteLoading.value = false
+  }
 }
 
 onMounted(() => {
@@ -1186,6 +1254,162 @@ onMounted(() => {
   height: 100%;
   border-radius: inherit;
   background: #D94A37;
+}
+
+.invite-dialog {
+  z-index: 2600;
+  align-items: flex-end;
+  padding: 14px;
+  background: rgba(64, 48, 40, 0.34);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.invite-dialog .dialog-content {
+  max-width: 430px;
+  max-height: calc(100vh - 28px);
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid #EBD8CF;
+  border-radius: 22px 22px 16px 16px;
+  background: #fffdf8;
+  box-shadow: 0 -18px 42px rgba(23, 35, 49, 0.18);
+}
+
+.invite-dialog .dialog-title {
+  margin: 0 0 14px;
+  text-align: left;
+  color: #4F3A32;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.invite-worker-summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid #F0E3DD;
+  border-radius: 16px;
+  background: #FFFCF8;
+}
+
+.invite-worker-summary strong,
+.invite-worker-summary span {
+  display: block;
+  min-width: 0;
+}
+
+.invite-worker-summary strong {
+  color: #4F3A32;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.invite-worker-summary span {
+  margin-top: 4px;
+  color: #8A6C60;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.service-price-list {
+  display: grid;
+  gap: 10px;
+}
+
+.service-price-card {
+  width: 100%;
+  min-height: 112px;
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+  border: 1px solid #EBD8CF !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  color: #4F3A32 !important;
+  text-align: left;
+  box-shadow: none !important;
+}
+
+.service-price-card.active {
+  border-color: #D94A37 !important;
+  background: #FFF8F5 !important;
+}
+
+.service-price-head,
+.service-price-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.service-price-head strong {
+  min-width: 0;
+  color: #4F3A32;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.service-price-head em {
+  color: #D94A37;
+  font-size: 22px;
+  line-height: 1;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.service-price-desc {
+  color: #6F5C53;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.service-price-meta {
+  justify-content: flex-start;
+  color: #9A7667;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.invite-pay-summary {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 13px 14px;
+  border-radius: 16px;
+  background: #FFF0EC;
+  color: #7D6257;
+}
+
+.invite-pay-summary span,
+.invite-pay-summary em {
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.invite-pay-summary strong {
+  color: #D94A37;
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.invite-pay-summary em {
+  min-width: 0;
+  color: #9A7667;
+  text-align: right;
 }
 
 @media (max-width: 360px) {

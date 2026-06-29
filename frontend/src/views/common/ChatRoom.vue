@@ -27,8 +27,20 @@
             variant="worker"
             :size="40"
           />
-          <div class="bubble">
-            <p>{{ msg.content }}</p>
+          <div class="bubble" :class="{ 'order-bubble': isOrderDynamic(msg) }">
+            <div v-if="isOrderDynamic(msg)" class="order-dynamic-card">
+              <div class="order-dynamic-head">
+                <span>订单动态</span>
+                <strong>{{ orderDynamicInfo(msg).status }}</strong>
+              </div>
+              <h3>{{ orderDynamicInfo(msg).service }}</h3>
+              <div class="order-dynamic-meta">
+                <span>{{ orderDynamicInfo(msg).orderNo }}</span>
+                <em v-if="orderDynamicInfo(msg).amount">¥{{ orderDynamicInfo(msg).amount }}</em>
+              </div>
+              <p>{{ cleanOrderContent(msg) }}</p>
+            </div>
+            <p v-else>{{ msg.content }}</p>
             <span class="time">{{ formatTime(msg.created_at) }}</span>
           </div>
         </div>
@@ -255,6 +267,27 @@ const formatTime = (time) => {
   if (!time) return ''
   const date = new Date(time)
   return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+const isOrderDynamic = (msg) => {
+  return Number(msg?.type) === 3 || String(msg?.content || '').startsWith('[订单动态]')
+}
+
+const cleanOrderContent = (msg) => {
+  return String(msg?.content || '').replace(/^\[订单动态\]\s*/, '')
+}
+
+const orderDynamicInfo = (msg) => {
+  const cleanContent = cleanOrderContent(msg)
+  const parts = cleanContent.split('·').map((item) => item.trim()).filter(Boolean)
+  const orderNo = parts.find((item) => /^ORD/i.test(item))
+  const amountText = parts.find((item) => /^¥/.test(item))
+  return {
+    service: msg?.service_name || parts[0] || '陪诊服务',
+    status: msg?.order_status_text || parts[1] || '状态已更新',
+    orderNo: msg?.order_no || orderNo || '订单已生成',
+    amount: msg?.order_amount || amountText?.replace('¥', '') || ''
+  }
 }
 
 const scrollToBottom = () => {
@@ -660,6 +693,104 @@ onUnmounted(() => {
 
 .message-item.mine .bubble .time {
   color: rgba(255, 255, 255, 0.7);
+}
+
+.bubble.order-bubble {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.message-item.mine .bubble.order-bubble {
+  background: transparent;
+  color: inherit;
+}
+
+.bubble.order-bubble .time {
+  padding: 0 10px;
+  color: #8A6C60;
+}
+
+.message-item.mine .bubble.order-bubble .time {
+  color: #8A6C60;
+  text-align: right;
+}
+
+.order-dynamic-card {
+  width: min(280px, 76vw);
+  padding: 14px;
+  border: 1px solid #EBD8CF;
+  border-radius: 18px;
+  background: #fffdf8;
+  color: #4F3A32;
+  box-shadow: 0 8px 22px rgba(64, 48, 40, 0.08);
+}
+
+.order-dynamic-head,
+.order-dynamic-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.order-dynamic-head span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #FFF0EC;
+  color: #D94A37;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.order-dynamic-head strong {
+  font-size: 14px;
+  color: #8A4D2A;
+  white-space: nowrap;
+}
+
+.order-dynamic-card h3 {
+  margin: 12px 0 8px;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 900;
+  color: #4F3A32;
+}
+
+.order-dynamic-meta {
+  padding: 10px 0;
+  border-top: 1px solid #F2E6DE;
+  border-bottom: 1px solid #F2E6DE;
+}
+
+.order-dynamic-meta span {
+  min-width: 0;
+  color: #8A6C60;
+  font-size: 13px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-dynamic-meta em {
+  color: #D94A37;
+  font-size: 20px;
+  line-height: 1;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.order-dynamic-card p {
+  margin: 10px 0 0;
+  color: #6F5C53;
+  font-size: 15px;
+  line-height: 1.45;
+  word-break: break-word;
 }
 
 .input-area {

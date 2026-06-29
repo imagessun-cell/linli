@@ -10,7 +10,8 @@
     </section>
 
     <el-tabs v-model="activeTab" @tab-change="fetchOrders">
-      <el-tab-pane label="进行中" name="1" />
+      <el-tab-pane label="待服务" name="1" />
+      <el-tab-pane label="服务中" name="2" />
       <el-tab-pane label="待确认" name="3" />
       <el-tab-pane label="已完成" name="4" />
     </el-tabs>
@@ -31,9 +32,9 @@
           <span class="date">{{ formatDate(order.created_at) }}</span>
         </div>
 
-        <div class="order-actions" v-if="order.status === 2" @click.stop>
-          <el-button type="primary" size="small" @click="startService(order.id)">开始服务</el-button>
-          <el-button type="success" size="small" @click="completeService(order.id)">完成服务</el-button>
+        <div class="order-actions" v-if="[1, 2].includes(Number(order.status))" @click.stop>
+          <el-button v-if="Number(order.status) === 1" type="primary" size="small" @click="startService(order.id)">开始服务</el-button>
+          <el-button v-if="Number(order.status) === 2" type="success" size="small" @click="completeService(order.id)">完成服务</el-button>
         </div>
       </div>
     </div>
@@ -210,7 +211,7 @@ onMounted(() => {
 :deep(.el-tabs__nav) {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   float: none;
 }
