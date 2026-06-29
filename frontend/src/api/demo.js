@@ -300,22 +300,64 @@ const getOrderChatTarget = (order, senderId = demoUser.id) => {
   return Number(senderId) === Number(order.worker_id) ? Number(order.employer_id) : Number(order.worker_id)
 }
 
+const formatOrderDynamicTime = (order) => {
+  if (!order.start_time) return ''
+  const start = new Date(order.start_time)
+  const end = order.end_time ? new Date(order.end_time) : null
+  if (Number.isNaN(start.getTime())) return ''
+  const startText = `${start.getMonth() + 1}/${start.getDate()} ${start.getHours()}:${String(start.getMinutes()).padStart(2, '0')}`
+  if (!end || Number.isNaN(end.getTime())) return startText
+  const endText = start.toDateString() === end.toDateString()
+    ? `${end.getHours()}:${String(end.getMinutes()).padStart(2, '0')}`
+    : `${end.getMonth() + 1}/${end.getDate()} ${end.getHours()}:${String(end.getMinutes()).padStart(2, '0')}`
+  return `${startText} - ${endText}`
+}
+
+const inferOrderNextAction = (statusText = '') => {
+  if (statusText.includes('待报价') || statusText.includes('等待陪诊师报价')) return '等待陪诊师确认最终报价'
+  if (statusText.includes('待支付') || statusText.includes('等待就诊人支付')) return '就诊人确认报价并完成支付'
+  if (statusText.includes('已付款') || statusText.includes('待服务')) return '陪诊师按约定时间到达就诊人地点'
+  if (statusText.includes('服务已开始')) return '陪诊师同步陪诊进度并完成服务报告'
+  if (statusText.includes('等待就诊人确认')) return '就诊人确认服务完成并评价'
+  if (statusText.includes('已确认完成') || statusText.includes('已评价')) return '订单已闭环'
+  if (statusText.includes('取消')) return '订单已结束'
+  return ''
+}
+
 const pushOrderDynamic = (order, statusText, options = {}) => {
   const targetId = Number(options.targetId || getOrderChatTarget(order, options.senderId || demoUser.id))
   const senderId = Number(options.senderId || demoUser.id)
   const senderWorker = workers.find((item) => item.user_id === senderId)
   const serviceName = order.service_name || subTypeMeta[order.task_type]?.name || '陪诊服务'
+  const routeText = [order.address, order.target_hospital || order.targetHospital].filter(Boolean).join(' → ')
+  const timeText = formatOrderDynamicTime(order)
+  const amountText = Number(order.total_amount || 0)
   const message = {
     id: messages.length + 1,
     from_user_id: senderId,
     to_user_id: targetId,
-    content: `[订单动态] ${serviceName} · ${statusText}`,
+    content: [
+      '[订单动态]',
+      `服务：${serviceName}`,
+      `状态：${statusText}`,
+      `订单ID：${order.id}`,
+      `订单：${order.order_no}`,
+      `金额：¥${amountText.toFixed(amountText % 1 === 0 ? 0 : 2)}`,
+      routeText ? `路线：${routeText}` : '',
+      timeText ? `时间：${timeText}` : '',
+      order.special_requirements ? `要求：${order.special_requirements}` : '',
+      inferOrderNextAction(statusText) ? `下一步：${inferOrderNextAction(statusText)}` : ''
+    ].filter(Boolean).join('\n'),
     type: 3,
     order_id: order.id,
     order_no: order.order_no,
     order_status: order.status,
     order_status_text: statusText,
     order_amount: order.total_amount,
+    order_route: routeText,
+    order_time: timeText,
+    order_requirement: order.special_requirements || '',
+    next_action: inferOrderNextAction(statusText),
     service_name: serviceName,
     created_at: iso(0),
     from_nickname: options.senderName || senderWorker?.nickname || demoUser.nickname,

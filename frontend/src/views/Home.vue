@@ -151,8 +151,8 @@
                 <span v-else>{{ task.typeIcon }} {{ task.typeName }}</span>
               </span>
             </div>
-            <h3 class="task-title">{{ task.subTypeName || task.typeName || '陪诊服务' }}</h3>
-            <p class="task-route">{{ formatTaskRoute(task) }}</p>
+            <h3 class="task-title">{{ formatTaskRoute(task) }}</h3>
+            <p v-if="formatTaskHint(task)" class="task-route">{{ formatTaskHint(task) }}</p>
             <div class="task-facts" aria-label="任务关键信息">
               <div class="task-fact">
                 <span>距离</span>
@@ -649,6 +649,12 @@ const formatTaskRoute = (task) => {
   const start = task.address || task.employerCommunity || '就诊人小区'
   const end = task.targetHospital || '目标医院'
   return `${start} → ${end}`
+}
+
+const formatTaskHint = (task) => {
+  const requirement = task.specialRequirements || task.special_requirements || ''
+  if (!requirement) return ''
+  return requirement.split('|').map((item) => item.trim()).filter(Boolean).slice(-1)[0]
 }
 
 const formatDuration = (minutes) => {

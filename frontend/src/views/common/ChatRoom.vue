@@ -38,7 +38,33 @@
                 <span>{{ orderDynamicInfo(msg).orderNo }}</span>
                 <em v-if="orderDynamicInfo(msg).amount">¥{{ orderDynamicInfo(msg).amount }}</em>
               </div>
-              <p>{{ cleanOrderContent(msg) }}</p>
+              <div class="order-dynamic-detail" v-if="orderDynamicInfo(msg).route">
+                <span>服务路线</span>
+                <strong>{{ orderDynamicInfo(msg).route }}</strong>
+              </div>
+              <div class="order-dynamic-grid">
+                <div v-if="orderDynamicInfo(msg).time">
+                  <span>服务时间</span>
+                  <strong>{{ orderDynamicInfo(msg).time }}</strong>
+                </div>
+                <div v-if="orderDynamicInfo(msg).requirement">
+                  <span>陪诊要求</span>
+                  <strong>{{ orderDynamicInfo(msg).requirement }}</strong>
+                </div>
+              </div>
+              <div class="order-dynamic-next" v-if="orderDynamicInfo(msg).nextAction">
+                <span>下一步</span>
+                <strong>{{ orderDynamicInfo(msg).nextAction }}</strong>
+              </div>
+              <button
+                v-if="orderDynamicInfo(msg).orderId"
+                class="order-dynamic-link"
+                type="button"
+                @click.stop="goToOrderDetail(orderDynamicInfo(msg).orderId)"
+              >
+                查看订单
+              </button>
+              <p v-if="orderDynamicInfo(msg).summary">{{ orderDynamicInfo(msg).summary }}</p>
             </div>
             <p v-else>{{ msg.content }}</p>
             <span class="time">{{ formatTime(msg.created_at) }}</span>
@@ -277,17 +303,62 @@ const cleanOrderContent = (msg) => {
   return String(msg?.content || '').replace(/^\[订单动态\]\s*/, '')
 }
 
+const lineValue = (content, label) => {
+  const line = String(content || '')
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(`${label}:`) || item.startsWith(`${label}：`))
+  return line ? line.replace(new RegExp(`^${label}[:：]\\s*`), '').trim() : ''
+}
+
+const formatDynamicAmount = (value) => {
+  if (value === undefined || value === null || value === '') return ''
+  const clean = String(value).replace(/^¥/, '').trim()
+  const amount = Number(clean)
+  return Number.isFinite(amount) ? amount.toFixed(amount % 1 === 0 ? 0 : 2) : clean
+}
+
+const inferDynamicNextAction = (status) => {
+  if (/待报价/.test(status)) return '等待陪诊师确认最终报价'
+  if (/待支付/.test(status)) return '就诊人确认报价并完成支付'
+  if (/待服务/.test(status)) return '按约定时间到达就诊人地点'
+  if (/服务已开始|服务中/.test(status)) return '同步陪诊进度并完成服务报告'
+  if (/待确认/.test(status)) return '等待就诊人确认服务完成'
+  if (/已完成|已评价/.test(status)) return '订单已闭环'
+  return ''
+}
+
 const orderDynamicInfo = (msg) => {
   const cleanContent = cleanOrderContent(msg)
   const parts = cleanContent.split('·').map((item) => item.trim()).filter(Boolean)
   const orderNo = parts.find((item) => /^ORD/i.test(item))
   const amountText = parts.find((item) => /^¥/.test(item))
+  const status = msg?.order_status_text || lineValue(cleanContent, '状态') || parts[1] || '状态已更新'
+  const service = msg?.service_name || lineValue(cleanContent, '服务') || parts[0] || '陪诊服务'
+  const orderId = msg?.order_id || lineValue(cleanContent, '订单ID')
+  const routeText = msg?.order_route || lineValue(cleanContent, '路线')
+  const timeText = msg?.order_time || lineValue(cleanContent, '时间')
+  const requirementText = msg?.order_requirement || lineValue(cleanContent, '要求')
+  const nextAction = msg?.next_action || lineValue(cleanContent, '下一步') || inferDynamicNextAction(status)
+  const summary = (!routeText && !timeText && !requirementText)
+    ? cleanContent.replace(/\s*·\s*/g, ' · ')
+    : ''
   return {
-    service: msg?.service_name || parts[0] || '陪诊服务',
-    status: msg?.order_status_text || parts[1] || '状态已更新',
-    orderNo: msg?.order_no || orderNo || '订单已生成',
-    amount: msg?.order_amount || amountText?.replace('¥', '') || ''
+    service,
+    status,
+    orderNo: msg?.order_no || lineValue(cleanContent, '订单') || orderNo || '订单已生成',
+    orderId,
+    amount: formatDynamicAmount(msg?.order_amount || lineValue(cleanContent, '金额') || amountText?.replace('¥', '') || ''),
+    route: routeText,
+    time: timeText,
+    requirement: requirementText,
+    nextAction,
+    summary
   }
+}
+
+const goToOrderDetail = (orderId) => {
+  router.push(`/common/order/${orderId}`)
 }
 
 const scrollToBottom = () => {
@@ -791,6 +862,69 @@ onUnmounted(() => {
   font-size: 15px;
   line-height: 1.45;
   word-break: break-word;
+}
+
+.order-dynamic-detail,
+.order-dynamic-grid,
+.order-dynamic-next {
+  margin-top: 10px;
+}
+
+.order-dynamic-detail,
+.order-dynamic-grid > div,
+.order-dynamic-next {
+  display: grid;
+  gap: 5px;
+  padding: 10px 11px;
+  border: 1px solid #F2E6DE;
+  border-radius: 14px;
+  background: #FFF9F2;
+}
+
+.order-dynamic-detail span,
+.order-dynamic-grid span,
+.order-dynamic-next span {
+  color: #9A7A6C;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.order-dynamic-detail strong,
+.order-dynamic-grid strong,
+.order-dynamic-next strong {
+  color: #4F3A32;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 900;
+  word-break: break-word;
+}
+
+.order-dynamic-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.order-dynamic-next {
+  border-color: #F1D2C9;
+  background: #FFF0EC;
+}
+
+.order-dynamic-next strong {
+  color: #D94A37;
+}
+
+.order-dynamic-link {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 12px;
+  border: 1px solid #D94A37;
+  border-radius: 13px;
+  background: #D94A37;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .input-area {
