@@ -72,28 +72,34 @@
         </div>
         <div v-if="completedServiceOrder" class="service-review-card" role="region" aria-label="服务评价">
           <div class="service-review-head">
-            <strong>服务已结束</strong>
-            <span>请为本次陪诊服务评价</span>
+            <strong>{{ reviewSubmitted ? '评价已提交' : '服务已结束' }}</strong>
+            <span>{{ reviewSubmitted ? '评分已记录，提交后不可再次修改' : '请为本次陪诊服务评价' }}</span>
           </div>
-          <div class="service-review-scores">
-            <div v-for="item in reviewFields" :key="item.key" class="service-review-row">
+          <div v-if="reviewSubmitted" class="service-review-done">
+            <div v-for="item in reviewFields" :key="item.key" class="review-summary-item">
               <span>{{ item.label }}</span>
-              <div class="score-buttons">
-                <button
-                  v-for="score in [1, 2, 3, 4, 5]"
-                  :key="score"
-                  type="button"
-                  :class="{ active: reviewForm[item.key] === score }"
-                  @click="reviewForm[item.key] = score"
-                >
-                  {{ score }}
-                </button>
-              </div>
+              <strong>{{ reviewForm[item.key] }}分</strong>
             </div>
           </div>
-          <button class="service-review-submit" type="button" :disabled="reviewSubmitted" @click="submitServiceReview">
-            {{ reviewSubmitted ? '已提交评价' : '提交评价' }}
-          </button>
+          <template v-else>
+            <div class="service-review-scores">
+              <div v-for="item in reviewFields" :key="item.key" class="service-review-row">
+                <span>{{ item.label }}</span>
+                <div class="score-buttons">
+                  <button
+                    v-for="score in [1, 2, 3, 4, 5]"
+                    :key="score"
+                    type="button"
+                    :class="{ active: reviewForm[item.key] === score }"
+                    @click="reviewForm[item.key] = score"
+                  >
+                    {{ score }}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button class="service-review-submit" type="button" @click="submitServiceReview">提交评价</button>
+          </template>
         </div>
       </div>
 
@@ -535,6 +541,12 @@ const fetchReviewContext = async () => {
       completedServiceOrder.value = (res.data.orders || []).find((order) => {
         return Number(order.worker_id) === Number(targetUserId.value)
       }) || null
+      if (completedServiceOrder.value?.review) {
+        reviewSubmitted.value = true
+        reviewForm.punctuality = Number(completedServiceOrder.value.review.punctuality || reviewForm.punctuality)
+        reviewForm.communication = Number(completedServiceOrder.value.review.communication || reviewForm.communication)
+        reviewForm.process = Number(completedServiceOrder.value.review.process || reviewForm.process)
+      }
     }
   } catch (e) {
     completedServiceOrder.value = null
@@ -767,6 +779,7 @@ onUnmounted(() => {
 }
 
 .bubble.order-bubble {
+  max-width: min(88vw, 380px);
   padding: 0;
   border: none;
   background: transparent;
@@ -774,8 +787,10 @@ onUnmounted(() => {
 }
 
 .message-item.mine .bubble.order-bubble {
-  background: transparent;
-  color: inherit;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
 }
 
 .bubble.order-bubble .time {
@@ -789,8 +804,8 @@ onUnmounted(() => {
 }
 
 .order-dynamic-card {
-  width: min(280px, 76vw);
-  padding: 14px;
+  width: min(336px, calc(100vw - 84px));
+  padding: 15px;
   border: 1px solid #EBD8CF;
   border-radius: 18px;
   background: #fffdf8;
@@ -821,7 +836,9 @@ onUnmounted(() => {
 .order-dynamic-head strong {
   font-size: 14px;
   color: #8A4D2A;
-  white-space: nowrap;
+  line-height: 1.35;
+  text-align: right;
+  word-break: keep-all;
 }
 
 .order-dynamic-card h3 {
@@ -845,6 +862,7 @@ onUnmounted(() => {
   font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .order-dynamic-meta em {
@@ -1040,6 +1058,37 @@ onUnmounted(() => {
 .service-review-scores {
   display: grid;
   gap: 10px;
+}
+
+.service-review-done {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #F2E6DE;
+  border-radius: 16px;
+  background: #FFF9F2;
+}
+
+.review-summary-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.review-summary-item span {
+  color: #7D6257;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.review-summary-item strong {
+  color: #D94A37;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .service-review-row {

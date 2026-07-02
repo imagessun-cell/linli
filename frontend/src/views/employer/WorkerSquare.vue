@@ -61,8 +61,8 @@
               {{ honorLevelNumber(worker.honor_level) }}
             </span>
             <span class="stat-label level-label">
-              等级
-              <button class="level-info-btn" type="button" aria-label="查看等级标准" @click.stop="openLevelDialog(worker)">i</button>
+              服务级别
+              <button class="level-info-btn" type="button" aria-label="查看服务级别标准" @click.stop="openLevelDialog(worker)">i</button>
             </span>
           </div>
         </div>
@@ -163,8 +163,8 @@
       @click.self="showLevelDialog = false"
     >
       <div class="linli-modal-card">
-        <h2 id="level-title">陪诊师等级标准</h2>
-        <p class="modal-lead">等级会结合完成订单、服务小时、评分和投诉记录综合计算。</p>
+        <h2 id="level-title">陪诊师服务级别标准</h2>
+        <p class="modal-lead">服务级别会结合完成订单、服务小时、评分和投诉记录综合计算。</p>
         <div class="level-rule-list">
           <div v-for="rule in levelRules" :key="rule.level" class="level-rule">
             <strong>{{ rule.level }}</strong>

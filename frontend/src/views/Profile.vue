@@ -18,6 +18,14 @@
           <span v-if="isLoggedIn" class="meta-chip community"><em>社区</em>{{ displayCommunity }}</span>
           <span v-else class="meta-chip community">登录后查看更多信息</span>
         </div>
+        <button
+          v-if="isLoggedIn"
+          class="profile-edit-btn"
+          type="button"
+          @click="openProfileEditor"
+        >
+          编辑资料
+        </button>
       </div>
     </header>
 
@@ -252,6 +260,28 @@
       </div>
     </el-dialog>
 
+    <el-dialog v-model="showProfileEditor" title="编辑个人信息" width="92%" align-center>
+      <div class="profile-edit-dialog">
+        <label class="profile-edit-field">
+          <span>姓名/昵称</span>
+          <input v-model="profileEditForm.nickname" type="text" placeholder="请输入姓名或昵称" />
+        </label>
+        <label class="profile-edit-field">
+          <span>年龄</span>
+          <input v-model="profileEditForm.age" type="number" inputmode="numeric" min="1" max="120" placeholder="请输入年龄" />
+        </label>
+        <label class="profile-edit-field">
+          <span>所在社区</span>
+          <input v-model="profileEditForm.community" type="text" placeholder="请输入所在社区或小区" />
+        </label>
+        <p class="profile-edit-tip">资料会同步用于陪诊师和就诊人两个身份展示。</p>
+      </div>
+      <template #footer>
+        <el-button @click="showProfileEditor = false">取消</el-button>
+        <el-button type="primary" :loading="profileEditSaving" @click="saveProfileEditor">保存</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="showWorkerStatDetail" :title="activeWorkerStat?.title || '服务统计详情'" width="92%" align-center>
       <div v-if="activeWorkerStat" class="stat-detail-dialog">
         <div class="stat-detail-hero">
@@ -328,13 +358,20 @@ const showRecharge = ref(false)
 const showWithdraw = ref(false)
 const showWalletDetail = ref(false)
 const showCreditDetail = ref(false)
+const showProfileEditor = ref(false)
 const showRealnameDialog = ref(false)
 const showWorkerStatDetail = ref(false)
 const activeWorkerStat = ref(null)
 const walletActionLoading = ref(false)
+const profileEditSaving = ref(false)
 const realnameLoading = ref(false)
 const rechargeForm = ref({ amount: '' })
 const withdrawForm = ref({ amount: '' })
+const profileEditForm = ref({
+  nickname: '',
+  age: '',
+  community: ''
+})
 const realnameFrontInputRef = ref()
 const realnameBackInputRef = ref()
 const realnameForm = ref({
@@ -347,6 +384,7 @@ const realnameForm = ref({
 const txTypeNames = { 1: '服务收入', 2: '提现申请', 3: '积分兑换', 4: '钱包充值' }
 const taskTypes = ['', '全程陪同', '挂号取药', '门诊陪护', '代为问诊', '陪诊师培训']
 const orderStatusNames = { 1: '待服务', 2: '服务中', 3: '待确认', 4: '已完成', 5: '已取消', 6: '退款中', 7: '待报价', 8: '待支付' }
+const PROFILE_OVERRIDE_KEY = 'linli_profile_override'
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const userInfo = computed(() => userStore.userInfo)
@@ -473,6 +511,39 @@ const formatTxAmount = (tx) => {
   return `+¥${amount}`
 }
 
+const buildProfileWithOverride = (base, override) => {
+  if (!base || !override) return base
+  const age = Number(override.age || base.age || base.worker?.age || base.employer?.age || 0)
+  const community = override.community || base.community || base.worker?.community || base.employer?.community || ''
+  return {
+    ...base,
+    nickname: override.nickname || base.nickname,
+    real_name: override.nickname || base.real_name,
+    age,
+    community,
+    worker: {
+      ...(base.worker || {}),
+      age,
+      community
+    },
+    employer: {
+      ...(base.employer || {}),
+      age,
+      community
+    }
+  }
+}
+
+const applyProfileOverride = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROFILE_OVERRIDE_KEY) || 'null')
+    if (!saved || !userInfo.value) return
+    userStore.setUserInfo(buildProfileWithOverride(userInfo.value, saved))
+  } catch (e) {
+    localStorage.removeItem(PROFILE_OVERRIDE_KEY)
+  }
+}
+
 const fetchWallet = async () => {
   try {
     const res = await request.get('/worker/wallet')
@@ -525,6 +596,51 @@ const openWalletDetail = async () => {
 const openWorkerStatDetail = (stat) => {
   activeWorkerStat.value = stat
   showWorkerStatDetail.value = true
+}
+
+const openProfileEditor = () => {
+  profileEditForm.value = {
+    nickname: displayName.value === '游客' ? '' : displayName.value,
+    age: String(userInfo.value?.age || userInfo.value?.worker?.age || workerInfo.value?.age || userInfo.value?.employer?.age || employerInfo.value?.age || ''),
+    community: displayCommunity.value === '社区待完善' ? '' : displayCommunity.value
+  }
+  showProfileEditor.value = true
+}
+
+const saveProfileEditor = async () => {
+  const nickname = profileEditForm.value.nickname.trim()
+  const age = Number(profileEditForm.value.age)
+  const community = profileEditForm.value.community.trim()
+  if (!nickname) {
+    ElMessage.warning('请填写姓名或昵称')
+    return
+  }
+  if (!age || age < 1 || age > 120) {
+    ElMessage.warning('请填写正确年龄')
+    return
+  }
+  if (!community) {
+    ElMessage.warning('请填写所在社区')
+    return
+  }
+  profileEditSaving.value = true
+  try {
+    await request.put('/auth/profile', {
+      nickname,
+      avatar_url: userInfo.value?.avatar_url || '',
+      age,
+      community
+    }).catch(() => null)
+    const override = { nickname, age, community }
+    localStorage.setItem(PROFILE_OVERRIDE_KEY, JSON.stringify(override))
+    userStore.setUserInfo(buildProfileWithOverride(userInfo.value, override))
+    workerInfo.value = userInfo.value?.worker
+    employerInfo.value = userInfo.value?.employer
+    showProfileEditor.value = false
+    ElMessage.success('资料已更新')
+  } finally {
+    profileEditSaving.value = false
+  }
 }
 
 const handleRecharge = async () => {
@@ -641,6 +757,7 @@ const handleLogout = () => {
 onMounted(async () => {
   if (userStore.isLoggedIn) {
     await userStore.fetchProfile()
+    applyProfileOverride()
     workerInfo.value = userInfo.value?.worker
     employerInfo.value = userInfo.value?.employer
     await Promise.all([refreshWallet(), fetchProfileOrders()])
@@ -1487,6 +1604,13 @@ onMounted(async () => {
   color: var(--text-primary);
 }
 
+.avatar-section {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "avatar name edit"
+    "avatar meta edit";
+}
+
 .avatar-wrapper {
   border: none;
   background: #fff;
@@ -1501,6 +1625,28 @@ onMounted(async () => {
 
 .profile-meta {
   gap: 7px;
+}
+
+.profile-edit-btn {
+  grid-area: edit;
+  align-self: center;
+  min-width: 78px;
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 253, 251, 0.86) !important;
+  color: var(--accent) !important;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 900;
+  box-shadow: none !important;
+}
+
+.profile-edit-btn:hover {
+  background: var(--accent-light) !important;
+  border-color: var(--accent-soft) !important;
+  color: var(--accent) !important;
 }
 
 .meta-chip {
@@ -1895,7 +2041,62 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
+.profile-edit-dialog {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-edit-field {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.profile-edit-field span {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.profile-edit-field input {
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #FFFCF8;
+  color: var(--text-primary);
+  box-shadow: none;
+  outline: none;
+}
+
+.profile-edit-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(217, 74, 55, 0.08);
+}
+
+.profile-edit-tip {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 800;
+}
+
 @media (max-width: 380px) {
+  .avatar-section {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "avatar name"
+      "avatar meta"
+      "edit edit";
+  }
+
+  .profile-edit-btn {
+    justify-self: stretch;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr;
   }

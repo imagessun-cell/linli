@@ -1,6 +1,6 @@
 <template>
   <router-view v-slot="{ Component, route }">
-    <Transition name="ios-page" appear>
+    <Transition :name="route.meta.pageTransition || 'ios-page'" appear>
       <component :is="Component" :key="route.fullPath" />
     </Transition>
   </router-view>
@@ -276,6 +276,47 @@ label {
 .ios-page-leave-to {
   opacity: 0.92;
   transform: translate3d(-18px, 0, 0) scale(0.995);
+}
+
+.publish-rise-enter-active,
+.publish-rise-leave-active {
+  transition:
+    transform 0.32s var(--transition-smooth),
+    opacity 0.22s ease;
+  transform-origin: center bottom;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+.publish-rise-enter-active {
+  position: relative;
+  z-index: 1;
+}
+
+.publish-rise-leave-active {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  width: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.publish-rise-enter-from {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0) scale(0.985);
+}
+
+.publish-rise-enter-to,
+.publish-rise-leave-from {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.publish-rise-leave-to {
+  opacity: 0.94;
+  transform: translate3d(0, -4px, 0) scale(0.997);
 }
 
 .task-card,
@@ -1152,6 +1193,8 @@ label {
 
   .ios-page-enter-active,
   .ios-page-leave-active,
+  .publish-rise-enter-active,
+  .publish-rise-leave-active,
   .task-card,
   .profile-entry,
   .info-section,

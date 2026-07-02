@@ -3,7 +3,6 @@
     <section class="tasks-hero">
       <div class="hero-top">
         <button class="hero-back" type="button" aria-label="返回上一页" @click="$router.back()">‹</button>
-        <span>陪诊师工作台</span>
       </div>
       <h1>我的任务</h1>
       <p>查看服务进度，按时开始和完成陪诊。</p>

@@ -19,8 +19,8 @@ router.get('/:orderId', authMiddleware, async (req, res) => {
     const order = await db.getSync(`
       SELECT o.*, COALESCE(t.sub_type, t.type) as task_type, t.sub_type, t.address, t.target_hospital,
              t.duration_minutes, t.start_time, t.end_time, t.special_requirements,
-             eu.nickname as employer_nickname, eu.phone as employer_phone,
-             wu.nickname as worker_nickname, wu.phone as worker_phone,
+             eu.nickname as employer_nickname, eu.phone as employer_phone, eu.avatar_url as employer_avatar,
+             wu.nickname as worker_nickname, wu.phone as worker_phone, wu.avatar_url as worker_avatar,
              r.id as review_id, r.punctuality as review_punctuality,
              r.communication as review_communication, r.process as review_process,
              r.comment as review_comment, r.created_at as review_created_at

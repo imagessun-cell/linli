@@ -173,10 +173,10 @@ let messages = [
 ]
 
 let orders = [
-  { id: 1, task_id: 1, order_no: 'ORD20260626001', employer_id: 15, worker_id: 21, task_type: 1, service_name: '全程陪同', address: '望京西园四区', target_hospital: '北京中医药大学东方医院', start_time: iso(24), end_time: iso(25.5), duration_minutes: 90, worker_nickname: '张阿姨', worker_phone: '13800000001', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 140, platform_commission: 14, worker_income: 126, status: 2, order_status_text: '服务中', payment_status: 'paid', created_at: iso(-20), special_requirements: '请提前十分钟到达，协助老人完成缴费。' },
-  { id: 2, task_id: 2, order_no: 'ORD20260625003', employer_id: 15, worker_id: 22, task_type: 3, service_name: '门诊陪护', address: '花家地北里', target_hospital: '中日友好医院', start_time: iso(-24), end_time: iso(-22.5), duration_minutes: 90, worker_nickname: '刘师傅', worker_phone: '13800000002', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 120, platform_commission: 12, worker_income: 108, status: 4, order_status_text: '已完成', payment_status: 'paid', created_at: iso(-48), special_requirements: '陪同复诊并记录医生建议。' },
-  { id: 3, task_id: 1003, order_no: 'ORD20260629007', employer_id: 13, worker_id: 15, task_type: 1, service_name: '全程陪同', address: '和平里七区', target_hospital: '北京积水潭医院新街口院区', start_time: iso(22), end_time: iso(25), duration_minutes: 180, worker_nickname: '林阿姨', worker_phone: '13900000001', employer_nickname: '赵阿姨', employer_phone: '13900000003', total_amount: 168, platform_commission: 16.8, worker_income: 151.2, status: 7, order_status_text: '待报价', payment_status: 'pending_quote', created_at: iso(-1.2), special_requirements: '就诊人腰腿不便，需要陪同候诊、缴费并整理医嘱。', quote_note: '请陪诊师根据路线和服务要求确认最终报价。' },
-  { id: 4, task_id: 1004, order_no: 'ORD20260629008', employer_id: 15, worker_id: 23, task_type: 1, service_name: '全程陪同', address: '朝阳区花家地社区', target_hospital: '中日友好医院', start_time: iso(30), end_time: iso(33), duration_minutes: 180, worker_nickname: '陈阿姨', worker_phone: '13800000003', employer_nickname: '林阿姨', employer_phone: '13900000001', total_amount: 188, platform_commission: 18.8, worker_income: 169.2, status: 8, order_status_text: '待支付', payment_status: 'pending_payment', created_at: iso(-0.8), special_requirements: '需要提前到小区门口接人，协助排队检查并提醒复诊安排。', quote_note: '已包含三小时全程陪同、院内排队协助和医嘱整理。' }
+  { id: 1, task_id: 1, order_no: 'ORD20260626001', employer_id: 15, worker_id: 21, task_type: 1, service_name: '全程陪同', address: '望京西园四区', target_hospital: '北京中医药大学东方医院', start_time: iso(24), end_time: iso(25.5), duration_minutes: 90, worker_nickname: '张阿姨', worker_phone: '13800000001', worker_avatar: avatars.workers[0], employer_nickname: '林阿姨', employer_phone: '13900000001', employer_avatar: avatars.currentUser, total_amount: 140, platform_commission: 14, worker_income: 126, status: 2, order_status_text: '服务中', payment_status: 'paid', created_at: iso(-20), special_requirements: '请提前十分钟到达，协助老人完成缴费。' },
+  { id: 2, task_id: 2, order_no: 'ORD20260625003', employer_id: 15, worker_id: 22, task_type: 3, service_name: '门诊陪护', address: '花家地北里', target_hospital: '中日友好医院', start_time: iso(-24), end_time: iso(-22.5), duration_minutes: 90, worker_nickname: '刘师傅', worker_phone: '13800000002', worker_avatar: avatars.workers[1], employer_nickname: '林阿姨', employer_phone: '13900000001', employer_avatar: avatars.currentUser, total_amount: 120, platform_commission: 12, worker_income: 108, status: 4, order_status_text: '已完成', payment_status: 'paid', created_at: iso(-48), special_requirements: '陪同复诊并记录医生建议。' },
+  { id: 3, task_id: 1003, order_no: 'ORD20260629007', employer_id: 13, worker_id: 15, task_type: 1, service_name: '全程陪同', address: '和平里七区', target_hospital: '北京积水潭医院新街口院区', start_time: iso(22), end_time: iso(25), duration_minutes: 180, worker_nickname: '林阿姨', worker_phone: '13900000001', worker_avatar: avatars.currentUser, employer_nickname: '赵阿姨', employer_phone: '13900000003', employer_avatar: avatars.patients[2], total_amount: 168, platform_commission: 16.8, worker_income: 151.2, status: 7, order_status_text: '待报价', payment_status: 'pending_quote', created_at: iso(-1.2), special_requirements: '就诊人腰腿不便，需要陪同候诊、缴费并整理医嘱。', quote_note: '请陪诊师根据路线和服务要求确认最终报价。' },
+  { id: 4, task_id: 1004, order_no: 'ORD20260629008', employer_id: 15, worker_id: 23, task_type: 1, service_name: '全程陪同', address: '朝阳区花家地社区', target_hospital: '中日友好医院', start_time: iso(30), end_time: iso(33), duration_minutes: 180, worker_nickname: '陈阿姨', worker_phone: '13800000003', worker_avatar: avatars.workers[2], employer_nickname: '林阿姨', employer_phone: '13900000001', employer_avatar: avatars.currentUser, total_amount: 188, platform_commission: 18.8, worker_income: 169.2, status: 8, order_status_text: '待支付', payment_status: 'pending_payment', created_at: iso(-0.8), special_requirements: '需要提前到小区门口接人，协助排队检查并提醒复诊安排。', quote_note: '已包含三小时全程陪同、院内排队协助和医嘱整理。' }
 ]
 
 let preHistoryRecords = [
@@ -395,8 +395,10 @@ const createOrderFromTask = (task, workerId = demoUser.id, options = {}) => {
     duration_minutes: service.minutes || task.duration || task.duration_minutes,
     worker_nickname: worker.nickname,
     worker_phone: '13800000001',
+    worker_avatar: worker.avatar_url,
     employer_nickname: task.employerNickname || task.employer_nickname || demoUser.nickname,
     employer_phone: demoUser.phone,
+    employer_avatar: task.employerAvatar || task.employer_avatar || demoUser.avatar_url,
     total_amount: amount,
     platform_commission: Math.round(amount * 10) / 100,
     worker_income: Math.round(amount * 90) / 100,
@@ -702,6 +704,16 @@ export const createDemoRequest = () => ({
     if (url === '/auth/switch-role') {
       demoUser.role = Number(data.role || demoUser.role)
       return ok({ token: 'demo-token', role: demoUser.role })
+    }
+    if (url === '/auth/profile' || url === '/user/profile') {
+      demoUser.nickname = data.nickname || demoUser.nickname
+      demoUser.real_name = data.nickname || demoUser.real_name
+      demoUser.avatar_url = data.avatar_url || demoUser.avatar_url
+      demoUser.age = Number(data.age || demoUser.age)
+      demoUser.community = data.community || demoUser.community
+      demoUser.worker = { ...demoUser.worker, age: demoUser.age, community: demoUser.community }
+      demoUser.employer = { ...demoUser.employer, age: demoUser.age, community: demoUser.community }
+      return ok(demoUser, '更新成功')
     }
     if (url.includes('/start')) {
       const id = Number(url.split('/').find((part) => /^\d+$/.test(part)))

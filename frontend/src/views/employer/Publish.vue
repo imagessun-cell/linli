@@ -202,7 +202,7 @@
 
     <div class="actions">
       <div class="insurance-badge">
-        <span class="insurance-badge__text">50万陪诊意外险<span class="insurance-badge__free">平台免费赠送</span></span>
+        <span class="insurance-badge__text">50万陪诊意外险<span class="insurance-badge__free">平台保障</span></span>
         <span class="insurance-badge__detail" @click="showInsuranceDetail = true">
           详情 <span class="arrow">›</span>
         </span>
@@ -225,8 +225,8 @@
             <span>意外身故/伤残</span>
           </div>
           <div>
-            <strong>0元</strong>
-            <span>平台免费赠送</span>
+            <strong>全程</strong>
+            <span>陪诊期间生效</span>
           </div>
         </div>
         <div class="insurance-list">

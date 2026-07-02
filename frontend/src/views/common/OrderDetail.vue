@@ -1,7 +1,11 @@
 <template>
   <div class="order-detail" :class="{ 'has-fixed-actions': showActions }" v-if="order">
+    <header class="order-detail-nav">
+      <button class="back-btn order-back" type="button" aria-label="返回上一页" @click="router.back()">‹</button>
+      <span>订单信息</span>
+    </header>
     <div class="section">
-      <h3>订单信息</h3>
+      <h3>订单概览</h3>
       <div class="info-grid">
         <div class="info-item">
           <span class="label">订单号</span>
@@ -46,7 +50,7 @@
         <div class="worker-info-card">
           <LinliAvatar
             :name="order.worker_nickname || '陪诊师'"
-            :src="order.worker_avatar || workerCert?.avatar_url"
+            :src="order.worker_avatar"
             variant="worker"
             :size="52"
           />
@@ -99,33 +103,51 @@
       </button>
     </div>
 
-    <div class="section pay-section" v-if="isEmployer && order.status === 8">
-      <h3>待支付</h3>
+    <div class="section pay-section" v-if="isEmployer && isPendingPayment">
+      <h3>待支付 · 费用确认</h3>
       <p class="quote-lead">陪诊师已根据路线和要求确认报价，支付后进入待服务。</p>
       <div class="pay-summary">
         <span>本次需支付</span>
         <strong>¥{{ formatMoney(order.total_amount) }}</strong>
         <em>{{ order.quote_note || '含平台保障与订单动态通知' }}</em>
       </div>
+      <div class="pay-breakdown" aria-label="支付费用明细">
+        <div class="pay-breakdown-row">
+          <span>服务费用</span>
+          <strong>¥{{ formatMoney(order.total_amount) }}</strong>
+        </div>
+        <div class="pay-breakdown-row">
+          <span>平台服务费</span>
+          <strong>¥{{ formatMoney(order.platform_commission) }}</strong>
+        </div>
+        <div class="pay-breakdown-row">
+          <span>陪诊师收入</span>
+          <strong>¥{{ formatMoney(order.worker_income) }}</strong>
+        </div>
+        <div class="pay-breakdown-row subtle">
+          <span>陪诊意外险</span>
+          <strong>50万保障</strong>
+        </div>
+      </div>
       <button class="quote-submit" type="button" :disabled="payLoading" @click="payOrder">
-        {{ payLoading ? '支付中...' : '确认支付' }}
+        {{ payLoading ? '支付中...' : `确认支付 ¥${formatMoney(order.total_amount)}` }}
       </button>
     </div>
 
-    <div class="section">
+    <div class="section" v-if="showFeeSection">
       <h3>费用信息（透明公示）</h3>
       <div class="fee-list" aria-label="费用明细">
         <div class="fee-row">
           <span>服务费用</span>
-          <strong>¥{{ order.total_amount }}</strong>
+          <strong>¥{{ formatMoney(order.total_amount) }}</strong>
         </div>
         <div class="fee-row">
           <span>平台服务费</span>
-          <strong>¥{{ order.platform_commission }}</strong>
+          <strong>¥{{ formatMoney(order.platform_commission) }}</strong>
         </div>
         <div class="fee-row">
           <span>{{ isWorker ? '预计到账' : '陪诊师收入' }}</span>
-          <strong>¥{{ order.worker_income }}</strong>
+          <strong>¥{{ formatMoney(order.worker_income) }}</strong>
         </div>
         <div class="fee-row">
           <span>陪诊意外险</span>
@@ -133,7 +155,7 @@
         </div>
         <div class="fee-row total">
           <span>合计</span>
-          <strong>¥{{ order.total_amount }}</strong>
+          <strong>¥{{ formatMoney(order.total_amount) }}</strong>
         </div>
       </div>
     </div>
@@ -199,7 +221,7 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import request from '@/api/request'
 import { ElMessage } from 'element-plus'
@@ -211,10 +233,10 @@ import ServiceReportForm from '@/components/v1_4/ServiceReportForm.vue'
 import LinliAvatar from '@/components/LinliAvatar.vue'
 
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 
 const order = ref(null)
-const workerCert = ref(null)
 const checkpointProgress = ref([])
 const showComplaint = ref(false)
 const preHistoryDone = ref(false)
@@ -248,6 +270,8 @@ const statusClass = (status) => {
 
 const isEmployer = computed(() => order.value?.employer_id === userStore.userInfo?.id)
 const isWorker = computed(() => order.value?.worker_id === userStore.userInfo?.id)
+const isPendingPayment = computed(() => Number(order.value?.status) === 8)
+const showFeeSection = computed(() => !isPendingPayment.value)
 const showActions = computed(() => order.value?.status < 4 && order.value?.status !== 8 && (isEmployer.value || isWorker.value))
 const canReview = computed(() => {
   const status = Number(order.value?.status)
@@ -420,13 +444,6 @@ const fetchOrder = async () => {
       quoteForm.amount = String(res.data.total_amount || '')
       quoteForm.quote_note = res.data.quote_note || ''
       reviewSubmitted.value = Boolean(res.data.review)
-      // Fetch worker certification
-      if (res.data.worker_id) {
-        const certRes = await request.get('/v1/certification').catch(() => null)
-        if (certRes?.code === 0) {
-          workerCert.value = certRes.data
-        }
-      }
       if (isWorker.value) {
         fetchCheckpoints()
       }
@@ -452,6 +469,28 @@ onMounted(() => {
 
 .order-detail.has-fixed-actions {
   padding-bottom: calc(110px + env(safe-area-inset-bottom));
+}
+
+.order-detail-nav {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.order-detail-nav span {
+  text-align: center;
+  color: #4F3A32;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.order-back {
+  font-size: 30px !important;
+  line-height: 1 !important;
 }
 
 .section {
@@ -650,6 +689,54 @@ onMounted(() => {
   line-height: 1.45;
   font-style: normal;
   font-weight: 800;
+}
+
+.pay-breakdown {
+  display: grid;
+  gap: 0;
+  margin-bottom: 14px;
+  border: 1px solid #F2E6DE;
+  border-radius: 16px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.pay-breakdown-row {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border-bottom: 1px solid #F5E9E3;
+}
+
+.pay-breakdown-row:last-child {
+  border-bottom: none;
+}
+
+.pay-breakdown-row span {
+  color: #7D6257;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.pay-breakdown-row strong {
+  color: #4F3A32;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pay-breakdown-row.subtle {
+  background: #FFF9F2;
+}
+
+.pay-breakdown-row.subtle strong {
+  color: #9A6A2D;
 }
 
 .quote-field {

@@ -122,7 +122,7 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { nickname, avatar_url } = req.body;
+    const { nickname, avatar_url, age, community } = req.body;
     const now = new Date().toISOString();
 
     await db.runSync(
@@ -130,7 +130,21 @@ const updateProfile = async (req, res) => {
       [nickname, avatar_url, now, req.user.id]
     );
 
+    if (age || community) {
+      const worker = await db.getSync('SELECT * FROM t_worker WHERE user_id = ?', [req.user.id]);
+      if (worker) {
+        await db.runSync(
+          'UPDATE t_worker SET age = ?, community = ? WHERE user_id = ?',
+          [Number(age || worker.age || 0), community || worker.community || '', req.user.id]
+        );
+      }
+    }
+
     const user = await db.getSync('SELECT * FROM t_user WHERE id = ?', [req.user.id]);
+    const worker = await db.getSync('SELECT * FROM t_worker WHERE user_id = ?', [req.user.id]);
+    const employer = await db.getSync('SELECT * FROM t_employer WHERE user_id = ?', [req.user.id]);
+    if (worker) user.worker = worker;
+    if (employer) user.employer = employer;
     res.json({ code: 0, message: '更新成功', data: user });
   } catch (err) {
     console.error('更新个人资料失败:', err);
